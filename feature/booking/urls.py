@@ -1,17 +1,7 @@
-from django.http import JsonResponse
 from django.urls import path
-
-
-def booking_home(request):
-    user_id = request.GET.get("user_id")
-
-    return JsonResponse({
-        "module": "booking",
-        "message": "booking module is running",
-        "user_id": user_id,
-    })
-
+from .views import booking_list_create, booking_test
 
 urlpatterns = [
-    path("", booking_home),
+    path("test/", booking_test, name="booking-test"),
+    path("", booking_list_create, name="booking-list-create"),
 ]
