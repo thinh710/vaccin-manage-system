@@ -3,12 +3,7 @@ from django.urls import path
 
 
 def users_home(request):
-    return JsonResponse({
-        "module": "users",
-        "message": "users module is running"
-    })
+    return JsonResponse({'module': 'users', 'message': 'users module is running'})
 
 
-urlpatterns = [
-    path("", users_home),
-]
+urlpatterns = [path('', users_home)]
