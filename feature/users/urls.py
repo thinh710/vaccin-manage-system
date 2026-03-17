@@ -1,9 +1,6 @@
-from django.http import JsonResponse
 from django.urls import path
+from .views import dashboard
 
-
-def users_home(request):
-    return JsonResponse({'module': 'users', 'message': 'users module is running'})
-
-
-urlpatterns = [path('', users_home)]
+urlpatterns = [
+    path('dashboard/', dashboard, name='dashboard'),
+]

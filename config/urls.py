@@ -1,16 +1,10 @@
 from django.contrib import admin
-from django.http import JsonResponse
+from django.shortcuts import redirect
 from django.urls import include, path
 
 
 def home(request):
-    return JsonResponse(
-        {
-            'message': 'vaccin-manage-system backend is running',
-            'modules': ['assets', 'authentication', 'booking', 'users', 'medical'],
-            'health': 'ok',
-        }
-    )
+    return redirect('/auth/login-page/')
 
 
 urlpatterns = [
