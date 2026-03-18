@@ -1,0 +1,123 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Vaccin Manage System</title>
+    <link rel="stylesheet" href="{% static 'users/css/admin_dashboard.css' %}">
+</head>
+<body>
+    <main class="shell">
+        <section class="hero">
+            <div class="hero-top">
+                <div>
+                    <div class="eyebrow">Admin control center</div>
+                    <h1>Dashboard quan tri cho lich tiem va quan ly kho</h1>
+                    <p>Theo doi lich hen sap toi, xu ly booking cho hom nay va kiem soat ton kho vac xin tren cung mot man hinh.</p>
+                </div>
+                <div class="hero-meta">
+                    <strong>{{ user.full_name }}</strong>
+                    <span>{{ user.email }}</span>
+                    <div style="margin-top: 14px;">Ngay lam viec: {{ today|date:"d/m/Y" }}</div>
+                    <div style="margin-top: 8px;">Vai tro: Quan tri he thong</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid stats">
+            <article class="card stat-card">
+                <small>Lich hen hom nay</small>
+                <strong>{{ todays_bookings_count }}</strong>
+                <span>Can bo tri nhan su cho cac mui tiem trong ngay.</span>
+            </article>
+            <article class="card stat-card">
+                <small>Lich sap toi</small>
+                <strong>{{ upcoming_bookings_count }}</strong>
+                <span>Tong so booking co ngay tiem tu hom nay tro di.</span>
+            </article>
+            <article class="card stat-card">
+                <small>Cho xac nhan</small>
+                <strong>{{ pending_count }}</strong>
+                <span>Nhung booking can admin/staff xac nhan.</span>
+            </article>
+            <article class="card stat-card">
+                <small>Da xac nhan</small>
+                <strong>{{ confirmed_count }}</strong>
+                <span>Booking da san sang cho quy trinh tiem chung.</span>
+            </article>
+        </section>
+
+        <section class="grid content">
+            <article class="card section">
+                <div class="section-head">
+                    <div>
+                        <h2>Lich tiem gan nhat</h2>
+                        <p>Danh sach booking uu tien de admin sap lich va dieu phoi.</p>
+                    </div>
+                    <div class="badge">Tong booking: {{ total_bookings }} • Da huy: {{ cancelled_count }}</div>
+                </div>
+
+                {% if recent_upcoming_bookings %}
+                    <div class="schedule-list">
+                        {% for booking in recent_upcoming_bookings %}
+                            <div class="schedule-item">
+                                <div class="schedule-date">
+                                    {{ booking.vaccine_date|date:"d/m" }}
+                                    <span>{{ booking.vaccine_date|date:"l" }}</span>
+                                </div>
+                                <div class="schedule-info">
+                                    <strong>{{ booking.full_name }} • Mui {{ booking.dose_number }}</strong>
+                                    <div>{{ booking.vaccine_name }} • {{ booking.phone }}{% if booking.email %} • {{ booking.email }}{% endif %}</div>
+                                </div>
+                                <div class="status {{ booking.status }}">{{ booking.status }}</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">Chua co lich tiem sap toi. Admin co the bat dau tiep nhan booking moi.</div>
+                {% endif %}
+            </article>
+
+            <article class="card section">
+                <div class="section-head">
+                    <div>
+                        <h2>Quan ly kho vac xin</h2>
+                        <p>Tong hop nhanh theo tung loai vac xin trong he thong.</p>
+                    </div>
+                    <div class="badge">Canh bao thap nguong duoi 40 lieu</div>
+                </div>
+
+                {% if inventory_summary %}
+                    <table class="inventory-table">
+                        <thead>
+                            <tr>
+                                <th>Vac xin</th>
+                                <th>Ton uoc tinh</th>
+                                <th>Booking</th>
+                                <th>Sap dung</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in inventory_summary %}
+                                <tr>
+                                    <td><strong>{{ item.vaccine_name }}</strong></td>
+                                    <td>
+                                        <span class="stock-chip{% if item.is_low_stock %} low{% endif %}">
+                                            {{ item.estimated_stock }} lieu
+                                        </span>
+                                    </td>
+                                    <td>{{ item.total_bookings }}</td>
+                                    <td>{{ item.upcoming_doses }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="empty-state">Chua co du lieu vac xin de tong hop ton kho.</div>
+                {% endif %}
+            </article>
+        </section>
+    </main>
+</body>
+</html>

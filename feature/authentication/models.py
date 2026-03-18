@@ -3,6 +3,18 @@ from django.contrib.auth.hashers import check_password, make_password
 
 
 class User(models.Model):
+    BLOOD_GROUP_CHOICES = [
+        ('A+', 'A+'),
+        ('A-', 'A-'),
+        ('B+', 'B+'),
+        ('B-', 'B-'),
+        ('AB+', 'AB+'),
+        ('AB-', 'AB-'),
+        ('O+', 'O+'),
+        ('O-', 'O-'),
+        ('UNKNOWN', 'Unknown'),
+    ]
+
     ROLE_ADMIN = 'admin'
     ROLE_CITIZEN = 'citizen'
     ROLE_STAFF = 'staff'
@@ -23,6 +35,13 @@ class User(models.Model):
 
     full_name = models.CharField(max_length=150)
     email = models.EmailField(unique=True)
+    phone_number = models.CharField(max_length=20, blank=True)
+    gender = models.CharField(max_length=20, blank=True)
+    date_of_birth = models.DateField(blank=True, null=True)
+    blood_group = models.CharField(max_length=10, choices=BLOOD_GROUP_CHOICES, default='UNKNOWN')
+    allergies = models.TextField(blank=True)
+    medical_history = models.TextField(blank=True)
+    avatar_data = models.TextField(blank=True)
     password_hash = models.CharField(max_length=255)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_CITIZEN)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE)

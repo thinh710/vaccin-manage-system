@@ -218,6 +218,61 @@ body.auth-body {
     cursor: wait;
 }
 
+.register-role-inline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: -4px;
+}
+
+.register-role-label {
+    font-size: 0.86rem;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.register-role-list {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.register-role-chip {
+    position: relative;
+    cursor: pointer;
+}
+
+.register-role-chip input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.register-role-chip span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--muted);
+    font-size: 0.86rem;
+    font-weight: 700;
+    transition: all 0.18s ease;
+}
+
+.register-role-chip input:checked + span {
+    border-color: rgba(37, 99, 235, 0.3);
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--primary);
+}
+
 .alert {
     padding: 14px 16px;
     border-radius: 14px;
