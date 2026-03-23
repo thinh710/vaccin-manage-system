@@ -5,11 +5,19 @@ class Booking(models.Model):
     STATUS_PENDING = 'pending'
     STATUS_CONFIRMED = 'confirmed'
     STATUS_CANCELLED = 'cancelled'
+    STATUS_CHECKED_IN = 'checked_in'
+    STATUS_SCREENED = 'screened'
+    STATUS_COMPLETED = 'completed'
+    STATUS_DELAYED = 'delayed'
 
     STATUS_CHOICES = [
         (STATUS_PENDING, 'Pending'),
         (STATUS_CONFIRMED, 'Confirmed'),
         (STATUS_CANCELLED, 'Cancelled'),
+        (STATUS_CHECKED_IN, 'Checked In'),
+        (STATUS_SCREENED, 'Screened'),
+        (STATUS_COMPLETED, 'Completed'),
+        (STATUS_DELAYED, 'Delayed'),
     ]
 
     full_name = models.CharField(max_length=100)

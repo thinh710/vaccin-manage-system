@@ -1,8 +1,18 @@
 from django.urls import path
-from .views import medical_record_detail, medical_record_list_create, medical_test
+from .views import (
+    medical_dashboard,
+    today_bookings,
+    check_in_booking,
+    submit_screening_result,
+    submit_vaccination_log,
+    submit_post_injection_tracking
+)
 
 urlpatterns = [
-    path('test/', medical_test, name='medical-test'),
-    path('', medical_record_list_create, name='medical-record-list-create'),
-    path('<int:medical_id>/', medical_record_detail, name='medical-record-detail'),
+    path('dashboard/', medical_dashboard, name='medical-dashboard-page'),
+    path('today/', today_bookings, name='medical-today'),
+    path('<int:booking_id>/check-in/', check_in_booking, name='medical-check-in'),
+    path('screening/', submit_screening_result, name='medical-screening'),
+    path('inject/', submit_vaccination_log, name='medical-inject'),
+    path('monitor/', submit_post_injection_tracking, name='medical-monitor'),
 ]
