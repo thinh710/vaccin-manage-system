@@ -1,0 +1,114 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard | Vaccin Manage System</title>
+    <link rel="stylesheet" href="{% static 'authentication/css/auth.css' %}" />
+    <link rel="stylesheet" href="{% static 'users/css/dashboard.css' %}" />
+</head>
+<body class="auth-body">
+    <div class="dashboard-topbar">
+        <div class="dashboard-topbar-inner">
+            <div class="dashboard-brand">
+                <div class="dashboard-brand-mark" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <div class="dashboard-brand-text">
+                    <strong>TIEM CHUNG VACCINE</strong>
+                    <span>Bao ve suc khoe cho ban va gia dinh</span>
+                </div>
+            </div>
+            <div class="dashboard-user-menu">
+                <div class="dashboard-topbar-badge">Xin chao, {{ user.full_name }}</div>
+                <div class="dashboard-user-panel">
+                    <div class="dashboard-user-info">
+                        {% if user.avatar_data %}
+                            <img class="dashboard-user-avatar dashboard-user-avatar-image" src="{{ user.avatar_data }}" alt="{{ user.full_name }}">
+                        {% else %}
+                            <div class="dashboard-user-avatar">{{ user.full_name|slice:":1"|upper }}</div>
+                        {% endif %}
+                        <div class="dashboard-user-details">
+                            <div><strong>Ten:</strong> {{ user.full_name }}</div>
+                            <div><strong>Email:</strong> {{ user.email }}</div>
+                            <div><strong>Vai tro:</strong> {{ user.role }}</div>
+                            <div><strong>Trang thai:</strong> {{ user.status }}</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-user-actions">
+                        <a class="dashboard-user-action" href="/users/profile/">Ho so</a>
+                        <button class="dashboard-user-action">Lich hen</button>
+                        <button class="dashboard-user-action">Tiem chung</button>
+                    </div>
+                    <button id="logoutBtn" class="dashboard-user-action is-logout" type="button">Logout</button>
+                    <div class="dashboard-user-note">
+                        <h3>Thong bao</h3>
+                        <ul>
+                            <li>Quan ly ho so va lich hen nhanh hon.</li>
+                            <li>Theo doi lich su tiem trong mot cho.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-nav">
+        <div class="dashboard-nav-inner">
+            <a class="dashboard-nav-item is-active" href="#">Vac xin phong benh</a>
+            <a class="dashboard-nav-item" href="#">Lich hen</a>
+            <a class="dashboard-nav-item" href="#">Goi vac xin</a>
+            <a class="dashboard-nav-item" href="#">He thong tiem chung</a>
+            <a class="dashboard-nav-item" href="#">Kien thuc tiem chung</a>
+        </div>
+    </div>
+
+    <div class="dashboard-header">
+        <div class="dashboard-hero">
+            <div class="dashboard-hero-content">
+                <div class="dashboard-hero-chip">Tiem chung an toan</div>
+                <h1>Chao mung, {{ user.full_name }}</h1>
+                <p>Email dang ky: {{ user.email }}. Quan ly ho so, lich hen va tiem chung cua ban tai day voi giao dien truc quan, ro rang va de theo doi.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getCookie(name) {
+            const cookies = document.cookie ? document.cookie.split(';') : [];
+            for (const cookie of cookies) {
+                const trimmedCookie = cookie.trim();
+                if (trimmedCookie.startsWith(name + '=')) {
+                    return decodeURIComponent(trimmedCookie.slice(name.length + 1));
+                }
+            }
+            return '';
+        }
+
+        document.getElementById('logoutBtn')?.addEventListener('click', async function () {
+            try {
+                const response = await fetch('/auth/logout/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Logout failed');
+                }
+
+                window.location.href = '/auth/login-page/';
+            } catch (error) {
+                alert('Khong the dang xuat luc nay. Vui long thu lai.');
+            }
+        });
+    </script>
+</body>
+</html>

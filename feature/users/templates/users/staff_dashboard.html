@@ -1,0 +1,112 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Dashboard | Vaccin Manage System</title>
+    <link rel="stylesheet" href="{% static 'users/css/staff_dashboard.css' %}">
+</head>
+<body>
+    <main class="shell">
+        <section class="hero">
+            <div class="hero-top">
+                <div>
+                    <div class="eyebrow">Nurse station</div>
+                    <h1>Dashboard y ta cho xet nghiem va kham sang loc</h1>
+                    <p>Theo doi benh nhan can danh gia truoc tiem, cap nhat ho so suc khoe va xac dinh du dieu kien tiem chung trong ca truc.</p>
+                </div>
+                <div class="hero-meta">
+                    <strong>{{ user.full_name }}</strong>
+                    <span>{{ user.email }}</span>
+                    <div style="margin-top: 14px;">Ngay truc: {{ today|date:"d/m/Y" }}</div>
+                    <div style="margin-top: 8px;">Vai tro: Y ta ho tro sang loc</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid stats">
+            <article class="card stat-card">
+                <small>Ca tiem hom nay</small>
+                <strong>{{ todays_bookings_count }}</strong>
+                <span>Tong so booking can y ta theo doi trong ngay.</span>
+            </article>
+            <article class="card stat-card">
+                <small>Da sang loc</small>
+                <strong>{{ screened_count }}</strong>
+                <span>Ho so da co ket qua kham/xet nghiem truoc tiem.</span>
+            </article>
+            <article class="card stat-card">
+                <small>Du dieu kien tiem</small>
+                <strong>{{ fit_count }}</strong>
+                <span>Benh nhan da san sang cho buoc tiem chung.</span>
+            </article>
+            <article class="card stat-card">
+                <small>Cho danh gia</small>
+                <strong>{{ waiting_screening_count }}</strong>
+                <span>Ca can y ta kham va nhap ket qua them.</span>
+            </article>
+        </section>
+
+        <section class="grid content">
+            <article class="card section">
+                <div class="section-head">
+                    <div>
+                        <h2>Danh sach sang loc uu tien</h2>
+                        <p>Tap trung xu ly cac booking hom nay de xac dinh benh nhan co du dieu kien tiem khong.</p>
+                    </div>
+                    <div class="badge">Khong du dieu kien: {{ not_fit_count }}</div>
+                </div>
+
+                {% if prioritized_screenings %}
+                    {% for item in prioritized_screenings %}
+                        <div class="screening-item">
+                            <div class="screening-main">
+                                <strong>{{ item.booking.full_name }} • {{ item.booking.vaccine_name }}</strong>
+                                <div>Mui {{ item.booking.dose_number }} • {{ item.booking.phone }}{% if item.booking.email %} • {{ item.booking.email }}{% endif %}</div>
+                                {% if item.record %}
+                                    <div>Nhom mau: {{ item.record.blood_group }} • Di ung: {{ item.record.allergies|default:"Chua cap nhat" }}</div>
+                                {% else %}
+                                    <div>Chua co ho so kham sang loc. Can y ta kiem tra dau hieu sinh ton va tien su benh.</div>
+                                {% endif %}
+                            </div>
+                            {% if item.needs_screening %}
+                                <div class="chip waiting">Can sang loc</div>
+                            {% elif item.fit_status %}
+                                <div class="chip fit">Du dieu kien tiem</div>
+                            {% else %}
+                                <div class="chip not-fit">Tam hoan tiem</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">Hom nay chua co booking can y ta sang loc.</div>
+                {% endif %}
+            </article>
+
+            <article class="card section">
+                <div class="section-head">
+                    <div>
+                        <h2>Ket qua kham gan nhat</h2>
+                        <p>Ghi chu suc khoe va ket luan tiem chung moi nhat.</p>
+                    </div>
+                    <div class="badge">Ho so da duyet: {{ screened_count }}</div>
+                </div>
+
+                {% if recent_medical_reviews %}
+                    {% for record in recent_medical_reviews %}
+                        <div class="review-item">
+                            <strong>{{ record.booking.full_name }} • {{ record.booking.vaccine_name }}</strong>
+                            <div>{{ record.booking.vaccine_date|date:"d/m/Y" }} • {% if record.gender %}{{ record.gender }} • {% endif %}Nhom mau {{ record.blood_group }}</div>
+                            <div>{% if record.is_fit_for_vaccination %}Ket luan: Du dieu kien tiem.{% else %}Ket luan: Chua du dieu kien tiem.{% endif %}</div>
+                            <div class="review-note">{{ record.doctor_note|default:"Chua co ghi chu bac si. Y ta can bo sung ket qua kham sang loc neu can." }}</div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">Chua co ho so kham suc khoe nao duoc cap nhat.</div>
+                {% endif %}
+            </article>
+        </section>
+    </main>
+</body>
+</html>

@@ -3,12 +3,7 @@ from django.urls import path
 
 
 def assets_home(request):
-    return JsonResponse({
-        "module": "assets",
-        "message": "assets module is running"
-    })
+    return JsonResponse({'module': 'assets', 'message': 'assets module is running'})
 
 
-urlpatterns = [
-    path("", assets_home),
-]
+urlpatterns = [path('', assets_home)]
