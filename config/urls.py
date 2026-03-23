@@ -15,4 +15,5 @@ urlpatterns = [
     path('booking/', include('feature.booking.urls')),
     path('users/', include('feature.users.urls')),
     path('medical/', include('feature.medical.urls')),
+    path('api/medical/', include('feature.medical.urls')),
 ]

@@ -1,11 +1,20 @@
 from rest_framework import serializers
-from .models import MedicalRecord
+from .models import ScreeningResult, VaccinationLog, PostInjectionTracking
 
 
-class MedicalRecordSerializer(serializers.ModelSerializer):
-    patient_name = serializers.CharField(source='booking.full_name', read_only=True)
-    vaccine_name = serializers.CharField(source='booking.vaccine_name', read_only=True)
-
+class ScreeningResultSerializer(serializers.ModelSerializer):
     class Meta:
-        model = MedicalRecord
+        model = ScreeningResult
+        fields = '__all__'
+
+
+class VaccinationLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VaccinationLog
+        fields = '__all__'
+
+
+class PostInjectionTrackingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostInjectionTracking
         fields = '__all__'
