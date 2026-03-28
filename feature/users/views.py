@@ -1,9 +1,57 @@
+import calendar
+import json
+from pathlib import Path
 from django.db import IntegrityError
+from django.db.models import Count, Q
+from django.templatetags.static import static
 from django.http import HttpRequest
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from feature.authentication.models import User
+from feature.booking.models import Booking
+
+
+def _build_schedule_context(today):
+    calendar_builder = calendar.Calendar(firstweekday=0)
+    month_weeks = []
+    booking_dates = set(
+        Booking.objects.filter(vaccine_date__year=today.year, vaccine_date__month=today.month)
+        .values_list('vaccine_date', flat=True)
+    )
+
+    for week in calendar_builder.monthdayscalendar(today.year, today.month):
+        cells = []
+        for day in week:
+            cell_date = None
+            if day:
+                cell_date = today.replace(day=day)
+            cells.append(
+                {
+                    'day': day,
+                    'is_today': bool(cell_date and cell_date == today),
+                    'has_booking': bool(cell_date and cell_date in booking_dates),
+                }
+            )
+        month_weeks.append(cells)
+
+    vaccination_schedule = list(
+        Booking.objects.filter(vaccine_date__gte=today)
+        .order_by('vaccine_date', 'id')[:4]
+    )
+    health_schedule = list(
+        Booking.objects.filter(vaccine_date__gte=today)
+        .exclude(status=Booking.STATUS_COMPLETED)
+        .order_by('vaccine_date', 'id')[:4]
+    )
+
+    return {
+        'calendar_month_label': f'Thang {today.month}',
+        'calendar_weekdays': ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+        'calendar_weeks': month_weeks,
+        'vaccination_schedule': vaccination_schedule,
+        'health_schedule': health_schedule,
+    }
 
 
 def _get_session_user(request: HttpRequest):
@@ -20,6 +68,22 @@ def _get_session_user(request: HttpRequest):
     return user, None
 
 
+def _get_dashboard_hero_images():
+    image_dir = Path(__file__).resolve().parent / 'static' / 'users' / 'img' / 'dashboard-hero'
+    supported_extensions = {'.jpg', '.jpeg', '.png', '.webp'}
+    images = []
+
+    if image_dir.exists():
+        for image_path in sorted(image_dir.iterdir()):
+            if image_path.is_file() and image_path.suffix.lower() in supported_extensions:
+                images.append(static(f'users/img/dashboard-hero/{image_path.name}'))
+
+    if not images:
+        images.append(static('authentication/img/vaccine-db.jpg'))
+
+    return images
+
+
 def dashboard(request: HttpRequest):
     user, redirect_response = _get_session_user(request)
     if redirect_response:
@@ -27,18 +91,42 @@ def dashboard(request: HttpRequest):
 
     if user.role == User.ROLE_ADMIN:
         today = timezone.localdate()
+        bookings = Booking.objects.all()
+        upcoming_bookings = bookings.filter(vaccine_date__gte=today).order_by('vaccine_date', 'id')
+        inventory_summary = []
+        inventory_rows = (
+            bookings.values('vaccine_name')
+            .annotate(
+                total_bookings=Count('id'),
+                upcoming_doses=Count('id', filter=Q(vaccine_date__gte=today)),
+            )
+            .order_by('-upcoming_doses', 'vaccine_name')[:5]
+        )
+        for row in inventory_rows:
+            estimated_stock = max(120 - row['upcoming_doses'] * 6, 0)
+            inventory_summary.append(
+                {
+                    'vaccine_name': row['vaccine_name'],
+                    'estimated_stock': estimated_stock,
+                    'total_bookings': row['total_bookings'],
+                    'upcoming_doses': row['upcoming_doses'],
+                    'is_low_stock': estimated_stock < 40,
+                }
+            )
+
         context = {
             'user': user,
             'today': today,
-            'total_bookings': 0,
-            'todays_bookings_count': 0,
-            'upcoming_bookings_count': 0,
-            'pending_count': 0,
-            'confirmed_count': 0,
-            'cancelled_count': 0,
-            'recent_upcoming_bookings': [],
-            'inventory_summary': [],
+            'total_bookings': bookings.count(),
+            'todays_bookings_count': bookings.filter(vaccine_date=today).count(),
+            'upcoming_bookings_count': upcoming_bookings.count(),
+            'pending_count': bookings.filter(status=Booking.STATUS_PENDING).count(),
+            'confirmed_count': bookings.filter(status=Booking.STATUS_CONFIRMED).count(),
+            'cancelled_count': bookings.filter(status=Booking.STATUS_CANCELLED).count(),
+            'recent_upcoming_bookings': list(upcoming_bookings[:5]),
+            'inventory_summary': inventory_summary,
         }
+        context.update(_build_schedule_context(today))
         return render(request, 'users/admin_dashboard.html', context)
 
     if user.role == User.ROLE_STAFF:
@@ -54,12 +142,21 @@ def dashboard(request: HttpRequest):
             'prioritized_screenings': [],
             'recent_medical_reviews': [],
         }
+        context.update(_build_schedule_context(today))
         return render(request, 'users/staff_dashboard.html', context)
 
     if user.role != User.ROLE_CITIZEN:
         return redirect('/auth/login-page/')
 
-    return render(request, 'users/dashboard.html', {'user': user})
+    return render(
+        request,
+        'users/dashboard.html',
+        {
+            'user': user,
+            'dashboard_hero_images': _get_dashboard_hero_images(),
+            'dashboard_hero_images_json': json.dumps(_get_dashboard_hero_images()),
+        },
+    )
 
 
 def profile(request: HttpRequest):

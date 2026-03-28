@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quan ly kho vaccine | Vaccin Manage System</title>
+    <link rel="stylesheet" href="/static/assets/css/dashboard.css?v=20260327-1" />
+</head>
+<body>
+    <div class="inventory-app">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark">VMS</div>
+                <div>
+                    <strong>Kho Vaccine</strong>
+                    <span>Inventory workspace</span>
+                </div>
+            </div>
+
+            <div class="profile-card">
+                <div class="avatar">{{ user.full_name|slice:":1"|upper }}</div>
+                <div>
+                    <strong>{{ user.full_name }}</strong>
+                    <span>{{ user.email }}</span>
+                    <small>Ngay lam viec: {{ today|date:"d/m/Y" }}</small>
+                </div>
+            </div>
+
+            <nav class="side-nav">
+                <a class="side-link is-active" href="/assets/">Tong quan kho</a>
+                <a class="side-link" href="#inventory-panel">Danh sach vaccine</a>
+                <a class="side-link" href="#transaction-panel">Giao dich gan day</a>
+                <a class="side-link" href="/assets/overview/">Bao cao tong hop</a>
+                <a class="side-link" href="/users/dashboard/">Ve dashboard</a>
+            </nav>
+
+            <section class="side-section">
+                <h2>Canh bao nhanh</h2>
+                <div class="mini-stat">
+                    <span>Can bo sung</span>
+                    <strong>{{ summary.low_stock_count }}</strong>
+                </div>
+                <div class="mini-stat danger">
+                    <span>Het han</span>
+                    <strong>{{ summary.expired_count }}</strong>
+                </div>
+                <div class="mini-stat warning">
+                    <span>Sap het han</span>
+                    <strong>{{ summary.near_expiry_count }}</strong>
+                </div>
+            </section>
+        </aside>
+
+        <main class="workspace">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">He thong quan ly kho</p>
+                    <h1>Tra cuu va dieu phoi vaccin nhanh hon</h1>
+                    <p class="topbar-copy">Tap trung danh sach lo vaccin, tim kiem theo ten, lo, nha cung cap va loc ngay cac lo can xu ly.</p>
+                </div>
+                <div class="topbar-actions">
+                    <button class="toolbar-btn toolbar-btn--blue" id="refreshPageBtn" type="button">Lam moi</button>
+                    <button class="toolbar-btn toolbar-btn--green" type="button" data-open-modal="#vaccineModal">Them vaccin</button>
+                    <button class="toolbar-btn toolbar-btn--teal" type="button" data-open-modal="#importModal">Nhap du lieu</button>
+                    <button class="toolbar-btn toolbar-btn--orange" type="button" data-open-modal="#exportModal">Xuat kho</button>
+                    <button class="toolbar-btn toolbar-btn--gold" type="button" data-open-modal="#adjustModal">Dieu chinh</button>
+                    <button class="toolbar-btn toolbar-btn--slate" id="exportCsvBtn" type="button">Xuat CSV</button>
+                    <button class="toolbar-btn toolbar-btn--danger" id="logoutBtn" type="button">Dang xuat</button>
+                </div>
+            </header>
+
+            <section class="summary-row">
+                <article class="summary-card">
+                    <span>Tong lo vaccin</span>
+                    <strong>{{ summary.total_vaccines }}</strong>
+                    <p>So lo dang duoc theo doi trong kho.</p>
+                </article>
+                <article class="summary-card">
+                    <span>Tong ton kho</span>
+                    <strong>{{ summary.total_stock }}</strong>
+                    <p>Tong so lieu vaccin hien co.</p>
+                </article>
+                <article class="summary-card warning">
+                    <span>Can nhap them</span>
+                    <strong>{{ summary.low_stock_count }}</strong>
+                    <p>Cac lo da cham nguong ton toi thieu.</p>
+                </article>
+                <article class="summary-card danger">
+                    <span>Het han</span>
+                    <strong>{{ summary.expired_count }}</strong>
+                    <p>Can khoa xuat kho va xu ly ngay.</p>
+                </article>
+            </section>
+
+            <div id="messageBox" class="alert" hidden></div>
+
+            <section class="workspace-grid">
+                <section class="panel panel--main" id="inventory-panel">
+                    <div class="panel-toolbar">
+                        <div class="search-box">
+                            <label for="inventorySearch">Tim vaccin</label>
+                            <input id="inventorySearch" type="search" placeholder="Nhap ten vaccin, so lo, nha cung cap, vi tri..." />
+                        </div>
+                        <div class="filter-group">
+                            <label>
+                                <span>Trang thai</span>
+                                <select id="statusFilter">
+                                    <option value="all">Tat ca</option>
+                                    <option value="normal">On dinh</option>
+                                    <option value="low">Can bo sung</option>
+                                    <option value="expiring">Sap het han</option>
+                                    <option value="expired">Het han</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Nha cung cap</span>
+                                <select id="supplierFilter">
+                                    <option value="all">Tat ca</option>
+                                    {% for supplier in suppliers %}
+                                        <option value="{{ supplier.name|lower }}">{{ supplier.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>
+                                <span>Vi tri</span>
+                                <select id="locationFilter">
+                                    <option value="all">Tat ca</option>
+                                    {% for location in locations %}
+                                        <option value="{{ location.name|lower }}">{{ location.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="panel-head">
+                        <div>
+                            <h2>Danh sach vaccin trong kho</h2>
+                            <p id="tableMeta">Dang hien thi {{ vaccines|length }} lo vaccin.</p>
+                        </div>
+                        <div class="head-actions">
+                            <button class="soft-btn" id="resetFiltersBtn" type="button">Xoa bo loc</button>
+                            <a class="soft-btn" href="/assets/overview/">Xem bao cao</a>
+                        </div>
+                    </div>
+
+                    <div class="table-shell">
+                        <table class="inventory-table">
+                            <thead>
+                                <tr>
+                                    <th>Vaccin</th>
+                                    <th>So lo</th>
+                                    <th>Nha san xuat</th>
+                                    <th>Nha cung cap</th>
+                                    <th>Vi tri</th>
+                                    <th>Ton kho</th>
+                                    <th>Han su dung</th>
+                                    <th>Trang thai</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vaccineTableBody">
+                                {% for vaccine in vaccines %}
+                                    <tr
+                                        data-search="{{ vaccine.name|lower }} {{ vaccine.batch_number|lower }} {{ vaccine.manufacturer|lower }} {{ vaccine.supplier.name|default:'chua gan nha cung cap'|lower }} {{ vaccine.location.name|default:'chua phan khu'|lower }}"
+                                        data-supplier="{{ vaccine.supplier.name|default:'chua gan nha cung cap'|lower }}"
+                                        data-location="{{ vaccine.location.name|default:'chua phan khu'|lower }}"
+                                        data-expiration="{{ vaccine.expiration_date|date:'Y-m-d' }}"
+                                        data-quantity="{{ vaccine.quantity }}"
+                                        data-minimum="{{ vaccine.minimum_stock }}"
+                                    >
+                                        <td>
+                                            <strong>{{ vaccine.name }}</strong>
+                                            <div class="muted-line">{{ vaccine.manufacturer }}</div>
+                                        </td>
+                                        <td>{{ vaccine.batch_number }}</td>
+                                        <td>{{ vaccine.manufacturer }}</td>
+                                        <td>{{ vaccine.supplier.name|default:"Chua gan nha cung cap" }}</td>
+                                        <td>{{ vaccine.location.name|default:"Chua phan khu" }}</td>
+                                        <td>
+                                            <div class="stock-cell">
+                                                <strong>{{ vaccine.quantity }}</strong>
+                                                <span>Min {{ vaccine.minimum_stock }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>{{ vaccine.expiration_date|date:"d/m/Y" }}</div>
+                                            {% if vaccine.is_expired %}
+                                                <div class="danger-line">Da het han</div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if vaccine.is_expired %}
+                                                <span class="status-pill status-pill--danger">Het han</span>
+                                            {% elif vaccine.quantity <= vaccine.minimum_stock %}
+                                                <span class="status-pill status-pill--warning">Can bo sung</span>
+                                            {% else %}
+                                                <span class="status-pill status-pill--ok">On dinh</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="8">
+                                            <div class="empty-state">Chua co vaccin nao trong kho. Hay tao lo dau tien de bat dau quan ly.</div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div class="empty-state empty-state--search" id="searchEmptyState" hidden>Khong tim thay vaccin phu hop voi bo loc hien tai.</div>
+                    </div>
+                </section>
+
+                <aside class="panel panel--side">
+                    <div class="panel-head">
+                        <div>
+                            <h2>Thao tac nhanh</h2>
+                            <p>Mo nghiep vu kho trong mot lan bam.</p>
+                        </div>
+                    </div>
+
+                    <div class="quick-actions">
+                        <button class="action-card action-card--green" type="button" data-open-modal="#vaccineModal">
+                            <strong>Them lo vaccin</strong>
+                            <span>Tao lo moi de dua vao theo doi trong kho.</span>
+                        </button>
+                        <button class="action-card action-card--teal" type="button" data-open-modal="#importModal">
+                            <strong>Nhap kho</strong>
+                            <span>Bo sung ton kho theo hoa don hoac cap phat.</span>
+                        </button>
+                        <button class="action-card action-card--orange" type="button" data-open-modal="#exportModal">
+                            <strong>Xuat kho</strong>
+                            <span>Dieu phoi vaccin cho diem tiem va khoa phong.</span>
+                        </button>
+                        <button class="action-card action-card--gold" type="button" data-open-modal="#adjustModal">
+                            <strong>Dieu chinh ton</strong>
+                            <span>Kiem ke, hao hut hoac cap nhat chenh lech.</span>
+                        </button>
+                    </div>
+
+                    <div class="support-card">
+                        <h3>Nha cung cap</h3>
+                        <ul>
+                            {% for supplier in suppliers %}
+                                <li>{{ supplier.name }}</li>
+                            {% empty %}
+                                <li>Chua co nha cung cap.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div class="support-card">
+                        <h3>Vi tri bao quan</h3>
+                        <ul>
+                            {% for location in locations %}
+                                <li>{{ location.name }}</li>
+                            {% empty %}
+                                <li>Chua co vi tri bao quan.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </aside>
+            </section>
+
+            <section class="panel" id="transaction-panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Giao dich gan day</h2>
+                        <p>Theo doi nhanh lich su nhap, xuat va dieu chinh kho vaccin.</p>
+                    </div>
+                </div>
+
+                <div class="transaction-list">
+                    {% for item in recent_transactions %}
+                        <article class="transaction-item transaction-item--{{ item.type }}">
+                            <div class="transaction-badge">{{ item.label }}</div>
+                            <div class="transaction-body">
+                                <strong>{{ item.vaccine_name }}</strong>
+                                <span>{{ item.meta }}</span>
+                            </div>
+                            <div class="transaction-meta">
+                                <strong>{{ item.quantity }} lieu</strong>
+                                <span>{{ item.created_at|date:"d/m/Y H:i" }}</span>
+                            </div>
+                        </article>
+                    {% empty %}
+                        <div class="empty-state">Chua co giao dich kho nao duoc ghi nhan.</div>
+                    {% endfor %}
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal" id="vaccineModal" hidden>
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3>Them vaccin moi</h3>
+                <button class="icon-btn" type="button" data-close-modal>&times;</button>
+            </div>
+            <form class="asset-form" data-endpoint="/assets/vaccines/" data-success="Da tao vaccin moi thanh cong.">
+                {% csrf_token %}
+                <div class="field-grid">
+                    <label><span>Ten vaccin</span><input name="name" type="text" required /></label>
+                    <label><span>Nha san xuat</span><input name="manufacturer" type="text" required /></label>
+                    <label><span>So lo</span><input name="batch_number" type="text" required /></label>
+                    <label><span>So luong ton</span><input name="quantity" type="number" min="0" value="0" required /></label>
+                    <label><span>Ton toi thieu</span><input name="minimum_stock" type="number" min="0" value="10" required /></label>
+                    <label><span>Han su dung</span><input name="expiration_date" type="date" required /></label>
+                    <label><span>Nhiet do bao quan</span><input name="storage_temperature" type="text" placeholder="2-8 C" /></label>
+                    <label>
+                        <span>Nha cung cap</span>
+                        <select name="supplier">
+                            <option value="">Chon nha cung cap</option>
+                            {% for supplier in suppliers %}
+                                <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>
+                        <span>Vi tri bao quan</span>
+                        <select name="location">
+                            <option value="">Chon vi tri</option>
+                            {% for location in locations %}
+                                <option value="{{ location.id }}">{{ location.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </div>
+                <button class="primary-btn" type="submit">Luu vaccin</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="importModal" hidden>
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3>Nhap kho</h3>
+                <button class="icon-btn" type="button" data-close-modal>&times;</button>
+            </div>
+            <form class="asset-form" data-endpoint="/assets/imports/" data-success="Da ghi nhan phieu nhap kho.">
+                {% csrf_token %}
+                <div class="field-grid">
+                    <label>
+                        <span>Vaccin</span>
+                        <select name="vaccine" required>
+                            <option value="">Chon vaccin</option>
+                            {% for vaccine in vaccines %}
+                                <option value="{{ vaccine.id }}">{{ vaccine.name }} - {{ vaccine.batch_number }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label><span>So luong nhap</span><input name="quantity" type="number" min="1" required /></label>
+                    <label><span>Ngay nhap</span><input name="import_date" type="date" value="{{ today|date:'Y-m-d' }}" required /></label>
+                    <label>
+                        <span>Nha cung cap</span>
+                        <select name="supplier">
+                            <option value="">Chon nha cung cap</option>
+                            {% for supplier in suppliers %}
+                                <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label class="field-full"><span>Ghi chu</span><textarea name="note" rows="3" placeholder="Bo sung ton kho theo hoa don..."></textarea></label>
+                </div>
+                <button class="primary-btn" type="submit">Luu phieu nhap</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="exportModal" hidden>
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3>Xuat kho</h3>
+                <button class="icon-btn" type="button" data-close-modal>&times;</button>
+            </div>
+            <form class="asset-form" data-endpoint="/assets/exports/" data-success="Da ghi nhan phieu xuat kho.">
+                {% csrf_token %}
+                <div class="field-grid">
+                    <label>
+                        <span>Vaccin</span>
+                        <select name="vaccine" required>
+                            <option value="">Chon vaccin</option>
+                            {% for vaccine in vaccines %}
+                                <option value="{{ vaccine.id }}">{{ vaccine.name }} - {{ vaccine.batch_number }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label><span>So luong xuat</span><input name="quantity" type="number" min="1" required /></label>
+                    <label><span>Ngay xuat</span><input name="export_date" type="date" value="{{ today|date:'Y-m-d' }}" required /></label>
+                    <label><span>Noi nhan</span><input name="destination" type="text" required /></label>
+                    <label class="field-full"><span>Ghi chu</span><textarea name="note" rows="3" placeholder="Cap phat cho diem tiem..."></textarea></label>
+                </div>
+                <button class="primary-btn" type="submit">Luu phieu xuat</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="adjustModal" hidden>
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3>Dieu chinh kho</h3>
+                <button class="icon-btn" type="button" data-close-modal>&times;</button>
+            </div>
+            <form class="asset-form" data-endpoint="/assets/adjustments/" data-success="Da luu phieu dieu chinh kho.">
+                {% csrf_token %}
+                <div class="field-grid">
+                    <label>
+                        <span>Vaccin</span>
+                        <select name="vaccine" required>
+                            <option value="">Chon vaccin</option>
+                            {% for vaccine in vaccines %}
+                                <option value="{{ vaccine.id }}">{{ vaccine.name }} - {{ vaccine.batch_number }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>
+                        <span>Loai dieu chinh</span>
+                        <select name="adjustment_type" required>
+                            <option value="increase">Tang</option>
+                            <option value="decrease">Giam</option>
+                        </select>
+                    </label>
+                    <label><span>So luong</span><input name="quantity" type="number" min="1" required /></label>
+                    <label><span>Ly do</span><input name="reason" type="text" required /></label>
+                    <label class="field-full"><span>Ghi chu</span><textarea name="note" rows="3" placeholder="Kiem ke, hao hut, cap nhat lai ton kho..."></textarea></label>
+                </div>
+                <button class="primary-btn" type="submit">Luu dieu chinh</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        window.inventoryDashboardToday = "{{ today|date:'Y-m-d' }}";
+    </script>
+    <script src="/static/assets/js/dashboard.js?v=20260327-1"></script>
+</body>
+</html>

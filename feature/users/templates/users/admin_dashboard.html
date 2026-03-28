@@ -1,11 +1,10 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | Vaccin Manage System</title>
-    <link rel="stylesheet" href="{% static 'users/css/admin_dashboard.css' %}">
+    <link rel="stylesheet" href="/static/users/css/admin_dashboard.css?v=20260327-3">
 </head>
 <body>
     <main class="shell">
@@ -13,38 +12,108 @@
             <div class="hero-top">
                 <div>
                     <div class="eyebrow">Admin control center</div>
-                    <h1>Dashboard quan tri cho lich tiem va quan ly kho</h1>
-                    <p>Theo doi lich hen sap toi, xu ly booking cho hom nay va kiem soat ton kho vac xin tren cung mot man hinh.</p>
+                    <h1>Dashboard bac si va quan ly lich tiem</h1>
+                    <p>Theo doi lich tiem benh nhan, canh bao booking quan trong va dieu phoi ton kho vaccine tren cung mot man hinh.</p>
                 </div>
                 <div class="hero-meta">
                     <strong>{{ user.full_name }}</strong>
                     <span>{{ user.email }}</span>
                     <div style="margin-top: 14px;">Ngay lam viec: {{ today|date:"d/m/Y" }}</div>
-                    <div style="margin-top: 8px;">Vai tro: Quan tri he thong</div>
+                    <div style="margin-top: 8px;">Vai tro: Bac si quan tri he thong</div>
+                    <a class="inventory-link" href="/assets/" style="margin-top: 16px;">Mo giao dien quan ly kho</a>
                 </div>
             </div>
         </section>
 
         <section class="grid stats">
             <article class="card stat-card">
-                <small>Lich hen hom nay</small>
+                <small>Lich tiem hom nay</small>
                 <strong>{{ todays_bookings_count }}</strong>
-                <span>Can bo tri nhan su cho cac mui tiem trong ngay.</span>
+                <span>So benh nhan co lich tiem trong ngay.</span>
             </article>
             <article class="card stat-card">
                 <small>Lich sap toi</small>
                 <strong>{{ upcoming_bookings_count }}</strong>
-                <span>Tong so booking co ngay tiem tu hom nay tro di.</span>
+                <span>So booking con hieu luc tu hom nay tro di.</span>
             </article>
             <article class="card stat-card">
                 <small>Cho xac nhan</small>
                 <strong>{{ pending_count }}</strong>
-                <span>Nhung booking can admin/staff xac nhan.</span>
+                <span>Can duoc kiem tra va phe duyet.</span>
             </article>
             <article class="card stat-card">
                 <small>Da xac nhan</small>
                 <strong>{{ confirmed_count }}</strong>
-                <span>Booking da san sang cho quy trinh tiem chung.</span>
+                <span>San sang cho quy trinh tiem chung.</span>
+            </article>
+        </section>
+
+        <section class="schedule-layout">
+            <article class="card section calendar-card">
+                <div class="section-head section-head--compact">
+                    <div>
+                        <h2>{{ calendar_month_label }}</h2>
+                        <p>Lich tiem benh nhan trong thang hien tai.</p>
+                    </div>
+                </div>
+                <div class="calendar-weekdays">
+                    {% for weekday in calendar_weekdays %}
+                        <span>{{ weekday }}</span>
+                    {% endfor %}
+                </div>
+                <div class="calendar-grid">
+                    {% for week in calendar_weeks %}
+                        {% for day in week %}
+                            <div class="calendar-day{% if not day.day %} is-empty{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.has_booking %} has-booking{% endif %}">
+                                {% if day.day %}{{ day.day }}{% endif %}
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+                <div class="calendar-note">
+                    <span class="calendar-dot"></span>
+                    <span>Ngay co lich tiem hoac booking can xu ly</span>
+                </div>
+            </article>
+
+            <article class="card section schedule-card">
+                <div class="section-head section-head--compact">
+                    <div>
+                        <h2>Lich tiem benh nhan</h2>
+                        <p>Cac ca tiem sap toi can bac si theo doi.</p>
+                    </div>
+                    <div class="badge">Tong booking: {{ total_bookings }}</div>
+                </div>
+                <div class="schedule-list">
+                    {% for booking in vaccination_schedule %}
+                        <div class="mini-schedule-item">
+                            <strong>{{ booking.full_name }}</strong>
+                            <span>{{ booking.vaccine_date|date:"d/m/Y" }} - {{ booking.vaccine_name }}</span>
+                        </div>
+                    {% empty %}
+                        <div class="empty-state">Chua co lich tiem phong sap toi.</div>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="card section schedule-card">
+                <div class="section-head section-head--compact">
+                    <div>
+                        <h2>Kham va xet duyet</h2>
+                        <p>Danh sach uu tien can duoc danh gia suc khoe.</p>
+                    </div>
+                    <div class="badge">Da huy: {{ cancelled_count }}</div>
+                </div>
+                <div class="schedule-list">
+                    {% for booking in health_schedule %}
+                        <div class="mini-schedule-item">
+                            <strong>{{ booking.full_name }}</strong>
+                            <span>{{ booking.vaccine_date|date:"d/m/Y" }} - Trang thai: {{ booking.status }}</span>
+                        </div>
+                    {% empty %}
+                        <div class="empty-state">Chua co lich kham suc khoe sap toi.</div>
+                    {% endfor %}
+                </div>
             </article>
         </section>
 
@@ -53,9 +122,9 @@
                 <div class="section-head">
                     <div>
                         <h2>Lich tiem gan nhat</h2>
-                        <p>Danh sach booking uu tien de admin sap lich va dieu phoi.</p>
+                        <p>Danh sach booking uu tien de dieu phoi nhan su va bo tri phong tiem.</p>
                     </div>
-                    <div class="badge">Tong booking: {{ total_bookings }} • Da huy: {{ cancelled_count }}</div>
+                    <div class="badge">Tong booking: {{ total_bookings }} - Da huy: {{ cancelled_count }}</div>
                 </div>
 
                 {% if recent_upcoming_bookings %}
@@ -67,35 +136,35 @@
                                     <span>{{ booking.vaccine_date|date:"l" }}</span>
                                 </div>
                                 <div class="schedule-info">
-                                    <strong>{{ booking.full_name }} • Mui {{ booking.dose_number }}</strong>
-                                    <div>{{ booking.vaccine_name }} • {{ booking.phone }}{% if booking.email %} • {{ booking.email }}{% endif %}</div>
+                                    <strong>{{ booking.full_name }} - Mui {{ booking.dose_number }}</strong>
+                                    <div>{{ booking.vaccine_name }} - {{ booking.phone }}{% if booking.email %} - {{ booking.email }}{% endif %}</div>
                                 </div>
                                 <div class="status {{ booking.status }}">{{ booking.status }}</div>
                             </div>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="empty-state">Chua co lich tiem sap toi. Admin co the bat dau tiep nhan booking moi.</div>
+                    <div class="empty-state">Chua co lich tiem sap toi. Co the bat dau tiep nhan booking moi.</div>
                 {% endif %}
             </article>
 
             <article class="card section">
                 <div class="section-head">
                     <div>
-                        <h2>Quan ly kho vac xin</h2>
-                        <p>Tong hop nhanh theo tung loai vac xin trong he thong.</p>
+                        <h2>Tong quan kho vaccine</h2>
+                        <p>Uoc tinh luong ton va nhu cau theo tung loai vaccine.</p>
                     </div>
-                    <div class="badge">Canh bao thap nguong duoi 40 lieu</div>
+                    <a class="inventory-secondary" href="/assets/">Vao kho</a>
                 </div>
 
                 {% if inventory_summary %}
                     <table class="inventory-table">
                         <thead>
                             <tr>
-                                <th>Vac xin</th>
+                                <th>Vaccine</th>
                                 <th>Ton uoc tinh</th>
-                                <th>Booking</th>
-                                <th>Sap dung</th>
+                                <th>Tong booking</th>
+                                <th>Mui sap dung</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -114,7 +183,7 @@
                         </tbody>
                     </table>
                 {% else %}
-                    <div class="empty-state">Chua co du lieu vac xin de tong hop ton kho.</div>
+                    <div class="empty-state">Chua co du lieu vaccine de tong hop ton kho.</div>
                 {% endif %}
             </article>
         </section>

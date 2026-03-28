@@ -1,8 +1,11 @@
+import calendar
 from datetime import date
+from django.shortcuts import redirect, render
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from feature.authentication.models import User
 from feature.booking.models import Booking
 from feature.booking.serializers import BookingSerializer
 
@@ -12,11 +15,76 @@ from .serializers import (
     VaccinationLogSerializer,
     PostInjectionTrackingSerializer
 )
-from django.shortcuts import render
+
+
+def _get_session_user(request):
+    user_id = request.session.get('user_id')
+    if not user_id:
+        return None, redirect('/auth/login-page/')
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        request.session.flush()
+        return None, redirect('/auth/login-page/')
+
+    return user, None
+
+
+def _build_schedule_context(today):
+    calendar_builder = calendar.Calendar(firstweekday=0)
+    month_weeks = []
+    booking_dates = set(
+        Booking.objects.filter(vaccine_date__year=today.year, vaccine_date__month=today.month)
+        .values_list('vaccine_date', flat=True)
+    )
+
+    for week in calendar_builder.monthdayscalendar(today.year, today.month):
+        cells = []
+        for day in week:
+            cell_date = None
+            if day:
+                cell_date = today.replace(day=day)
+            cells.append(
+                {
+                    'day': day,
+                    'is_today': bool(cell_date and cell_date == today),
+                    'has_booking': bool(cell_date and cell_date in booking_dates),
+                }
+            )
+        month_weeks.append(cells)
+
+    vaccination_schedule = list(
+        Booking.objects.filter(vaccine_date__gte=today)
+        .order_by('vaccine_date', 'id')[:4]
+    )
+    health_schedule = list(
+        Booking.objects.filter(vaccine_date__gte=today)
+        .exclude(status=Booking.STATUS_COMPLETED)
+        .order_by('vaccine_date', 'id')[:4]
+    )
+
+    return {
+        'calendar_month_label': f'Thang {today.month}',
+        'calendar_weekdays': ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+        'calendar_weeks': month_weeks,
+        'vaccination_schedule': vaccination_schedule,
+        'health_schedule': health_schedule,
+    }
 
 def medical_dashboard(request):
     """Render the Medical frontend HTML page."""
-    return render(request, 'medical/medical.html')
+    user, redirect_response = _get_session_user(request)
+    if redirect_response:
+        return redirect_response
+
+    today = date.today()
+    context = {
+        'user': user,
+        'today': today,
+    }
+    context.update(_build_schedule_context(today))
+    return render(request, 'medical/medical.html', context)
 
 
 @api_view(['GET'])

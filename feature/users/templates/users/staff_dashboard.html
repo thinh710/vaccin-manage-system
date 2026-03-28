@@ -48,6 +48,73 @@
             </article>
         </section>
 
+        <section class="schedule-layout">
+            <article class="card section calendar-card">
+                <div class="section-head section-head--compact">
+                    <div>
+                        <h2>{{ calendar_month_label }}</h2>
+                        <p>Lich tiem va lich kham trong thang hien tai.</p>
+                    </div>
+                </div>
+                <div class="calendar-weekdays">
+                    {% for weekday in calendar_weekdays %}
+                        <span>{{ weekday }}</span>
+                    {% endfor %}
+                </div>
+                <div class="calendar-grid">
+                    {% for week in calendar_weeks %}
+                        {% for day in week %}
+                            <div class="calendar-day{% if not day.day %} is-empty{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.has_booking %} has-booking{% endif %}">
+                                {% if day.day %}{{ day.day }}{% endif %}
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+                <div class="calendar-note">
+                    <span class="calendar-dot"></span>
+                    <span>Ngay co lich tiem hoac lich kham</span>
+                </div>
+            </article>
+
+            <article class="card section schedule-card">
+                <div class="section-head section-head--compact">
+                    <div>
+                        <h2>Lich tiem phong</h2>
+                        <p>Cac lich tiem sap toi can y ta ho tro.</p>
+                    </div>
+                </div>
+                <div class="schedule-list">
+                    {% for booking in vaccination_schedule %}
+                        <div class="schedule-item">
+                            <strong>{{ booking.full_name }}</strong>
+                            <span>{{ booking.vaccine_date|date:"d/m/Y" }} - {{ booking.vaccine_name }}</span>
+                        </div>
+                    {% empty %}
+                        <div class="empty-state">Chua co lich tiem phong sap toi.</div>
+                    {% endfor %}
+                </div>
+            </article>
+
+            <article class="card section schedule-card">
+                <div class="section-head section-head--compact">
+                    <div>
+                        <h2>Lich kham suc khoe</h2>
+                        <p>Danh sach can sang loc truoc khi tiem.</p>
+                    </div>
+                </div>
+                <div class="schedule-list">
+                    {% for booking in health_schedule %}
+                        <div class="schedule-item">
+                            <strong>{{ booking.full_name }}</strong>
+                            <span>{{ booking.vaccine_date|date:"d/m/Y" }} - Trang thai: {{ booking.status }}</span>
+                        </div>
+                    {% empty %}
+                        <div class="empty-state">Chua co lich kham suc khoe sap toi.</div>
+                    {% endfor %}
+                </div>
+            </article>
+        </section>
+
         <section class="grid content">
             <article class="card section">
                 <div class="section-head">

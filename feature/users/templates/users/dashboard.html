@@ -1,12 +1,413 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard | Vaccin Manage System</title>
-    <link rel="stylesheet" href="{% static 'authentication/css/auth.css' %}" />
-    <link rel="stylesheet" href="{% static 'users/css/dashboard.css' %}" />
+    <link rel="stylesheet" href="/static/authentication/css/auth.css?v=20260327-1" />
+    <link rel="stylesheet" href="/static/users/css/dashboard.css?v=20260327-4" />
+    <style>
+        .dashboard-hero-slider {
+            position: relative;
+            padding-bottom: 28px;
+        }
+
+        .dashboard-hero {
+            position: relative;
+            min-height: 420px;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 24px 45px rgba(14, 165, 233, 0.18);
+            background: #dff5fb;
+        }
+
+        .dashboard-hero-track {
+            display: flex;
+            width: 100%;
+            min-height: 420px;
+            transition: transform 0.55s ease;
+        }
+
+        .dashboard-hero-slide {
+            flex: 0 0 100%;
+            min-width: 100%;
+            min-height: 420px;
+        }
+
+        .dashboard-hero-image {
+            display: block;
+            width: 100%;
+            height: 100%;
+            min-height: 420px;
+            object-fit: cover;
+        }
+
+        .dashboard-hero-arrow {
+            position: absolute;
+            top: 50%;
+            z-index: 3;
+            width: 56px;
+            height: 56px;
+            margin-top: -42px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.96);
+            color: #0f766e;
+            font-size: 2rem;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+        }
+
+        .dashboard-hero-arrow.is-prev {
+            left: 18px;
+        }
+
+        .dashboard-hero-arrow.is-next {
+            right: 18px;
+        }
+
+        .dashboard-hero-dots {
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            z-index: 3;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dashboard-hero-dot {
+            width: 12px;
+            height: 12px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: rgba(15, 118, 110, 0.18);
+            cursor: pointer;
+        }
+
+        .dashboard-hero-dot.is-active {
+            background: #ef4444;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-hero,
+            .dashboard-hero-track,
+            .dashboard-hero-slide,
+            .dashboard-hero-image {
+                min-height: 340px;
+            }
+
+            .dashboard-hero-arrow {
+                width: 46px;
+                height: 46px;
+                margin-top: -33px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .dashboard-hero,
+            .dashboard-hero-track,
+            .dashboard-hero-slide,
+            .dashboard-hero-image {
+                min-height: 260px;
+            }
+
+            .dashboard-hero-arrow {
+                top: auto;
+                bottom: 26px;
+                width: 40px;
+                height: 40px;
+                margin-top: 0;
+                font-size: 1.6rem;
+            }
+
+            .dashboard-hero-arrow.is-prev {
+                left: 14px;
+            }
+
+            .dashboard-hero-arrow.is-next {
+                right: 14px;
+            }
+
+            .dashboard-hero-dots {
+                bottom: 2px;
+            }
+        }
+
+        .seasonal-section {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 8px 24px 42px;
+        }
+
+        .seasonal-title {
+            margin: 0 0 18px;
+            text-align: center;
+            font-size: clamp(2rem, 3vw, 3rem);
+            line-height: 1.08;
+            color: #0f172a;
+        }
+
+        .seasonal-title span {
+            color: #f97316;
+        }
+
+        .seasonal-tabs {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 0;
+        }
+
+        .seasonal-tab {
+            min-height: 50px;
+            padding: 0 22px;
+            border: 1px solid #12b6c8;
+            border-radius: 16px 16px 0 0;
+            background: #fff;
+            color: #334155;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .seasonal-tab.is-active {
+            background: linear-gradient(135deg, #11b8c7, #0ea5b7);
+            color: #fff;
+        }
+
+        .seasonal-panel {
+            display: grid;
+            grid-template-columns: minmax(0, 1.7fr) minmax(340px, 0.95fr);
+            gap: 18px;
+            padding: 18px;
+            border: 5px solid #10b6c8;
+            border-radius: 0 20px 20px 20px;
+            background: #f7fdff;
+            box-shadow: 0 22px 44px rgba(17, 184, 199, 0.14);
+        }
+
+        .seasonal-copy {
+            position: relative;
+            min-height: 540px;
+            padding: 26px;
+            border-radius: 18px;
+            color: #fff;
+            overflow: hidden;
+            background:
+                linear-gradient(135deg, rgba(17, 184, 199, 0.94), rgba(16, 148, 166, 0.96)),
+                url("/static/users/img/seasonal-vaccines/hpv-banner.jpg") center center/cover no-repeat;
+        }
+
+        .seasonal-copy::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, rgba(7, 76, 88, 0.28), rgba(7, 76, 88, 0.04));
+            pointer-events: none;
+        }
+
+        .seasonal-copy-content {
+            position: relative;
+            z-index: 1;
+            max-width: 68%;
+        }
+
+        .seasonal-copy-icon {
+            width: 62px;
+            height: 62px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            background: rgba(255, 255, 255, 0.14);
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            margin-bottom: 18px;
+        }
+
+        .seasonal-copy h3 {
+            margin: 0 0 14px;
+            font-size: clamp(1.6rem, 2.2vw, 2.3rem);
+            line-height: 1.2;
+        }
+
+        .seasonal-copy p {
+            margin: 0 0 14px;
+            font-size: 1.02rem;
+            line-height: 1.7;
+        }
+
+        .seasonal-bullets {
+            margin: 18px 0 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 12px;
+        }
+
+        .seasonal-bullets li {
+            display: flex;
+            align-items: start;
+            gap: 10px;
+            line-height: 1.6;
+        }
+
+        .seasonal-bullet-dot {
+            flex: 0 0 20px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-top: 2px;
+            background: rgba(255, 255, 255, 0.18);
+            display: grid;
+            place-items: center;
+            font-size: 0.8rem;
+        }
+
+        .seasonal-cards {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .seasonal-card {
+            background: #fff;
+            border-radius: 18px;
+            padding: 12px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+            display: grid;
+            align-content: start;
+        }
+
+        .seasonal-card-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.92rem;
+            color: #475569;
+        }
+
+        .seasonal-card-country {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #f8fafc;
+        }
+
+        .seasonal-card-discount {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #f59e0b;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .seasonal-card-image {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: contain;
+            border-radius: 14px;
+            background: #fff;
+        }
+
+        .seasonal-card-title {
+            margin: 12px 0 4px;
+            color: #475569;
+            font-size: 0.98rem;
+        }
+
+        .seasonal-card-desc {
+            margin: 0 0 18px;
+            color: #0f172a;
+            font-weight: 700;
+            font-size: 0.95rem;
+            line-height: 1.45;
+            min-height: 54px;
+        }
+
+        .seasonal-card-price {
+            color: #f97316;
+            font-size: 1.02rem;
+            font-weight: 800;
+        }
+
+        .seasonal-card-price span {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .seasonal-card-price.is-cta {
+            color: #0f172a;
+        }
+
+        .seasonal-card-price.is-cta span {
+            display: none;
+        }
+
+        .seasonal-card-old-price {
+            margin-top: 4px;
+            color: #94a3b8;
+            text-decoration: line-through;
+        }
+
+        .seasonal-card-btn {
+            margin-top: 14px;
+            min-height: 44px;
+            border: none;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #dff4ff, #d4f0fb);
+            color: #0f7f90;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        @media (max-width: 980px) {
+            .seasonal-panel {
+                grid-template-columns: 1fr;
+            }
+
+            .seasonal-copy {
+                min-height: 420px;
+            }
+
+            .seasonal-copy-content {
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .seasonal-section {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+
+            .seasonal-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .seasonal-tab {
+                border-radius: 14px;
+            }
+
+            .seasonal-panel {
+                border-radius: 18px;
+            }
+
+            .seasonal-copy {
+                min-height: 360px;
+                padding: 20px;
+            }
+        }
+    </style>
 </head>
 <body class="auth-body">
     <div class="dashboard-topbar">
@@ -68,16 +469,240 @@
     </div>
 
     <div class="dashboard-header">
-        <div class="dashboard-hero">
-            <div class="dashboard-hero-content">
-                <div class="dashboard-hero-chip">Tiem chung an toan</div>
-                <h1>Chao mung, {{ user.full_name }}</h1>
-                <p>Email dang ky: {{ user.email }}. Quan ly ho so, lich hen va tiem chung cua ban tai day voi giao dien truc quan, ro rang va de theo doi.</p>
+        <div class="dashboard-hero-slider">
+            <button class="dashboard-hero-arrow is-prev" type="button" id="heroPrevBtn" aria-label="Anh truoc">
+                &#8249;
+            </button>
+            <div class="dashboard-hero" id="dashboardHero">
+                <div class="dashboard-hero-track" id="dashboardHeroTrack">
+                    {% for image_url in dashboard_hero_images %}
+                        <div class="dashboard-hero-slide">
+                            <img class="dashboard-hero-image" src="{{ image_url }}" alt="Banner tiem chung {{ forloop.counter }}">
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
+            <button class="dashboard-hero-arrow is-next" type="button" id="heroNextBtn" aria-label="Anh tiep theo">
+                &#8250;
+            </button>
+            <div class="dashboard-hero-dots" id="dashboardHeroDots"></div>
         </div>
     </div>
 
+    <section class="seasonal-section">
+        <h2 class="seasonal-title">Mua nay can <span>tiem gi?</span></h2>
+        <div class="seasonal-tabs" id="seasonalTabs">
+            <button class="seasonal-tab is-active" type="button" data-key="hpv">HPV</button>
+            <button class="seasonal-tab" type="button" data-key="dengue">Sot xuat huyet</button>
+            <button class="seasonal-tab" type="button" data-key="bexsero">Viem nao mo cau Bexsero</button>
+            <button class="seasonal-tab" type="button" data-key="acyw">Viem nao mo cau ACYW</button>
+            <button class="seasonal-tab" type="button" data-key="japanese">Viem nao Nhat Ban</button>
+            <button class="seasonal-tab" type="button" data-key="combo">6 trong 1</button>
+        </div>
+        <div class="seasonal-panel">
+            <div class="seasonal-copy" id="seasonalCopy">
+                <div class="seasonal-copy-content">
+                    <div class="seasonal-copy-icon" id="seasonalIcon">HPV</div>
+                    <h3 id="seasonalHeading"></h3>
+                    <p id="seasonalDescription"></p>
+                    <ul class="seasonal-bullets" id="seasonalBullets"></ul>
+                </div>
+            </div>
+            <div class="seasonal-cards" id="seasonalCards"></div>
+        </div>
+    </section>
+
     <script>
+        const dashboardHeroImages = {{ dashboard_hero_images_json|safe }};
+        const seasonalVaccinesData = {
+            hpv: {
+                icon: 'HPV',
+                heading: 'Phong ngua ung thu do HPV the nao cho hieu qua?',
+                description: 'HPV la nguyen nhan chinh gay ung thu co tu cung va nhieu benh ly khac. Tiem dung lich giup giam nguy co va bao ve lau dai cho ca nam va nu.',
+                backgroundImage: '/static/users/img/seasonal-vaccines/hpv-banner.jpg',
+                bullets: [
+                    'Tiem vac xin dung lich la bien phap phong ngua hieu qua cac benh lien quan den HPV.',
+                    'Gardasil 9 bao ve 9 chung, phu hop cho nguoi tu 9 den 45 tuoi.',
+                    'Can tu van voi bac si de chon phac do tiem phu hop theo do tuoi.'
+                ],
+                cards: [
+                    {
+                        country: 'Hoa Ky',
+                        discount: '-170000d',
+                        image: '/static/users/img/seasonal-vaccines/hpv-card.jpg',
+                        title: 'Vac xin Gardasil 9 0.5ml',
+                        desc: 'Phong benh ung thu do HPV 9 chung',
+                        price: '2.948.000d',
+                        oldPrice: '2.965.000d'
+                    },
+                    {
+                        country: 'Hoa Ky',
+                        discount: '',
+                        image: '/static/users/img/seasonal-vaccines/hpv-card.jpg',
+                        title: 'Goi tu van HPV',
+                        desc: 'Danh gia do tuoi, lich mui va huong dat hen tiem phu hop',
+                        price: 'Dat hen',
+                        oldPrice: ''
+                    }
+                ]
+            },
+            dengue: {
+                icon: 'SXH',
+                heading: 'Mua mua can phong sot xuat huyet chu dong',
+                description: 'Sot xuat huyet tang nhanh trong mua mua, dac biet voi tre em va nguoi co suc de khang yeu. Can ket hop tiem phong va phong muoi dot.',
+                backgroundImage: '/static/users/img/seasonal-vaccines/dengue-banner.jpg',
+                bullets: [
+                    'Theo doi trieu chung sot cao, dau moi, xuat huyet duoi da de di kham som.',
+                    'Tiem vac xin giam nguy co dien tien nang o nhom phu hop.',
+                    'Ket hop don dep moi truong song va ngu man phong muoi.'
+                ],
+                cards: [
+                    {
+                        country: 'Phap',
+                        discount: '-90000d',
+                        image: '/static/users/img/seasonal-vaccines/dengue-card.jpg',
+                        title: 'Vac xin Qdenga',
+                        desc: 'Ho tro phong sot xuat huyet cho tre em va nguoi lon',
+                        price: '1.390.000d',
+                        oldPrice: '1.480.000d'
+                    },
+                    {
+                        country: 'Tu van',
+                        discount: '',
+                        image: '/static/users/img/seasonal-vaccines/dengue-card.jpg',
+                        title: 'Goi tu van mua dich',
+                        desc: 'Kiem tra lich tiem va muc do nguy co theo tung do tuoi',
+                        price: 'Dat hen',
+                        oldPrice: ''
+                    }
+                ]
+            },
+            bexsero: {
+                icon: 'MEN B',
+                heading: 'Bao ve tre nho truoc viem nao mo cau nhom B',
+                description: 'Viem nao mo cau co the dien tien rat nhanh. Bexsero la lua chon quan trong doi voi tre nho va nhung nguoi co nguy co cao.',
+                backgroundImage: '/static/users/img/seasonal-vaccines/meningo-banner.jpg',
+                bullets: [
+                    'Can tiem dung lich theo khuyen nghi cua bac si nhi khoa.',
+                    'Chu y dau hieu sot cao, co cung, li bi, non oi can cap cuu som.',
+                    'Co the tiem cung cac mui khac nhung can duoc tu van lich cu the.'
+                ],
+                cards: [
+                    {
+                        country: 'Y',
+                        discount: '',
+                        image: '/static/users/img/seasonal-vaccines/meningo-card.jpg',
+                        title: 'Vac xin Bexsero',
+                        desc: 'Phong viem nao mo cau nhom B cho tre em va thanh thieu nien',
+                        price: '2.350.000d',
+                        oldPrice: ''
+                    },
+                    {
+                        country: 'Goi tiem',
+                        discount: '',
+                        image: '/static/users/img/seasonal-vaccines/meningo-card.jpg',
+                        title: 'Tu van lich tiem mo cau',
+                        desc: 'Tong hop lich nhac mui de khong bo lo cac moc quan trong',
+                        price: 'Dat hen',
+                        oldPrice: ''
+                    }
+                ]
+            },
+            acyw: {
+                icon: 'ACYW',
+                heading: 'Tang cuong bao ve voi viem nao mo cau ACYW',
+                description: 'Mui ACYW phu hop voi hoc sinh, sinh vien, nguoi di du lich va nhung nguoi song trong moi truong dong duc.',
+                backgroundImage: '/static/users/img/seasonal-vaccines/meningo-banner.jpg',
+                bullets: [
+                    'Phu hop voi nhom chuan bi du hoc, o ky tuc xa hoac di nuoc ngoai.',
+                    'Can xem lai lich su tiem truoc do de tranh trung lap mui.',
+                    'Bac si se huong dan thoi diem nhac lai neu can.'
+                ],
+                cards: [
+                    {
+                        country: 'Hoa Ky',
+                        discount: '',
+                        image: '/static/users/img/seasonal-vaccines/meningo-card.jpg',
+                        title: 'Vac xin Menactra / MenQuadfi',
+                        desc: 'Phong viem nao mo cau nhom A, C, Y, W-135',
+                        price: '1.850.000d',
+                        oldPrice: ''
+                    },
+                    {
+                        country: 'Lich nhac',
+                        discount: '',
+                        image: '/static/users/img/seasonal-vaccines/meningo-card.jpg',
+                        title: 'Phac do nhac lai',
+                        desc: 'Theo doi lich nhac cho hoc sinh, sinh vien va nguoi di du lich',
+                        price: 'Dat hen',
+                        oldPrice: ''
+                    }
+                ]
+            },
+            japanese: {
+                icon: 'JEV',
+                heading: 'Chuan bi mua he voi tiem phong viem nao Nhat Ban',
+                description: 'Benh thuong gia tang vao mua he, nhat la o tre em song tai khu vuc co muoi truyen benh. Tiem phong som giup bao ve tot hon.',
+                backgroundImage: '/static/users/img/seasonal-vaccines/combo-banner.jpg',
+                bullets: [
+                    'Nen xem lai lich mui co ban va nhac lai truoc cao diem mua he.',
+                    'Phu hop cho tre em va nguoi lon co nguy co theo chi dinh.',
+                    'Can ket hop phong muoi dot va ve sinh moi truong.'
+                ],
+                cards: [
+                    {
+                        country: 'Nhat Ban',
+                        discount: '',
+                        image: '/static/users/img/seasonal-vaccines/dengue-card.jpg',
+                        title: 'Vac xin viem nao Nhat Ban',
+                        desc: 'Bao ve truoc nguy co viem nao trong mua he',
+                        price: '890.000d',
+                        oldPrice: ''
+                    },
+                    {
+                        country: 'Tu van',
+                        discount: '',
+                        image: '/static/users/img/seasonal-vaccines/dengue-card.jpg',
+                        title: 'Lich tiem theo mua',
+                        desc: 'Tong hop cac mui nen tiem truoc khi vao mua dich',
+                        price: 'Dat hen',
+                        oldPrice: ''
+                    }
+                ]
+            },
+            combo: {
+                icon: '6IN1',
+                heading: 'Mui 6 trong 1 giup tre nho duoc bao ve som',
+                description: 'Vac xin 6 trong 1 giup giam so mui tiem, ho tro phong nhieu benh nguy hiem va tien loi cho gia dinh trong giai doan dau doi.',
+                backgroundImage: '/static/users/img/seasonal-vaccines/combo-banner.jpg',
+                bullets: [
+                    'Bao ve bach hau, ho ga, uon van, bai liet, viem gan B va Hib.',
+                    'Phu hop voi lich tiem cho tre nho theo tu van cua bac si.',
+                    'Can theo doi lich nhac mui de dam bao hieu qua bao ve.'
+                ],
+                cards: [
+                    {
+                        country: 'Bac',
+                        discount: '-120000d',
+                        image: '/static/users/img/seasonal-vaccines/combo-banner.jpg',
+                        title: 'Vac xin 6 trong 1',
+                        desc: 'Giam so mui tiem, bao ve nhieu benh cho tre nho',
+                        price: '1.015.000d',
+                        oldPrice: '1.135.000d'
+                    },
+                    {
+                        country: 'Lich tiem',
+                        discount: '',
+                        image: '/static/users/img/seasonal-vaccines/combo-banner.jpg',
+                        title: 'Dat lich cho be',
+                        desc: 'Theo doi lich mui co ban va nhac lai ngay tai dashboard',
+                        price: 'Dat hen',
+                        oldPrice: ''
+                    }
+                ]
+            }
+        };
+
         function getCookie(name) {
             const cookies = document.cookie ? document.cookie.split(';') : [];
             for (const cookie of cookies) {
@@ -109,6 +734,133 @@
                 alert('Khong the dang xuat luc nay. Vui long thu lai.');
             }
         });
+
+        (function rotateDashboardHero() {
+            const hero = document.querySelector('.dashboard-hero');
+            const track = document.getElementById('dashboardHeroTrack');
+            const dotsContainer = document.getElementById('dashboardHeroDots');
+            const prevButton = document.getElementById('heroPrevBtn');
+            const nextButton = document.getElementById('heroNextBtn');
+            if (!hero || !track || !Array.isArray(dashboardHeroImages) || dashboardHeroImages.length === 0) {
+                return;
+            }
+
+            let currentIndex = 0;
+            let autoRotateId = null;
+
+            function renderDots() {
+                if (!dotsContainer) {
+                    return;
+                }
+
+                dotsContainer.innerHTML = '';
+                dashboardHeroImages.forEach((_, index) => {
+                    const dot = document.createElement('button');
+                    dot.type = 'button';
+                    dot.className = 'dashboard-hero-dot' + (index === currentIndex ? ' is-active' : '');
+                    dot.setAttribute('aria-label', `Chuyen den anh ${index + 1}`);
+                    dot.addEventListener('click', () => {
+                        currentIndex = index;
+                        updateHero();
+                        restartAutoRotate();
+                    });
+                    dotsContainer.appendChild(dot);
+                });
+            }
+
+            function updateHero() {
+                track.style.transform = `translateX(-${currentIndex * 100}%)`;
+                renderDots();
+            }
+
+            function goToNext() {
+                currentIndex = (currentIndex + 1) % dashboardHeroImages.length;
+                updateHero();
+            }
+
+            function goToPrev() {
+                currentIndex = (currentIndex - 1 + dashboardHeroImages.length) % dashboardHeroImages.length;
+                updateHero();
+            }
+
+            function restartAutoRotate() {
+                if (autoRotateId) {
+                    window.clearInterval(autoRotateId);
+                }
+                if (dashboardHeroImages.length > 1) {
+                    autoRotateId = window.setInterval(goToNext, 5000);
+                }
+            }
+
+            prevButton?.addEventListener('click', () => {
+                goToPrev();
+                restartAutoRotate();
+            });
+
+            nextButton?.addEventListener('click', () => {
+                goToNext();
+                restartAutoRotate();
+            });
+
+            updateHero();
+            restartAutoRotate();
+        })();
+
+        (function renderSeasonalVaccines() {
+            const tabs = Array.from(document.querySelectorAll('.seasonal-tab'));
+            const copy = document.getElementById('seasonalCopy');
+            const icon = document.getElementById('seasonalIcon');
+            const heading = document.getElementById('seasonalHeading');
+            const description = document.getElementById('seasonalDescription');
+            const bullets = document.getElementById('seasonalBullets');
+            const cards = document.getElementById('seasonalCards');
+
+            if (!tabs.length || !copy || !icon || !heading || !description || !bullets || !cards) {
+                return;
+            }
+
+            function renderCategory(key) {
+                const item = seasonalVaccinesData[key];
+                if (!item) {
+                    return;
+                }
+
+                tabs.forEach((tab) => {
+                    tab.classList.toggle('is-active', tab.dataset.key === key);
+                });
+
+                copy.style.background =
+                    `linear-gradient(135deg, rgba(17, 184, 199, 0.94), rgba(16, 148, 166, 0.96)), url("${item.backgroundImage}") center center/cover no-repeat`;
+                icon.textContent = item.icon;
+                heading.textContent = item.heading;
+                description.textContent = item.description;
+                bullets.innerHTML = item.bullets
+                    .map((bullet) => `<li><span class="seasonal-bullet-dot">+</span><span>${bullet}</span></li>`)
+                    .join('');
+                cards.innerHTML = item.cards
+                    .map((card) => `
+                        <article class="seasonal-card">
+                            <div class="seasonal-card-meta">
+                                <span class="seasonal-card-country">${card.country}</span>
+                                ${card.discount ? `<span class="seasonal-card-discount">${card.discount}</span>` : ''}
+                            </div>
+                            <img class="seasonal-card-image" src="${card.image}" alt="${card.title}">
+                            <div class="seasonal-card-title">${card.title}</div>
+                            <p class="seasonal-card-desc">${card.desc}</p>
+                            <div class="seasonal-card-price${card.price === 'Dat hen' ? ' is-cta' : ''}">${card.price}<span> / Lieu</span></div>
+                            ${card.oldPrice ? `<div class="seasonal-card-old-price">${card.oldPrice}</div>` : ''}
+                            <button class="seasonal-card-btn" type="button">Dat hen</button>
+                        </article>
+                    `)
+                    .join('');
+            }
+
+            tabs.forEach((tab) => {
+                tab.addEventListener('click', () => renderCategory(tab.dataset.key));
+            });
+
+            renderCategory('hpv');
+        })();
     </script>
 </body>
 </html>

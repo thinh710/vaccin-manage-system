@@ -1,0 +1,79 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Assets Overview | Vaccin Manage System</title>
+    <link rel="stylesheet" href="{% static 'assets/css/overview.css' %}" />
+</head>
+<body>
+    <main class="overview-shell">
+        <section class="overview-hero">
+            <div class="hero-copy">
+                <span class="eyebrow">Assets workspace</span>
+                <h1>Giao dien quan ly assets cho kho vaccine</h1>
+                <p>Trang nay giup nhan su phu trach kho di nhanh vao khu vuc kho, theo doi tinh trang ton va thao tac dieu phoi tren mot luong giao dien ro rang hon.</p>
+
+                <div class="hero-actions">
+                    <a class="primary-link" href="/assets/dashboard-page/">Vao dashboard kho</a>
+                    <a class="ghost-link" href="/users/dashboard/">Quay lai dashboard</a>
+                </div>
+            </div>
+
+            <aside class="hero-panel">
+                <div class="user-badge">Tai khoan dang dang nhap</div>
+                <h2>{{ user.full_name }}</h2>
+                <p>{{ user.email }}</p>
+                <div class="meta-row">
+                    <span>Ngay lam viec</span>
+                    <strong>{{ today|date:"d/m/Y" }}</strong>
+                </div>
+            </aside>
+        </section>
+
+        <section class="summary-grid">
+            <article class="summary-card">
+                <span>Tong lo vaccine</span>
+                <strong>{{ summary.total_vaccines }}</strong>
+                <p>So lo dang duoc he thong assets theo doi.</p>
+            </article>
+            <article class="summary-card">
+                <span>Tong ton kho</span>
+                <strong>{{ summary.total_stock }}</strong>
+                <p>Tong so lieu vaccine dang co san trong kho.</p>
+            </article>
+            <article class="summary-card warning">
+                <span>Can bo sung</span>
+                <strong>{{ summary.low_stock_count }}</strong>
+                <p>Cac lo dang cham moc ton toi thieu can xu ly som.</p>
+            </article>
+            <article class="summary-card danger">
+                <span>Het han</span>
+                <strong>{{ summary.expired_count }}</strong>
+                <p>Can khoa xuat kho va kiem tra xu ly ngay.</p>
+            </article>
+        </section>
+
+        <section class="feature-grid">
+            <article class="feature-card">
+                <div class="feature-icon">01</div>
+                <h3>Them va cap nhat vaccine</h3>
+                <p>Tao lo moi, cap nhat nha cung cap, han su dung va vi tri bao quan ngay trong dashboard kho.</p>
+            </article>
+            <article class="feature-card">
+                <div class="feature-icon">02</div>
+                <h3>Nghiep vu nhap xuat</h3>
+                <p>Ghi nhan phieu nhap, phieu xuat va dieu chinh ton kho tu giao dien thao tac nhanh.</p>
+            </article>
+            <article class="feature-card">
+                <div class="feature-icon">03</div>
+                <h3>Theo doi canh bao</h3>
+                <p>Quan sat nhanh cac lo sap het han, ton thap va lich su giao dich moi nhat.</p>
+            </article>
+        </section>
+    </main>
+
+    <script src="{% static 'assets/js/overview.js' %}"></script>
+</body>
+</html>
