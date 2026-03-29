@@ -17,6 +17,13 @@
     box-sizing: border-box;
 }
 
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
 body {
     margin: 0;
     font-family: "Segoe UI", sans-serif;
@@ -120,9 +127,19 @@ h1 {
     transition: transform 0.18s ease, background 0.18s ease;
 }
 
+.inventory-link--soft {
+    background: var(--surface-alt);
+    border-color: var(--border);
+    color: var(--primary-dark);
+}
+
 .inventory-link:hover {
     transform: translateY(-1px);
     background: rgba(255, 255, 255, 0.24);
+}
+
+.inventory-link--soft:hover {
+    background: #dfe9ff;
 }
 
 .grid {
@@ -218,6 +235,10 @@ h1 {
     align-items: center;
 }
 
+.screening-item--actionable {
+    align-items: flex-start;
+}
+
 .screening-main strong,
 .review-item strong {
     display: block;
@@ -260,6 +281,95 @@ h1 {
     color: var(--danger);
 }
 
+.screening-actions,
+.form-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 700;
+    transition: transform 0.16s ease, filter 0.16s ease;
+}
+
+.action-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.02);
+}
+
+.action-btn:disabled {
+    opacity: 0.72;
+    cursor: wait;
+    transform: none;
+}
+
+.action-btn--primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.staff-form {
+    display: grid;
+    gap: 16px;
+}
+
+.staff-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.staff-form label {
+    display: grid;
+    gap: 6px;
+}
+
+.staff-form span {
+    font-weight: 700;
+}
+
+.staff-form input,
+.staff-form select,
+.staff-form textarea {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--text);
+}
+
+.staff-form textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.staff-form input:focus,
+.staff-form select:focus,
+.staff-form textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.14);
+}
+
+.field-full {
+    grid-column: 1 / -1;
+}
+
 .review-note {
     margin-top: 10px;
     padding: 12px 14px;
@@ -268,11 +378,38 @@ h1 {
     color: var(--text);
 }
 
+.declaration-inline,
+.declaration-card {
+    margin-top: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #f8fbff;
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+.declaration-inline strong,
+.declaration-card strong {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.declaration-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
 .empty-state {
     padding: 24px;
     border-radius: 12px;
     background: var(--surface-alt);
     color: var(--muted);
+}
+
+.reviews-grid {
+    margin-top: 24px;
 }
 
 .schedule-layout {
@@ -403,6 +540,19 @@ h1 {
     }
 
     .screening-item {
+        grid-template-columns: 1fr;
+    }
+
+    .screening-actions,
+    .form-actions {
+        justify-content: flex-start;
+    }
+
+    .staff-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .declaration-grid {
         grid-template-columns: 1fr;
     }
 

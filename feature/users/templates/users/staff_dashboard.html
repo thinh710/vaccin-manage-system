@@ -4,47 +4,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Staff Dashboard | Vaccin Manage System</title>
-    <link rel="stylesheet" href="{% static 'users/css/staff_dashboard.css' %}">
+    <title>Dashboard nhân viên | Vaccin Manage System</title>
+    <link rel="stylesheet" href="{% static 'users/css/staff_dashboard.css' %}?v=20260329-1">
 </head>
 <body>
     <main class="shell">
         <section class="hero">
             <div class="hero-top">
                 <div>
-                    <div class="eyebrow">Nurse station</div>
-                    <h1>Dashboard y ta cho xet nghiem va kham sang loc</h1>
-                    <p>Theo doi benh nhan can danh gia truoc tiem, cap nhat ho so suc khoe va xac dinh du dieu kien tiem chung trong ca truc.</p>
+                    <div class="eyebrow">Trạm y tá</div>
+                    <h1>Dashboard y tá cho khám sàng lọc và hỗ trợ tiêm</h1>
+                    <p>Theo dõi các ca trong ngày, xem khai báo trước tiêm của bệnh nhân và chỉ xử lý những lịch đã được bác sĩ xác nhận.</p>
                 </div>
                 <div class="hero-meta">
                     <strong>{{ user.full_name }}</strong>
                     <span>{{ user.email }}</span>
-                    <div style="margin-top: 14px;">Ngay truc: {{ today|date:"d/m/Y" }}</div>
-                    <div style="margin-top: 8px;">Vai tro: Y ta ho tro sang loc</div>
+                    <div style="margin-top: 14px;">Ngày trực: {{ today|date:"d/m/Y" }}</div>
+                    <div style="margin-top: 8px;">Vai trò: Y tá hỗ trợ sàng lọc</div>
+                    <a class="inventory-link" href="/medical/dashboard/" style="margin-top: 16px;">Mở khu sàng lọc đầy đủ</a>
+                    <button class="inventory-link" id="logoutBtn" type="button" style="margin-top: 12px;">Đăng xuất</button>
                 </div>
             </div>
         </section>
 
         <section class="grid stats">
             <article class="card stat-card">
-                <small>Ca tiem hom nay</small>
+                <small>Ca tiêm hôm nay</small>
                 <strong>{{ todays_bookings_count }}</strong>
-                <span>Tong so booking can y ta theo doi trong ngay.</span>
+                <span>Tổng số booking y tá cần theo dõi trong ngày.</span>
             </article>
             <article class="card stat-card">
-                <small>Da sang loc</small>
+                <small>Đã sàng lọc</small>
                 <strong>{{ screened_count }}</strong>
-                <span>Ho so da co ket qua kham/xet nghiem truoc tiem.</span>
+                <span>Hồ sơ đã có kết quả khám trước tiêm.</span>
             </article>
             <article class="card stat-card">
-                <small>Du dieu kien tiem</small>
+                <small>Đủ điều kiện tiêm</small>
                 <strong>{{ fit_count }}</strong>
-                <span>Benh nhan da san sang cho buoc tiem chung.</span>
+                <span>Bệnh nhân đã sẵn sàng cho bước tiêm chủng.</span>
             </article>
             <article class="card stat-card">
-                <small>Cho danh gia</small>
+                <small>Y tá có thể xử lý</small>
                 <strong>{{ waiting_screening_count }}</strong>
-                <span>Ca can y ta kham va nhap ket qua them.</span>
+                <span>Chỉ tính các ca đã được bác sĩ xác nhận hoặc đã check-in.</span>
             </article>
         </section>
 
@@ -53,7 +55,7 @@
                 <div class="section-head section-head--compact">
                     <div>
                         <h2>{{ calendar_month_label }}</h2>
-                        <p>Lich tiem va lich kham trong thang hien tai.</p>
+                        <p>Lịch tiêm và lịch khám trong tháng hiện tại.</p>
                     </div>
                 </div>
                 <div class="calendar-weekdays">
@@ -72,15 +74,15 @@
                 </div>
                 <div class="calendar-note">
                     <span class="calendar-dot"></span>
-                    <span>Ngay co lich tiem hoac lich kham</span>
+                    <span>Ngày có lịch tiêm hoặc lịch khám</span>
                 </div>
             </article>
 
             <article class="card section schedule-card">
                 <div class="section-head section-head--compact">
                     <div>
-                        <h2>Lich tiem phong</h2>
-                        <p>Cac lich tiem sap toi can y ta ho tro.</p>
+                        <h2>Lịch tiêm phòng</h2>
+                        <p>Các lịch tiêm sắp tới cần y tá hỗ trợ.</p>
                     </div>
                 </div>
                 <div class="schedule-list">
@@ -90,7 +92,7 @@
                             <span>{{ booking.vaccine_date|date:"d/m/Y" }} - {{ booking.vaccine_name }}</span>
                         </div>
                     {% empty %}
-                        <div class="empty-state">Chua co lich tiem phong sap toi.</div>
+                        <div class="empty-state">Chưa có lịch tiêm phòng sắp tới.</div>
                     {% endfor %}
                 </div>
             </article>
@@ -98,18 +100,18 @@
             <article class="card section schedule-card">
                 <div class="section-head section-head--compact">
                     <div>
-                        <h2>Lich kham suc khoe</h2>
-                        <p>Danh sach can sang loc truoc khi tiem.</p>
+                        <h2>Lịch khám sức khỏe</h2>
+                        <p>Danh sách đang chờ bác sĩ xác nhận hoặc chờ y tá tiếp nhận.</p>
                     </div>
                 </div>
                 <div class="schedule-list">
                     {% for booking in health_schedule %}
                         <div class="schedule-item">
                             <strong>{{ booking.full_name }}</strong>
-                            <span>{{ booking.vaccine_date|date:"d/m/Y" }} - Trang thai: {{ booking.status }}</span>
+                            <span>{{ booking.vaccine_date|date:"d/m/Y" }} - Trạng thái: {{ booking.status }}</span>
                         </div>
                     {% empty %}
-                        <div class="empty-state">Chua co lich kham suc khoe sap toi.</div>
+                        <div class="empty-state">Chưa có lịch khám sức khỏe sắp tới.</div>
                     {% endfor %}
                 </div>
             </article>
@@ -119,61 +121,355 @@
             <article class="card section">
                 <div class="section-head">
                     <div>
-                        <h2>Danh sach sang loc uu tien</h2>
-                        <p>Tap trung xu ly cac booking hom nay de xac dinh benh nhan co du dieu kien tiem khong.</p>
+                        <h2>Danh sách sàng lọc ưu tiên</h2>
+                        <p>Y tá chỉ check-in và nhập kết quả sàng lọc khi lịch đã được bác sĩ xác nhận.</p>
                     </div>
-                    <div class="badge">Khong du dieu kien: {{ not_fit_count }}</div>
+                    <div class="badge">Không đủ điều kiện: {{ not_fit_count }}</div>
                 </div>
 
                 {% if prioritized_screenings %}
                     {% for item in prioritized_screenings %}
-                        <div class="screening-item">
+                        <div class="screening-item screening-item--actionable">
                             <div class="screening-main">
                                 <strong>{{ item.booking.full_name }} • {{ item.booking.vaccine_name }}</strong>
-                                <div>Mui {{ item.booking.dose_number }} • {{ item.booking.phone }}{% if item.booking.email %} • {{ item.booking.email }}{% endif %}</div>
-                                {% if item.record %}
-                                    <div>Nhom mau: {{ item.record.blood_group }} • Di ung: {{ item.record.allergies|default:"Chua cap nhat" }}</div>
+                                <div>Mũi {{ item.booking.dose_number }} • {{ item.booking.phone }}{% if item.booking.email %} • {{ item.booking.email }}{% endif %}</div>
+                                <div>Trạng thái hiện tại: {{ item.status_label }}</div>
+
+                                {% if item.declaration %}
+                                    <div class="declaration-inline">
+                                        <strong>Khai báo trước tiêm:</strong>
+                                        <div>Sốt: {% if item.declaration.has_fever %}Có{% else %}Không{% endif %} • Dị ứng: {% if item.declaration.has_allergy_history %}Có{% else %}Không{% endif %} • Bệnh nền: {% if item.declaration.has_chronic_condition %}Có{% else %}Không{% endif %}</div>
+                                        {% if item.declaration.recent_symptoms %}
+                                            <div>Triệu chứng gần đây: {{ item.declaration.recent_symptoms }}</div>
+                                        {% endif %}
+                                        {% if item.declaration.current_medications %}
+                                            <div>Thuốc đang dùng: {{ item.declaration.current_medications }}</div>
+                                        {% endif %}
+                                        {% if item.declaration.note %}
+                                            <div>Ghi chú thêm: {{ item.declaration.note }}</div>
+                                        {% endif %}
+                                    </div>
                                 {% else %}
-                                    <div>Chua co ho so kham sang loc. Can y ta kiem tra dau hieu sinh ton va tien su benh.</div>
+                                    <div>Chưa có khai báo trước tiêm từ bệnh nhân.</div>
+                                {% endif %}
+
+                                {% if item.record %}
+                                    <div>Nhiệt độ: {{ item.record.temperature }}°C • Huyết áp: {{ item.record.blood_pressure }}</div>
+                                    <div>{% if item.record.is_eligible %}Kết luận trước đó: Đủ điều kiện tiêm.{% else %}Kết luận trước đó: Tạm hoãn hoặc chưa đủ điều kiện tiêm.{% endif %}</div>
+                                {% else %}
+                                    <div>Chưa có kết quả sàng lọc. Y tá sẽ tiếp nhận sau khi bác sĩ xác nhận lịch.</div>
                                 {% endif %}
                             </div>
-                            {% if item.needs_screening %}
-                                <div class="chip waiting">Can sang loc</div>
-                            {% elif item.fit_status %}
-                                <div class="chip fit">Du dieu kien tiem</div>
-                            {% else %}
-                                <div class="chip not-fit">Tam hoan tiem</div>
-                            {% endif %}
+
+                            <div class="screening-actions">
+                                {% if item.action == 'check_in' %}
+                                    <button
+                                        class="action-btn"
+                                        type="button"
+                                        data-action="check-in"
+                                        data-booking-id="{{ item.booking.id }}"
+                                        data-booking-name="{{ item.booking.full_name }}"
+                                    >
+                                        Check-in
+                                    </button>
+                                {% elif item.action == 'screening' %}
+                                    <button
+                                        class="action-btn action-btn--primary"
+                                        type="button"
+                                        data-action="open-screening"
+                                        data-booking-id="{{ item.booking.id }}"
+                                        data-booking-name="{{ item.booking.full_name }}"
+                                        data-temperature="{% if item.record %}{{ item.record.temperature }}{% endif %}"
+                                        data-blood-pressure="{% if item.record %}{{ item.record.blood_pressure }}{% endif %}"
+                                        data-is-eligible="{% if item.record %}{% if item.record.is_eligible %}true{% else %}false{% endif %}{% else %}true{% endif %}"
+                                        data-note="{% if item.record and item.record.doctor_note %}{{ item.record.doctor_note|escapejs }}{% endif %}"
+                                        data-declaration-present="{% if item.declaration %}true{% else %}false{% endif %}"
+                                        data-declaration-fever="{% if item.declaration and item.declaration.has_fever %}true{% else %}false{% endif %}"
+                                        data-declaration-allergy="{% if item.declaration and item.declaration.has_allergy_history %}true{% else %}false{% endif %}"
+                                        data-declaration-chronic="{% if item.declaration and item.declaration.has_chronic_condition %}true{% else %}false{% endif %}"
+                                        data-declaration-symptoms="{% if item.declaration and item.declaration.recent_symptoms %}{{ item.declaration.recent_symptoms|escapejs }}{% endif %}"
+                                        data-declaration-medications="{% if item.declaration and item.declaration.current_medications %}{{ item.declaration.current_medications|escapejs }}{% endif %}"
+                                        data-declaration-extra-note="{% if item.declaration and item.declaration.note %}{{ item.declaration.note|escapejs }}{% endif %}"
+                                    >
+                                        Nhập kết quả sàng lọc
+                                    </button>
+                                {% elif item.action == 'waiting_doctor' %}
+                                    <span class="chip waiting">Chờ bác sĩ xác nhận</span>
+                                {% elif item.action == 'waiting_reconfirm' %}
+                                    <span class="chip waiting">Chờ bác sĩ xác nhận lại</span>
+                                {% else %}
+                                    <span class="chip fit">Đã sàng lọc</span>
+                                {% endif %}
+                            </div>
                         </div>
                     {% endfor %}
                 {% else %}
-                    <div class="empty-state">Hom nay chua co booking can y ta sang loc.</div>
+                    <div class="empty-state">Hôm nay chưa có booking nào cần y tá xử lý.</div>
                 {% endif %}
             </article>
 
             <article class="card section">
                 <div class="section-head">
                     <div>
-                        <h2>Ket qua kham gan nhat</h2>
-                        <p>Ghi chu suc khoe va ket luan tiem chung moi nhat.</p>
+                        <h2>Khu vực thao tác y tá</h2>
+                        <p id="action-subtitle">Chọn một bệnh nhân đã được bác sĩ xác nhận để check-in hoặc nhập kết quả sàng lọc.</p>
                     </div>
-                    <div class="badge">Ho so da duyet: {{ screened_count }}</div>
+                    <a class="inventory-link inventory-link--soft" href="/medical/dashboard/">Mở khu y khoa</a>
+                </div>
+
+                <div id="staff-action-default" class="empty-state">
+                    Y tá chỉ có thể thao tác sau khi bác sĩ đã xác nhận lịch. Các booking đang chờ xác nhận sẽ được hiển thị ở trạng thái theo dõi.
+                </div>
+
+                <div id="staff-declaration-box" class="review-note declaration-card" hidden></div>
+
+                <form id="staff-screening-form" class="staff-form" hidden>
+                    <input type="hidden" id="screen-booking-id">
+                    <div class="staff-form-grid">
+                        <label>
+                            <span>Nhiệt độ (°C)</span>
+                            <input type="number" step="0.1" id="screen-temp" required placeholder="Ví dụ: 36.7">
+                        </label>
+                        <label>
+                            <span>Huyết áp (mmHg)</span>
+                            <input type="text" id="screen-bp" required placeholder="Ví dụ: 120/80">
+                        </label>
+                        <label class="field-full">
+                            <span>Kết luận sàng lọc</span>
+                            <select id="screen-eligible" required>
+                                <option value="true">Đủ điều kiện tiêm</option>
+                                <option value="false">Tạm hoãn / chưa đủ điều kiện</option>
+                            </select>
+                        </label>
+                        <label class="field-full">
+                            <span>Ghi chú</span>
+                            <textarea id="screen-note" rows="4" placeholder="Nhập ghi chú sức khỏe, dị ứng, lưu ý..."></textarea>
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button class="action-btn action-btn--primary" type="submit">Lưu kết quả sàng lọc</button>
+                        <button class="action-btn" type="button" id="cancel-screening-btn">Hủy</button>
+                    </div>
+                </form>
+            </article>
+        </section>
+
+        <section class="grid reviews-grid">
+            <article class="card section">
+                <div class="section-head">
+                    <div>
+                        <h2>Kết quả khám gần nhất</h2>
+                        <p>Ghi chú sức khỏe và kết luận sàng lọc mới nhất trong ngày.</p>
+                    </div>
+                    <div class="badge">Đã sàng lọc: {{ screened_count }}</div>
                 </div>
 
                 {% if recent_medical_reviews %}
                     {% for record in recent_medical_reviews %}
                         <div class="review-item">
                             <strong>{{ record.booking.full_name }} • {{ record.booking.vaccine_name }}</strong>
-                            <div>{{ record.booking.vaccine_date|date:"d/m/Y" }} • {% if record.gender %}{{ record.gender }} • {% endif %}Nhom mau {{ record.blood_group }}</div>
-                            <div>{% if record.is_fit_for_vaccination %}Ket luan: Du dieu kien tiem.{% else %}Ket luan: Chua du dieu kien tiem.{% endif %}</div>
-                            <div class="review-note">{{ record.doctor_note|default:"Chua co ghi chu bac si. Y ta can bo sung ket qua kham sang loc neu can." }}</div>
+                            <div>{{ record.booking.vaccine_date|date:"d/m/Y" }} • Nhiệt độ {{ record.temperature }}°C • Huyết áp {{ record.blood_pressure }}</div>
+                            {% if record.booking.user %}
+                                <div>{% if record.booking.user.gender %}{{ record.booking.user.gender }} • {% endif %}Nhóm máu {{ record.booking.user.blood_group }}</div>
+                            {% endif %}
+                            <div>{% if record.is_eligible %}Kết luận: Đủ điều kiện tiêm.{% else %}Kết luận: Tạm hoãn hoặc không đủ điều kiện tiêm.{% endif %}</div>
+                            <div class="review-note">{{ record.doctor_note|default:"Chưa có ghi chú thêm." }}</div>
                         </div>
                     {% endfor %}
                 {% else %}
-                    <div class="empty-state">Chua co ho so kham suc khoe nao duoc cap nhat.</div>
+                    <div class="empty-state">Chưa có hồ sơ khám sức khỏe nào được cập nhật trong ngày.</div>
                 {% endif %}
             </article>
         </section>
     </main>
+
+    <script>
+        function getCookie(name) {
+            const cookies = document.cookie ? document.cookie.split(';') : [];
+            for (const cookie of cookies) {
+                const trimmedCookie = cookie.trim();
+                if (trimmedCookie.startsWith(name + '=')) {
+                    return decodeURIComponent(trimmedCookie.slice(name.length + 1));
+                }
+            }
+            return '';
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function renderDeclarationBox(button) {
+            const declarationBox = document.getElementById('staff-declaration-box');
+            if (!declarationBox) {
+                return;
+            }
+
+            declarationBox.hidden = false;
+
+            if (button.dataset.declarationPresent !== 'true') {
+                declarationBox.innerHTML = '<strong>Khai báo trước tiêm</strong><div>Chưa có khai báo trước tiêm từ bệnh nhân.</div>';
+                return;
+            }
+
+            const fever = button.dataset.declarationFever === 'true' ? 'Có' : 'Không';
+            const allergy = button.dataset.declarationAllergy === 'true' ? 'Có' : 'Không';
+            const chronic = button.dataset.declarationChronic === 'true' ? 'Có' : 'Không';
+            const symptoms = button.dataset.declarationSymptoms || '';
+            const medications = button.dataset.declarationMedications || '';
+            const extraNote = button.dataset.declarationExtraNote || '';
+
+            declarationBox.innerHTML = `
+                <strong>Khai báo trước tiêm</strong>
+                <div class="declaration-grid">
+                    <div>Sốt: ${fever}</div>
+                    <div>Dị ứng: ${allergy}</div>
+                    <div>Bệnh nền: ${chronic}</div>
+                </div>
+                ${symptoms ? `<div>Triệu chứng gần đây: ${escapeHtml(symptoms)}</div>` : ''}
+                ${medications ? `<div>Thuốc đang dùng: ${escapeHtml(medications)}</div>` : ''}
+                ${extraNote ? `<div>Ghi chú thêm: ${escapeHtml(extraNote)}</div>` : ''}
+            `;
+        }
+
+        function resetScreeningPanel() {
+            document.getElementById('staff-action-default').hidden = false;
+            document.getElementById('staff-declaration-box').hidden = true;
+            document.getElementById('staff-screening-form').hidden = true;
+            document.getElementById('action-subtitle').textContent = 'Chọn một bệnh nhân đã được bác sĩ xác nhận để check-in hoặc nhập kết quả sàng lọc.';
+            document.getElementById('staff-screening-form').reset();
+            document.getElementById('screen-booking-id').value = '';
+        }
+
+        function openScreeningPanel(button) {
+            document.getElementById('staff-action-default').hidden = true;
+            document.getElementById('staff-screening-form').hidden = false;
+            renderDeclarationBox(button);
+            document.getElementById('screen-booking-id').value = button.dataset.bookingId || '';
+            document.getElementById('screen-temp').value = button.dataset.temperature || '';
+            document.getElementById('screen-bp').value = button.dataset.bloodPressure || '';
+            document.getElementById('screen-eligible').value = button.dataset.isEligible || 'true';
+            document.getElementById('screen-note').value = button.dataset.note || '';
+            document.getElementById('action-subtitle').textContent = `Nhập kết quả sàng lọc cho: ${button.dataset.bookingName || 'Bệnh nhân'}`;
+            window.scrollTo({ top: document.getElementById('staff-screening-form').offsetTop - 120, behavior: 'smooth' });
+        }
+
+        async function performCheckIn(button) {
+            const bookingId = button.dataset.bookingId;
+            if (!bookingId) {
+                return;
+            }
+
+            if (!window.confirm(`Xác nhận check-in cho ${button.dataset.bookingName || 'bệnh nhân'}?`)) {
+                return;
+            }
+
+            const initialLabel = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Đang xử lý...';
+
+            try {
+                const response = await fetch(`/api/medical/${bookingId}/check-in/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Không thể check-in lúc này.');
+                }
+
+                window.location.reload();
+            } catch (error) {
+                alert(error.message || 'Không thể check-in lúc này.');
+                button.disabled = false;
+                button.textContent = initialLabel;
+            }
+        }
+
+        document.querySelectorAll('[data-action="check-in"]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                performCheckIn(button);
+            });
+        });
+
+        document.querySelectorAll('[data-action="open-screening"]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                openScreeningPanel(button);
+            });
+        });
+
+        document.getElementById('staff-screening-form')?.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const payload = {
+                booking: parseInt(document.getElementById('screen-booking-id').value, 10),
+                temperature: parseFloat(document.getElementById('screen-temp').value),
+                blood_pressure: document.getElementById('screen-bp').value.trim(),
+                is_eligible: document.getElementById('screen-eligible').value === 'true',
+                doctor_note: document.getElementById('screen-note').value.trim()
+            };
+
+            const submitButton = this.querySelector('button[type="submit"]');
+            const initialLabel = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = 'Đang lưu...';
+
+            try {
+                const response = await fetch('/api/medical/screening/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(data.detail || JSON.stringify(data) || 'Không thể lưu kết quả sàng lọc.');
+                }
+
+                window.location.reload();
+            } catch (error) {
+                alert(error.message || 'Không thể lưu kết quả sàng lọc.');
+                submitButton.disabled = false;
+                submitButton.textContent = initialLabel;
+            }
+        });
+
+        document.getElementById('cancel-screening-btn')?.addEventListener('click', resetScreeningPanel);
+
+        document.getElementById('logoutBtn')?.addEventListener('click', async function () {
+            try {
+                const response = await fetch('/auth/logout/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Logout failed');
+                }
+
+                window.location.href = '/auth/login-page/';
+            } catch (error) {
+                alert('Không thể đăng xuất lúc này. Vui lòng thử lại.');
+            }
+        });
+    </script>
 </body>
 </html>

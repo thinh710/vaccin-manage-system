@@ -4,15 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ho So | Vaccin Manage System</title>
-    <link rel="stylesheet" href="{% static 'users/css/profile.css' %}">
+    <title>Hồ sơ | Vaccin Manage System</title>
+    <link rel="stylesheet" href="{% static 'users/css/profile.css' %}?v=20260328-1">
 </head>
 <body>
     <main class="profile-shell">
         <div class="profile-breadcrumb">
-            <a href="/users/dashboard/">Trang chu</a>
+            <a href="/users/dashboard/">Trang chủ</a>
             <span>/</span>
-            <a href="/users/profile/" class="is-current">Thong tin ca nhan</a>
+            <a href="/users/profile/" class="is-current">Thông tin cá nhân</a>
         </div>
 
         <section class="profile-layout">
@@ -28,18 +28,18 @@
                 </div>
 
                 <nav class="profile-menu">
-                    <a class="profile-menu-item is-active" href="/users/profile/">Thong tin ca nhan</a>
-                    <a class="profile-menu-item" href="/users/dashboard/">Tong quan tai khoan</a>
-                    <a class="profile-menu-item" href="#">Lich hen tiem chung</a>
-                    <a class="profile-menu-item" href="#">Ho so suc khoe</a>
+                    <a class="profile-menu-item is-active" href="/users/profile/">Thông tin cá nhân</a>
+                    <a class="profile-menu-item" href="/users/dashboard/">Tổng quan tài khoản</a>
+                    <a class="profile-menu-item" href="/booking/portal/">Lịch hẹn tiêm chủng</a>
+                    <a class="profile-menu-item" href="/users/system/">Hồ sơ sức khỏe</a>
                 </nav>
             </aside>
 
             <section class="profile-main">
                 <div class="profile-panel">
                     <div class="profile-panel-head">
-                        <h1>Thong tin ca nhan</h1>
-                        <p>Cap nhat thong tin lien he, suc khoe co ban va anh dai dien cua ban.</p>
+                        <h1>Thông tin cá nhân</h1>
+                        <p>Cập nhật thông tin liên hệ, sức khỏe cơ bản và ảnh đại diện của bạn.</p>
                     </div>
 
                     <div class="profile-panel-body">
@@ -64,15 +64,15 @@
                                     {% endif %}
                                 </div>
                                 <div class="profile-avatar-actions">
-                                    <label class="profile-button profile-button--secondary" for="avatarFile">Chon anh ho so</label>
+                                    <label class="profile-button profile-button--secondary" for="avatarFile">Chọn ảnh hồ sơ</label>
                                     <input id="avatarFile" type="file" accept="image/*" hidden>
-                                    <button id="removeAvatarBtn" class="profile-button profile-button--ghost" type="button">Xoa anh</button>
+                                    <button id="removeAvatarBtn" class="profile-button profile-button--ghost" type="button">Xóa ảnh</button>
                                 </div>
                             </div>
 
                             <div class="profile-form-grid">
                                 <div class="profile-field">
-                                    <label for="full_name">Ho va ten</label>
+                                    <label for="full_name">Họ và tên</label>
                                     <input id="full_name" name="full_name" type="text" value="{{ user.full_name }}" required>
                                 </div>
                                 <div class="profile-field">
@@ -80,32 +80,32 @@
                                     <input id="email" name="email" type="email" value="{{ user.email }}" required>
                                 </div>
                                 <div class="profile-field">
-                                    <label for="phone_number">So dien thoai</label>
-                                    <input id="phone_number" name="phone_number" type="text" value="{% if phone != 'Chua cap nhat' %}{{ phone }}{% endif %}">
+                                    <label for="phone_number">Số điện thoại</label>
+                                    <input id="phone_number" name="phone_number" type="text" value="{% if phone != 'Chưa cập nhật' %}{{ phone }}{% endif %}">
                                 </div>
                                 <div class="profile-field">
-                                    <label for="role">Vai tro</label>
+                                    <label for="role">Vai trò</label>
                                     <input id="role" type="text" value="{{ user.role }}" disabled>
                                 </div>
                                 <div class="profile-field">
-                                    <label for="status">Trang thai</label>
+                                    <label for="status">Trạng thái</label>
                                     <input id="status" type="text" value="{{ user.status }}" disabled>
                                 </div>
                                 <div class="profile-field">
-                                    <label for="gender">Gioi tinh</label>
+                                    <label for="gender">Giới tính</label>
                                     <select id="gender" name="gender">
-                                        <option value="" {% if gender == 'Them thong tin' or not gender %}selected{% endif %}>Chon gioi tinh</option>
+                                        <option value="" {% if gender == 'Thêm thông tin' or not gender %}selected{% endif %}>Chọn giới tính</option>
                                         <option value="male" {% if gender == 'male' %}selected{% endif %}>Nam</option>
-                                        <option value="female" {% if gender == 'female' %}selected{% endif %}>Nu</option>
-                                        <option value="other" {% if gender == 'other' %}selected{% endif %}>Khac</option>
+                                        <option value="female" {% if gender == 'female' %}selected{% endif %}>Nữ</option>
+                                        <option value="other" {% if gender == 'other' %}selected{% endif %}>Khác</option>
                                     </select>
                                 </div>
                                 <div class="profile-field">
-                                    <label for="date_of_birth">Ngay sinh</label>
+                                    <label for="date_of_birth">Ngày sinh</label>
                                     <input id="date_of_birth" name="date_of_birth" type="date" value="{% if date_of_birth %}{{ date_of_birth|date:'Y-m-d' }}{% endif %}">
                                 </div>
                                 <div class="profile-field">
-                                    <label for="blood_group">Nhom mau</label>
+                                    <label for="blood_group">Nhóm máu</label>
                                     <select id="blood_group" name="blood_group">
                                         {% for value, label in blood_group_choices %}
                                             <option value="{{ value }}" {% if blood_group == value %}selected{% endif %}>{{ label }}</option>
@@ -113,18 +113,18 @@
                                     </select>
                                 </div>
                                 <div class="profile-field profile-field--full">
-                                    <label for="allergies">Di ung</label>
-                                    <textarea id="allergies" name="allergies" rows="3">{% if allergies != 'Chua cap nhat' %}{{ allergies }}{% endif %}</textarea>
+                                    <label for="allergies">Dị ứng</label>
+                                    <textarea id="allergies" name="allergies" rows="3">{% if allergies != 'Chưa cập nhật' %}{{ allergies }}{% endif %}</textarea>
                                 </div>
                                 <div class="profile-field profile-field--full">
-                                    <label for="medical_history">Tien su benh</label>
-                                    <textarea id="medical_history" name="medical_history" rows="4">{% if medical_history != 'Chua cap nhat' %}{{ medical_history }}{% endif %}</textarea>
+                                    <label for="medical_history">Tiền sử bệnh</label>
+                                    <textarea id="medical_history" name="medical_history" rows="4">{% if medical_history != 'Chưa cập nhật' %}{{ medical_history }}{% endif %}</textarea>
                                 </div>
                             </div>
 
                             <div class="profile-actions">
-                                <a class="profile-button profile-button--ghost" href="/users/dashboard/">Quay lai dashboard</a>
-                                <button class="profile-button profile-button--primary" type="submit">Luu thay doi</button>
+                                <a class="profile-button profile-button--ghost" href="/users/dashboard/">Quay lại dashboard</a>
+                                <button class="profile-button profile-button--primary" type="submit">Lưu thay đổi</button>
                             </div>
                         </form>
                     </div>
@@ -133,6 +133,6 @@
         </section>
     </main>
 
-    <script src="{% static 'users/js/profile.js' %}"></script>
+    <script src="{% static 'users/js/profile.js' %}?v=20260328-1"></script>
 </body>
 </html>

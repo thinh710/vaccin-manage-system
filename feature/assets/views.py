@@ -95,10 +95,10 @@ def inventory_dashboard_page(request):
         [
             {
                 "type": "import",
-                "label": "Nhap kho",
+                "label": "Nhập kho",
                 "vaccine_name": item.vaccine.name,
                 "quantity": item.quantity,
-                "meta": item.supplier.name if item.supplier else "Khong ro nha cung cap",
+                "meta": item.supplier.name if item.supplier else "Không rõ nhà cung cấp",
                 "created_at": item.created_at,
             }
             for item in recent_imports
@@ -106,7 +106,7 @@ def inventory_dashboard_page(request):
         + [
             {
                 "type": "export",
-                "label": "Xuat kho",
+                "label": "Xuất kho",
                 "vaccine_name": item.vaccine.name,
                 "quantity": item.quantity,
                 "meta": item.destination,
@@ -117,7 +117,7 @@ def inventory_dashboard_page(request):
         + [
             {
                 "type": "adjustment",
-                "label": "Dieu chinh",
+                "label": "Điều chỉnh",
                 "vaccine_name": item.vaccine.name,
                 "quantity": item.quantity,
                 "meta": item.reason,
@@ -210,6 +210,40 @@ def inventory_interface_page(request):
     return render(request, "assets/interface.html", {"user": user})
 
 
+def supplier_management_page(request):
+    user, redirect_response = _get_session_user(request)
+    if redirect_response:
+        return redirect_response
+
+    if not _can_manage_inventory(user):
+        return redirect("/users/dashboard/")
+
+    suppliers = list(Supplier.objects.all().order_by("name"))
+    context = {
+        "user": user,
+        "suppliers": suppliers,
+        "supplier_count": len(suppliers),
+    }
+    return render(request, "assets/suppliers.html", context)
+
+
+def location_management_page(request):
+    user, redirect_response = _get_session_user(request)
+    if redirect_response:
+        return redirect_response
+
+    if not _can_manage_inventory(user):
+        return redirect("/users/dashboard/")
+
+    locations = list(StorageLocation.objects.all().order_by("name"))
+    context = {
+        "user": user,
+        "locations": locations,
+        "location_count": len(locations),
+    }
+    return render(request, "assets/locations.html", context)
+
+
 class SupplierViewSet(viewsets.ModelViewSet):
     queryset = Supplier.objects.all().order_by("-created_at")
     serializer_class = SupplierSerializer
@@ -285,7 +319,7 @@ class InventoryDashboardAPIView(APIView):
             role__in=[User.ROLE_ADMIN, User.ROLE_STAFF],
             status=User.STATUS_ACTIVE,
         ).exists():
-            return Response({"detail": "Ban khong co quyen truy cap."}, status=403)
+            return Response({"detail": "Bạn không có quyền truy cập."}, status=403)
 
         today = timezone.now().date()
 

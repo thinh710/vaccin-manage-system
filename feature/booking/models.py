@@ -1,5 +1,7 @@
 from django.db import models
 
+from feature.authentication.models import User
+
 
 class Booking(models.Model):
     STATUS_PENDING = 'pending'
@@ -20,6 +22,20 @@ class Booking(models.Model):
         (STATUS_DELAYED, 'Delayed'),
     ]
 
+    ACTIVE_STATUSES = [
+        STATUS_PENDING,
+        STATUS_CONFIRMED,
+        STATUS_CHECKED_IN,
+        STATUS_SCREENED,
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name='bookings',
+        null=True,
+        blank=True,
+    )
     full_name = models.CharField(max_length=100)
     phone = models.CharField(max_length=20)
     email = models.EmailField(blank=True, null=True)

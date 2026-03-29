@@ -4,25 +4,25 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dang nhap | Vaccin Manage System</title>
+    <title>Đăng nhập | Vaccin Manage System</title>
     <link rel="stylesheet" href="{% static 'authentication/css/auth.css' %}" />
 </head>
 <body class="auth-body">
     <div class="auth-shell">
         <div class="auth-panel auth-panel--brand">
             <h1 style="font-size:2.5rem;font-weight:800;margin-bottom:10px;text-align:left;letter-spacing:0.5px;">Vaccin Manage System</h1>
-            <p style="font-size:1.15rem;margin-bottom:18px;text-align:left;max-width:420px;">Quan ly dang ky, ho so tiem chung va quy trinh van hanh trong mot giao dien gon, ro va de dung.</p>
+            <p style="font-size:1.15rem;margin-bottom:18px;text-align:left;max-width:420px;">Quản lý đăng ký, hồ sơ tiêm chủng và quy trình vận hành trong một giao diện gọn, rõ và dễ dùng.</p>
             <ul class="brand-points" style="text-align:left;max-width:420px;">
-                <li>Theo doi nguoi dung va phan quyen</li>
-                <li>Truy cap nhanh ho so va lich hen</li>
-                <li>Ho tro dang nhap bang email, Google va Facebook</li>
+                <li>Theo dõi người dùng và phân quyền</li>
+                <li>Truy cập nhanh hồ sơ và lịch hẹn</li>
+                <li>Hỗ trợ đăng nhập bằng email, Google và Facebook</li>
             </ul>
         </div>
 
         <div class="auth-panel auth-panel--form">
             <div class="panel-head">
-                <h2 style="font-size:2rem;font-weight:800;margin-bottom:8px;">Dang nhap</h2>
-                <p style="font-size:1.08rem;color:#64748b;">Dung email va mat khau cua ban de truy cap he thong, hoac dang nhap nhanh bang tai khoan mang xa hoi.</p>
+                <h2 style="font-size:2rem;font-weight:800;margin-bottom:8px;">Đăng nhập</h2>
+                <p style="font-size:1.08rem;color:#64748b;">Dùng email và mật khẩu của bạn để truy cập hệ thống, hoặc đăng nhập nhanh bằng tài khoản mạng xã hội.</p>
             </div>
 
             <div id="messageBox" class="alert" hidden></div>
@@ -35,17 +35,17 @@
                 </div>
 
                 <div class="field-group">
-                    <label for="password">Mat khau</label>
+                    <label for="password">Mật khẩu</label>
                     <div class="password-wrap">
-                        <input id="password" name="password" type="password" placeholder="Nhap mat khau" required />
-                        <button type="button" class="ghost-btn" data-toggle-password="#password">Hien</button>
+                        <input id="password" name="password" type="password" placeholder="Nhập mật khẩu" required />
+                        <button type="button" class="ghost-btn" data-toggle-password="#password">Hiện</button>
                     </div>
                 </div>
 
-                <button id="submitBtn" type="submit" class="primary-btn">Dang nhap</button>
+                <button id="submitBtn" type="submit" class="primary-btn">Đăng nhập</button>
 
                 <div class="social-login">
-                    <span>Hoac dang nhap bang</span>
+                    <span>Hoặc đăng nhập bằng</span>
                     <button id="googleLoginBtn" class="btn-social google" type="button">
                         <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/google.svg" alt="Google" style="height:18px;margin-right:8px;" />
                         Google
@@ -58,8 +58,8 @@
             </form>
 
             <div class="auth-footer">
-                <span>Chua co tai khoan?</span>
-                <a href="/auth/register-page/">Dang ky ngay</a>
+                <span>Chưa có tài khoản?</span>
+                <a href="/auth/register-page/">Đăng ký ngay</a>
             </div>
         </div>
     </div>

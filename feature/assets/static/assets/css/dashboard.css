@@ -53,7 +53,7 @@ a {
 .inventory-app {
     min-height: 100vh;
     display: grid;
-    grid-template-columns: 260px minmax(0, 1fr);
+    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
 }
 
 .sidebar {
@@ -90,6 +90,15 @@ a {
     display: block;
 }
 
+.brand > div,
+.profile-card > div,
+.workspace,
+.panel,
+.panel--main,
+.panel--side {
+    min-width: 0;
+}
+
 .brand span,
 .profile-card span,
 .profile-card small {
@@ -103,6 +112,13 @@ a {
     padding: 14px;
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.06);
+}
+
+.profile-card strong,
+.profile-card span,
+.profile-card small {
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .avatar {
@@ -127,6 +143,8 @@ a {
     border-radius: 10px;
     color: rgba(255, 255, 255, 0.8);
     transition: background 0.18s ease, color 0.18s ease;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
 }
 
 .side-link:hover,
@@ -158,6 +176,11 @@ a {
 
 .mini-stat span {
     color: rgba(255, 255, 255, 0.72);
+    overflow-wrap: anywhere;
+}
+
+.mini-stat strong {
+    flex-shrink: 0;
 }
 
 .mini-stat.warning strong {
@@ -227,7 +250,7 @@ a {
     flex-wrap: wrap;
     justify-content: end;
     gap: 8px;
-    max-width: 520px;
+    max-width: 640px;
 }
 
 .toolbar-btn,
@@ -401,7 +424,8 @@ a {
 
 .table-shell {
     border: 1px solid var(--line);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     background: #fff;
 }
 
@@ -641,6 +665,13 @@ a {
     gap: 6px;
 }
 
+.field-inline-action {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+}
+
 .field-grid input,
 .field-grid select,
 .field-grid textarea {
@@ -658,6 +689,11 @@ a {
     grid-column: 1 / -1;
 }
 
+.soft-btn--compact {
+    min-height: 42px;
+    white-space: nowrap;
+}
+
 .primary-btn {
     justify-self: start;
     min-height: 40px;
@@ -668,6 +704,17 @@ a {
     color: #fff;
     cursor: pointer;
     font-weight: 700;
+}
+
+.modal-card--compact {
+    width: min(520px, 100%);
+}
+
+.modal-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
 }
 
 @media (max-width: 1280px) {
@@ -714,6 +761,10 @@ a {
     }
 
     .field-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .field-inline-action {
         grid-template-columns: 1fr;
     }
 

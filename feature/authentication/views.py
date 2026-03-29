@@ -72,7 +72,7 @@ def _start_social_flow(
     client_id = os.getenv(client_id_env, '').strip()
     if not client_id:
         return _build_login_page_redirect(
-            f'Ban can cau hinh {client_id_env} trong file .env truoc khi dang nhap bang {provider}.'
+            f'Bạn cần cấu hình {client_id_env} trong file .env trước khi đăng nhập bằng {provider}.'
         )
 
     state = secrets.token_urlsafe(24)
@@ -113,11 +113,11 @@ def _get_or_create_social_user(
     user = User.objects.filter(email=normalized_email).first()
 
     if user and user.role != User.ROLE_CITIZEN:
-        raise ValueError('Tai khoan nay dang thuoc nhom admin/staff va khong duoc dang nhap qua mang xa hoi.')
+        raise ValueError('Tài khoản này đang thuộc nhóm admin/staff và không được đăng nhập qua mạng xã hội.')
 
     if user:
         if user.status != User.STATUS_ACTIVE:
-            raise ValueError('Tai khoan nay chua san sang de dang nhap.')
+            raise ValueError('Tài khoản này chưa sẵn sàng để đăng nhập.')
         if not user.full_name and full_name:
             user.full_name = full_name
         if avatar_url and not user.avatar_data:
@@ -150,7 +150,7 @@ def _complete_social_login(
     avatar_url: str = '',
 ):
     if not email:
-        raise ValueError('Tai khoan mang xa hoi nay chua tra ve email, khong the tao user.')
+        raise ValueError('Tài khoản mạng xã hội này chưa trả về email, không thể tạo user.')
 
     user = _get_or_create_social_user(
         email=email,
@@ -184,7 +184,7 @@ def register_view(request):
     role = serializer.validated_data.get('role', User.ROLE_CITIZEN)
 
     if User.objects.filter(email=email).exists():
-        return Response({'email': ['Email da ton tai.']}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'email': ['Email đã tồn tại.']}, status=status.HTTP_400_BAD_REQUEST)
 
     user = User.objects.create(
         full_name=full_name,
@@ -198,7 +198,7 @@ def register_view(request):
 
     return Response(
         {
-            'message': 'Dang ky thanh cong.',
+            'message': 'Đăng ký thành công.',
             'user': UserSerializer(user).data,
         },
         status=status.HTTP_201_CREATED,
@@ -216,35 +216,35 @@ def login_view(request):
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
-        return Response({'detail': 'Email hoac mat khau khong dung.'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({'detail': 'Email hoặc mật khẩu không đúng.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     if user.status != User.STATUS_ACTIVE:
-        return Response({'detail': 'Tai khoan chua san sang de dang nhap.'}, status=status.HTTP_403_FORBIDDEN)
+        return Response({'detail': 'Tài khoản chưa sẵn sàng để đăng nhập.'}, status=status.HTTP_403_FORBIDDEN)
 
     if not check_password(password, user.password_hash):
-        return Response({'detail': 'Email hoac mat khau khong dung.'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({'detail': 'Email hoặc mật khẩu không đúng.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     request.session['user_id'] = user.id
-    return Response({'message': 'Dang nhap thanh cong.', 'user': UserSerializer(user).data})
+    return Response({'message': 'Đăng nhập thành công.', 'user': UserSerializer(user).data})
 
 
 @api_view(['POST'])
 def logout_view(request):
     request.session.flush()
-    return Response({'message': 'Dang xuat thanh cong.'})
+    return Response({'message': 'Đăng xuất thành công.'})
 
 
 @api_view(['GET'])
 def me_view(request):
     user_id = request.session.get('user_id')
     if not user_id:
-        return Response({'detail': 'Ban chua dang nhap.'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({'detail': 'Bạn chưa đăng nhập.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
         request.session.flush()
-        return Response({'detail': 'Phien dang nhap khong hop le.'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({'detail': 'Phiên đăng nhập không hợp lệ.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     return Response(UserSerializer(user).data)
 
@@ -275,20 +275,20 @@ def facebook_login_start(request: HttpRequest):
 def google_login_callback(request: HttpRequest):
     error_message = request.GET.get('error')
     if error_message:
-        return _build_login_page_redirect('Dang nhap Google da bi huy.')
+        return _build_login_page_redirect('Đăng nhập Google đã bị hủy.')
 
     expected_state = request.session.pop('oauth_state_google', '')
     if not expected_state or expected_state != request.GET.get('state'):
-        return _build_login_page_redirect('Phien dang nhap Google khong hop le.')
+        return _build_login_page_redirect('Phiên đăng nhập Google không hợp lệ.')
 
     code = request.GET.get('code', '').strip()
     if not code:
-        return _build_login_page_redirect('Google khong tra ve ma xac thuc.')
+        return _build_login_page_redirect('Google không trả về mã xác thực.')
 
     client_id = os.getenv('GOOGLE_CLIENT_ID', '').strip()
     client_secret = os.getenv('GOOGLE_CLIENT_SECRET', '').strip()
     if not client_id or not client_secret:
-        return _build_login_page_redirect('Ban can cau hinh GOOGLE_CLIENT_ID va GOOGLE_CLIENT_SECRET trong file .env.')
+        return _build_login_page_redirect('Bạn cần cấu hình GOOGLE_CLIENT_ID và GOOGLE_CLIENT_SECRET trong file .env.')
 
     redirect_uri = _build_redirect_uri(request, 'GOOGLE_REDIRECT_URI', 'google-login-callback')
 
@@ -317,27 +317,27 @@ def google_login_callback(request: HttpRequest):
             avatar_url=user_info.get('picture', ''),
         )
     except (KeyError, ValueError) as error:
-        return _build_login_page_redirect(f'Dang nhap Google that bai: {error}')
+        return _build_login_page_redirect(f'Đăng nhập Google thất bại: {error}')
 
 
 @api_view(['GET'])
 def facebook_login_callback(request: HttpRequest):
     error_message = request.GET.get('error') or request.GET.get('error_reason')
     if error_message:
-        return _build_login_page_redirect('Dang nhap Facebook da bi huy.')
+        return _build_login_page_redirect('Đăng nhập Facebook đã bị hủy.')
 
     expected_state = request.session.pop('oauth_state_facebook', '')
     if not expected_state or expected_state != request.GET.get('state'):
-        return _build_login_page_redirect('Phien dang nhap Facebook khong hop le.')
+        return _build_login_page_redirect('Phiên đăng nhập Facebook không hợp lệ.')
 
     code = request.GET.get('code', '').strip()
     if not code:
-        return _build_login_page_redirect('Facebook khong tra ve ma xac thuc.')
+        return _build_login_page_redirect('Facebook không trả về mã xác thực.')
 
     app_id = os.getenv('FACEBOOK_APP_ID', '').strip()
     app_secret = os.getenv('FACEBOOK_APP_SECRET', '').strip()
     if not app_id or not app_secret:
-        return _build_login_page_redirect('Ban can cau hinh FACEBOOK_APP_ID va FACEBOOK_APP_SECRET trong file .env.')
+        return _build_login_page_redirect('Bạn cần cấu hình FACEBOOK_APP_ID và FACEBOOK_APP_SECRET trong file .env.')
 
     redirect_uri = _build_redirect_uri(request, 'FACEBOOK_REDIRECT_URI', 'facebook-login-callback')
 
@@ -364,4 +364,4 @@ def facebook_login_callback(request: HttpRequest):
             avatar_url=picture_data.get('url', ''),
         )
     except (KeyError, ValueError) as error:
-        return _build_login_page_redirect(f'Dang nhap Facebook that bai: {error}')
+        return _build_login_page_redirect(f'Đăng nhập Facebook thất bại: {error}')

@@ -34,6 +34,58 @@
         }
     }
 
+    function upsertSelectOption(select, value, label, shouldSelect) {
+        if (!select) {
+            return;
+        }
+
+        const normalizedValue = String(value);
+        let option = Array.from(select.options).find((item) => item.value === normalizedValue);
+
+        if (!option) {
+            option = document.createElement("option");
+            option.value = normalizedValue;
+            select.appendChild(option);
+        }
+
+        option.textContent = label;
+
+        if (shouldSelect) {
+            select.value = normalizedValue;
+        }
+    }
+
+    function syncLocationOption(locationData) {
+        if (!locationData || !locationData.id || !locationData.name) {
+            return;
+        }
+
+        const vaccineLocationSelect = document.getElementById("vaccineLocationSelect");
+        const locationFilter = document.getElementById("locationFilter");
+        const locationSupportList = document.getElementById("locationSupportList");
+
+        upsertSelectOption(vaccineLocationSelect, locationData.id, locationData.name, true);
+        upsertSelectOption(locationFilter, locationData.name.toLowerCase(), locationData.name, false);
+
+        if (!locationSupportList) {
+            return;
+        }
+
+        const emptyItem = locationSupportList.querySelector("[data-empty-location]");
+        if (emptyItem) {
+            emptyItem.remove();
+        }
+
+        const exists = Array.from(locationSupportList.querySelectorAll("li"))
+            .some((item) => item.textContent.trim() === locationData.name);
+
+        if (!exists) {
+            const item = document.createElement("li");
+            item.textContent = locationData.name;
+            locationSupportList.appendChild(item);
+        }
+    }
+
     function serializeForm(form) {
         const formData = new FormData(form);
         const payload = {};
@@ -51,7 +103,7 @@
 
     function normalizeError(data) {
         if (!data) {
-            return "Da co loi xay ra. Vui long thu lai.";
+            return "Đã có lỗi xảy ra. Vui lòng thử lại.";
         }
 
         if (typeof data.detail === "string") {
@@ -70,7 +122,7 @@
             }
         });
 
-        return messages.join(" ") || "Da co loi xay ra. Vui long thu lai.";
+        return messages.join(" ") || "Đã có lỗi xảy ra. Vui lòng thử lại.";
     }
 
     function getVaccineStatus(row) {
@@ -131,7 +183,7 @@
         });
 
         if (tableMeta) {
-            tableMeta.textContent = "Dang hien thi " + visibleCount + " lo vaccin phu hop.";
+            tableMeta.textContent = "Đang hiển thị " + visibleCount + " lô vắc xin phù hợp.";
         }
 
         if (emptyState) {
@@ -144,7 +196,7 @@
             .filter((row) => !row.hidden);
 
         if (!rows.length) {
-            showMessage("error", "Khong co du lieu hien thi de xuat CSV.");
+            showMessage("error", "Không có dữ liệu hiển thị để xuất CSV.");
             return;
         }
 
@@ -162,7 +214,7 @@
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = "kho-vaccin.csv";
+        link.download = "kho-vac-xin.csv";
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -198,7 +250,7 @@
 
             if (submitButton) {
                 submitButton.disabled = true;
-                submitButton.textContent = "Dang xu ly...";
+                submitButton.textContent = "Đang xử lý...";
             }
 
             try {
@@ -217,7 +269,7 @@
                     throw new Error(normalizeError(data));
                 }
 
-                showMessage("success", form.dataset.success || "Luu du lieu thanh cong.");
+                showMessage("success", form.dataset.success || "Lưu dữ liệu thành công.");
                 form.reset();
                 closeModal(form.closest(".modal"));
                 window.setTimeout(function () {
@@ -233,6 +285,63 @@
             }
         });
     });
+
+    const openQuickLocationModalButton = document.getElementById("openQuickLocationModalBtn");
+    const quickLocationModal = document.getElementById("locationQuickModal");
+    const quickLocationForm = document.getElementById("quickLocationForm");
+    const quickLocationName = document.getElementById("quickLocationName");
+    const quickLocationSubmitButton = document.getElementById("quickLocationSubmitBtn");
+
+    if (openQuickLocationModalButton && quickLocationModal && quickLocationForm) {
+        openQuickLocationModalButton.addEventListener("click", function () {
+            quickLocationForm.reset();
+            openModal("#locationQuickModal");
+            if (quickLocationName) {
+                window.setTimeout(function () {
+                    quickLocationName.focus();
+                }, 20);
+            }
+        });
+
+        quickLocationForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            const initialLabel = quickLocationSubmitButton ? quickLocationSubmitButton.textContent : "";
+            if (quickLocationSubmitButton) {
+                quickLocationSubmitButton.disabled = true;
+                quickLocationSubmitButton.textContent = "Đang lưu vị trí...";
+            }
+
+            try {
+                const response = await fetch("/assets/locations/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken"),
+                    },
+                    credentials: "same-origin",
+                    body: JSON.stringify(serializeForm(quickLocationForm)),
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(normalizeError(data));
+                }
+
+                syncLocationOption(data);
+                showMessage("success", "Đã thêm vị trí bảo quản và chọn sẵn trong form vắc xin.");
+                quickLocationForm.reset();
+                closeModal(quickLocationModal);
+            } catch (error) {
+                showMessage("error", error.message);
+            } finally {
+                if (quickLocationSubmitButton) {
+                    quickLocationSubmitButton.disabled = false;
+                    quickLocationSubmitButton.textContent = initialLabel;
+                }
+            }
+        });
+    }
 
     ["inventorySearch", "statusFilter", "supplierFilter", "locationFilter"].forEach((id) => {
         const element = document.getElementById(id);
@@ -284,7 +393,7 @@
 
                 window.location.href = "/auth/login-page/";
             } catch (error) {
-                showMessage("error", "Khong the dang xuat luc nay. Vui long thu lai.");
+                showMessage("error", "Không thể đăng xuất lúc này. Vui lòng thử lại.");
             }
         });
     }

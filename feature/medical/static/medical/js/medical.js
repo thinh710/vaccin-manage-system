@@ -1,18 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Set current date string
     const now = new Date();
-    document.getElementById('current-date').innerText = `Ngay truc: ${now.toLocaleDateString('vi-VN')}`;
+    const currentDate = document.getElementById('current-date');
+    if (currentDate) {
+        currentDate.innerText = `Ngày trực: ${now.toLocaleDateString('vi-VN')}`;
+    }
     loadTodayBookings();
 });
 
 function getCSRFToken() {
     let cookieValue = null;
-    const name = "csrftoken";
-    if (document.cookie && document.cookie !== "") {
-        const cookies = document.cookie.split(";");
-        for (let i = 0; i < cookies.length; i++) {
+    const name = 'csrftoken';
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i += 1) {
             const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + "=")) {
+            if (cookie.substring(0, name.length + 1) === `${name}=`) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
             }
@@ -23,157 +25,310 @@ function getCSRFToken() {
 
 const headers = {
     'Content-Type': 'application/json',
-    'X-CSRFToken': getCSRFToken()
+    'X-CSRFToken': getCSRFToken(),
 };
+
+let todayBookingsById = {};
+
+async function getResponseErrorMessage(response, fallbackMessage) {
+    const rawText = await response.text().catch(() => '');
+    if (!rawText) {
+        return fallbackMessage;
+    }
+
+    try {
+        const payload = JSON.parse(rawText);
+        if (typeof payload.detail === 'string') {
+            return payload.detail;
+        }
+        return JSON.stringify(payload);
+    } catch (error) {
+        return rawText;
+    }
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function renderPreScreeningBox(bookingId) {
+    const declarationBox = document.getElementById('pre-screening-box');
+    if (!declarationBox) {
+        return;
+    }
+
+    const booking = todayBookingsById[String(bookingId)];
+    const declaration = booking?.pre_screening;
+    declarationBox.style.display = 'block';
+
+    if (!declaration) {
+        declarationBox.innerHTML = '<strong>Khai báo trước tiêm</strong><div>Chưa có khai báo trước tiêm từ bệnh nhân.</div>';
+        return;
+    }
+
+    declarationBox.innerHTML = `
+        <strong>Khai báo trước tiêm</strong>
+        <div class="declaration-grid">
+            <div>Sốt: ${declaration.has_fever ? 'Có' : 'Không'}</div>
+            <div>Dị ứng: ${declaration.has_allergy_history ? 'Có' : 'Không'}</div>
+            <div>Bệnh nền: ${declaration.has_chronic_condition ? 'Có' : 'Không'}</div>
+        </div>
+        ${declaration.recent_symptoms ? `<div>Triệu chứng gần đây: ${escapeHtml(declaration.recent_symptoms)}</div>` : ''}
+        ${declaration.current_medications ? `<div>Thuốc đang dùng: ${escapeHtml(declaration.current_medications)}</div>` : ''}
+        ${declaration.note ? `<div>Ghi chú thêm: ${escapeHtml(declaration.note)}</div>` : ''}
+    `;
+}
+
+function getStatusLabel(status) {
+    switch (status) {
+        case 'pending':
+            return 'Chờ bác sĩ xác nhận';
+        case 'confirmed':
+            return 'Đã xác nhận, chờ check-in';
+        case 'checked_in':
+            return 'Đã check-in';
+        case 'screened':
+            return 'Đã sàng lọc, chờ tiêm';
+        case 'completed':
+            return 'Hoàn thành';
+        case 'delayed':
+            return 'Chờ bác sĩ xác nhận lại';
+        case 'cancelled':
+            return 'Đã hủy';
+        default:
+            return status;
+    }
+}
+
+function getStatusClass(status) {
+    switch (status) {
+        case 'confirmed':
+            return 'checked_in';
+        case 'checked_in':
+            return 'checked_in';
+        case 'screened':
+            return 'screened';
+        case 'completed':
+            return 'completed';
+        case 'delayed':
+            return 'delayed';
+        default:
+            return '';
+    }
+}
+
+function getWorkflowHint(booking) {
+    switch (booking.status) {
+        case 'pending':
+            return '<div class="pre-screening-snippet">Booking đang chờ bác sĩ xác nhận, y tá chưa thể thao tác.</div>';
+        case 'confirmed':
+            return '<div class="pre-screening-snippet">Đã được bác sĩ xác nhận. Y tá có thể check-in để tiếp nhận bệnh nhân.</div>';
+        case 'checked_in':
+            return '<div class="pre-screening-snippet">Bệnh nhân đã check-in. Có thể mở form khám / sàng lọc.</div>';
+        case 'delayed':
+            return '<div class="pre-screening-snippet">Ca này đang tạm hoãn và cần bác sĩ xác nhận lại trước khi xử lý tiếp.</div>';
+        default:
+            return '';
+    }
+}
+
+function getActionButton(booking) {
+    if (booking.status === 'confirmed') {
+        return `<button class="action-btn" onclick="checkIn('${booking.id}')">Check-in</button>`;
+    }
+    if (booking.status === 'checked_in') {
+        return `<button class="action-btn" onclick="openScreeningForm('${booking.id}', '${escapeHtml(booking.full_name)}')">Khám / Sàng lọc</button>`;
+    }
+    if (booking.status === 'screened') {
+        return `<button class="action-btn" onclick="openInjectionForm('${booking.id}', '${escapeHtml(booking.full_name)}', '${booking.dose_number}')">Tiêm chủng</button>`;
+    }
+    if (booking.status === 'completed') {
+        return `<button class="action-btn" onclick="openMonitoringForm('${booking.id}', '${escapeHtml(booking.full_name)}')">Theo dõi phản ứng</button>`;
+    }
+    return '';
+}
+
+function getPreScreeningSnippet(booking) {
+    if (!booking.pre_screening) {
+        return '<div class="pre-screening-snippet">Chưa có khai báo trước tiêm từ bệnh nhân.</div>';
+    }
+
+    return `
+        <div class="pre-screening-snippet">
+            Khai báo trước tiêm: sốt ${booking.pre_screening.has_fever ? 'có' : 'không'}, dị ứng ${booking.pre_screening.has_allergy_history ? 'có' : 'không'}, bệnh nền ${booking.pre_screening.has_chronic_condition ? 'có' : 'không'}.
+        </div>
+    `;
+}
 
 async function loadTodayBookings() {
     try {
-        const response = await fetch('/api/medical/today/');
+        const response = await fetch('/api/medical/today/', {
+            credentials: 'same-origin',
+        });
         const data = await response.json();
         const listEl = document.getElementById('patient-list');
         listEl.innerHTML = '';
-        
-        let waitCount = 0;
-        let compCount = 0;
-        
+        todayBookingsById = {};
+
+        let waitingInjectionCount = 0;
+        let completedCount = 0;
+
         if (data.length === 0) {
             listEl.innerHTML = '<div class="empty-state">Hôm nay chưa có danh sách đặt lịch.</div>';
         }
 
-        data.forEach(booking => {
-            if (booking.status === 'screened') waitCount++;
-            if (booking.status === 'completed') compCount++;
-            
+        data.forEach((booking) => {
+            todayBookingsById[String(booking.id)] = booking;
+
+            if (booking.status === 'screened') {
+                waitingInjectionCount += 1;
+            }
+            if (booking.status === 'completed') {
+                completedCount += 1;
+            }
+
             const row = document.createElement('div');
             row.className = 'patient-row';
-            
-            let badgeClass = '';
-            let vnStatus = booking.status;
-            switch(booking.status) {
-                case 'pending': badgeClass = ''; vnStatus = 'Chưa check-in'; break;
-                case 'checked_in': badgeClass = 'checked_in'; vnStatus = 'Đã check-in'; break;
-                case 'screened': badgeClass = 'screened'; vnStatus = 'Đã sàng lọc (Chờ tiêm)'; break;
-                case 'completed': badgeClass = 'completed'; vnStatus = 'Hoàn thành'; break;
-                case 'delayed': badgeClass = 'delayed'; vnStatus = 'Hoãn tiêm'; break;
-                case 'cancelled': badgeClass = 'not-fit'; vnStatus = 'Đã hủy'; break;
-            }
-            
-            let actionsHTML = '';
-            if (booking.status === 'pending') {
-                actionsHTML = `<button class="action-btn" onclick="checkIn('${booking.id}')">Check-In</button>`;
-            } else if (booking.status === 'checked_in' || booking.status === 'delayed') {
-                actionsHTML = `<button class="action-btn" onclick="openScreeningForm('${booking.id}', '${booking.full_name}')">Khám / Sàng lọc</button>`;
-            } else if (booking.status === 'screened') {
-                actionsHTML = `<button class="action-btn" onclick="openInjectionForm('${booking.id}', '${booking.full_name}', '${booking.dose_number}')">Tiêm chủng</button>`;
-            } else if (booking.status === 'completed') {
-                // Simplified assumption: monitor is available after completed
-                // Note: We'd need vaccinationLog id to properly create post injection tracking, 
-                // but doing it by finding from backend, for simplicity we pass booking id and backend would handle it ideally.
-                // Or we fetch it. We will use a hack in views or just pass booking ID. 
-                // Wait, our backend endpoint takes vaccination_log as ID. We might need to adjust endpoint or find it.
-                // Let's open it anyway.
-                actionsHTML = `<button class="action-btn" onclick="openMonitoringForm('${booking.id}', '${booking.full_name}')">Theo dõi phản ứng</button>`;
-            }
 
             row.innerHTML = `
                 <div class="screening-main">
-                    <strong>${booking.full_name} • ${booking.vaccine_name}</strong>
-                    <div>Mũi: ${booking.dose_number} • ĐT: ${booking.phone}</div>
+                    <strong>${escapeHtml(booking.full_name)} • ${escapeHtml(booking.vaccine_name)}</strong>
+                    <div>Mũi: ${booking.dose_number} • ĐT: ${escapeHtml(booking.phone)}</div>
+                    ${getPreScreeningSnippet(booking)}
+                    ${getWorkflowHint(booking)}
                     <div style="margin-top: 6px;">
-                        <span class="badge ${badgeClass}">${vnStatus}</span>
+                        <span class="badge ${getStatusClass(booking.status)}">${getStatusLabel(booking.status)}</span>
                     </div>
-                    <div class="action-buttons">${actionsHTML}</div>
+                    <div class="action-buttons">${getActionButton(booking)}</div>
                 </div>
             `;
             listEl.appendChild(row);
         });
 
-        // Update stats
         document.getElementById('stat-total').innerText = data.length;
-        document.getElementById('stat-waiting').innerText = waitCount;
-        document.getElementById('stat-completed').innerText = compCount;
-
-    } catch (err) {
-        console.error("Error loading bookings:", err);
+        document.getElementById('stat-waiting').innerText = waitingInjectionCount;
+        document.getElementById('stat-completed').innerText = completedCount;
+    } catch (error) {
+        console.error('Lỗi tải danh sách booking:', error);
     }
 }
 
-// Reset right panel elements
 function resetActionPanel() {
-    document.getElementById('form-default').style.display = 'block';
-    document.getElementById('form-screening').style.display = 'none';
-    document.getElementById('form-injection').style.display = 'none';
-    document.getElementById('form-monitoring').style.display = 'none';
-    document.getElementById('action-subtitle').innerText = 'Vui lòng chọn thao tác từ danh sách bệnh nhân.';
+    const defaultBox = document.getElementById('form-default');
+    const declarationBox = document.getElementById('pre-screening-box');
+    const screeningForm = document.getElementById('form-screening');
+    const injectionForm = document.getElementById('form-injection');
+    const monitoringForm = document.getElementById('form-monitoring');
+    const subtitle = document.getElementById('action-subtitle');
+
+    defaultBox.style.display = 'block';
+    declarationBox.style.display = 'none';
+    screeningForm.style.display = 'none';
+    injectionForm.style.display = 'none';
+    monitoringForm.style.display = 'none';
+    subtitle.innerText = 'Vui lòng chọn thao tác từ danh sách bệnh nhân.';
+
+    screeningForm.reset();
+    injectionForm.reset();
+    monitoringForm.reset();
 }
 
 function hideDefault() {
     document.getElementById('form-default').style.display = 'none';
 }
 
-// Check-in logic
 async function checkIn(bookingId) {
-    if (!confirm("Xác nhận Check-in cho bệnh nhân này?")) return;
+    if (!window.confirm('Xác nhận check-in cho bệnh nhân này?')) {
+        return;
+    }
+
     try {
         const response = await fetch(`/api/medical/${bookingId}/check-in/`, {
             method: 'PATCH',
-            headers: headers
+            headers,
+            credentials: 'same-origin',
         });
-        if (response.ok) {
-            alert('Check-in thành công!');
-            loadTodayBookings();
-        } else {
-            alert('Lỗi khi Check-in!');
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            window.alert(data.detail || 'Không thể check-in lúc này.');
+            return;
         }
-    } catch (err) {
-        console.error(err);
+
+        window.alert('Check-in thành công.');
+        resetActionPanel();
+        await loadTodayBookings();
+    } catch (error) {
+        console.error(error);
     }
 }
 
-// Screening
 function openScreeningForm(bookingId, name) {
     resetActionPanel();
     hideDefault();
-    document.getElementById('form-screening').style.display = 'flex';
+    renderPreScreeningBox(bookingId);
+
+    const form = document.getElementById('form-screening');
+    form.style.display = 'grid';
+    form.reset();
+
     document.getElementById('screen-booking-id').value = bookingId;
     document.getElementById('action-subtitle').innerText = `Khám sàng lọc cho: ${name}`;
-    document.getElementById('form-screening').reset();
 }
 
 async function submitScreening(event) {
     event.preventDefault();
     const data = {
-        booking: parseInt(document.getElementById('screen-booking-id').value),
+        booking: parseInt(document.getElementById('screen-booking-id').value, 10),
         temperature: parseFloat(document.getElementById('screen-temp').value),
-        blood_pressure: document.getElementById('screen-bp').value,
+        blood_pressure: document.getElementById('screen-bp').value.trim(),
         is_eligible: document.getElementById('screen-eligible').value === 'true',
-        doctor_note: document.getElementById('screen-note').value
+        doctor_note: document.getElementById('screen-note').value.trim(),
     };
+
     try {
         const response = await fetch('/api/medical/screening/', {
             method: 'POST',
-            headers: headers,
-            body: JSON.stringify(data)
+            headers,
+            credentials: 'same-origin',
+            body: JSON.stringify(data),
         });
-        if (response.ok) {
-            alert('Lưu kết quả khám thành công!');
-            resetActionPanel();
-            loadTodayBookings();
-        } else {
-            const errText = await response.text();
-            alert('Có lỗi xảy ra: ' + errText);
-            console.error(errText);
+
+        if (!response.ok) {
+            const errorMessage = await getResponseErrorMessage(response, 'Không thể lưu kết quả khám lúc này.');
+            window.alert(`Có lỗi xảy ra: ${errorMessage}`);
+            console.error(errorMessage);
+            return;
         }
-    } catch (err) {
-        console.error(err);
+
+        window.alert('Lưu kết quả khám thành công.');
+        resetActionPanel();
+        await loadTodayBookings();
+    } catch (error) {
+        console.error(error);
     }
 }
 
-// Injection
 function openInjectionForm(bookingId, name, dose) {
     resetActionPanel();
     hideDefault();
-    document.getElementById('form-injection').style.display = 'flex';
+    renderPreScreeningBox(bookingId);
+
+    const form = document.getElementById('form-injection');
+    form.style.display = 'grid';
+    form.reset();
+
+    const batchInput = document.getElementById('inject-batch');
+    if (batchInput) {
+        batchInput.required = false;
+        batchInput.placeholder = 'Tùy chọn, hệ thống sẽ tự điền từ kho nếu có.';
+    }
+
     document.getElementById('inject-booking-id').value = bookingId;
     document.getElementById('inject-dose').value = dose;
     document.getElementById('action-subtitle').innerText = `Thông tin tiêm chủng cho: ${name}`;
@@ -182,75 +337,78 @@ function openInjectionForm(bookingId, name, dose) {
 async function submitInjection(event) {
     event.preventDefault();
     const data = {
-        booking: parseInt(document.getElementById('inject-booking-id').value),
-        vaccine_id: document.getElementById('inject-vaccine').value,
-        batch_number: document.getElementById('inject-batch').value,
-        injected_by: document.getElementById('inject-by').value,
-        dose_number: parseInt(document.getElementById('inject-dose').value)
+        booking: parseInt(document.getElementById('inject-booking-id').value, 10),
+        injected_by: document.getElementById('inject-by').value.trim(),
+        dose_number: parseInt(document.getElementById('inject-dose').value, 10),
     };
+
+    const batchInput = document.getElementById('inject-batch');
+    if (batchInput && batchInput.value.trim()) {
+        data.batch_number = batchInput.value.trim();
+    }
+
     try {
         const response = await fetch('/api/medical/inject/', {
             method: 'POST',
-            headers: headers,
-            body: JSON.stringify(data)
+            headers,
+            credentials: 'same-origin',
+            body: JSON.stringify(data),
         });
-        if (response.ok) {
-            alert('Xác nhận đã tiêm thành công!');
-            resetActionPanel();
-            loadTodayBookings();
-        } else {
-            const errText = await response.text();
-            alert('Có lỗi xảy ra: ' + errText);
-            console.error(errText);
+
+        if (!response.ok) {
+            const errorMessage = await getResponseErrorMessage(response, 'Không thể xác nhận tiêm lúc này.');
+            window.alert(`Có lỗi xảy ra: ${errorMessage}`);
+            console.error(errorMessage);
+            return;
         }
-    } catch (err) {
-        console.error(err);
+
+        window.alert('Xác nhận đã tiêm thành công.');
+        resetActionPanel();
+        await loadTodayBookings();
+    } catch (error) {
+        console.error(error);
     }
 }
 
-// Monitoring 
 function openMonitoringForm(bookingId, name) {
     resetActionPanel();
     hideDefault();
-    document.getElementById('form-monitoring').style.display = 'flex';
-    // MOCK: Because the backend requires vaccination_log ID, not booking ID directly.
-    // In a real scenario we'd query the DB for the log ID. For now we pass bookingId
-    // We need to modify our endpoint or handle it in JS. Let's see. PostInjectionTrackingSerializer 
-    // requires `vaccination_log` field (the PK of the log).
-    // For now we will store the booking ID in a global or fetch the log first. Let's fetch the log ID in the view or handle the PK.
-    // wait! The monitor endpoint receives vaccination_log. So we will just let it fail or we need to fix it.
-    // To fix this without changing backend logic deeply, we will just send it. Actually, the backend `PostInjectionTrackingSerializer` needs `vaccination_log` which is the ID of the `VaccinationLog`.
-    document.getElementById('monitor-vaccination-id').value = bookingId; // Might cause FK error if IDs don't match!
-    
-    // So let's fetch the vaccination log by booking ID in the backend, or we can just send the booking ID to a custom "monitor by booking" view. Oh wait, we wrote `submit_post_injection_tracking` which uses ModelSerializer directly. 
-    // This is problematic. Let me update `submit_post_injection_tracking` to accept `booking` and find the `VaccinationLog` inside the view before saving. 
-    
+    renderPreScreeningBox(bookingId);
+
+    const form = document.getElementById('form-monitoring');
+    form.style.display = 'grid';
+    form.reset();
+
+    document.getElementById('monitor-vaccination-id').value = bookingId;
     document.getElementById('action-subtitle').innerText = `Theo dõi phản ứng cho: ${name}`;
 }
 
 async function submitMonitoring(event) {
     event.preventDefault();
-    const bookingId = document.getElementById('monitor-vaccination-id').value;
     const data = {
-        booking: parseInt(bookingId),
+        booking: parseInt(document.getElementById('monitor-vaccination-id').value, 10),
         reaction_status: document.getElementById('monitor-reaction').value,
-        notes: document.getElementById('monitor-note').value
+        notes: document.getElementById('monitor-note').value.trim(),
     };
+
     try {
         const response = await fetch('/api/medical/monitor/', {
             method: 'POST',
-            headers: headers,
-            body: JSON.stringify(data)
+            headers,
+            credentials: 'same-origin',
+            body: JSON.stringify(data),
         });
-        if (response.ok) {
-            alert('Lưu trạng thái theo dõi thành công!');
-            resetActionPanel();
-            loadTodayBookings();
-        } else {
-            const errJson = await response.json();
-            alert('Có lỗi: ' + JSON.stringify(errJson));
+
+        if (!response.ok) {
+            const errJson = await response.json().catch(() => ({}));
+            window.alert(`Có lỗi: ${JSON.stringify(errJson)}`);
+            return;
         }
-    } catch (err) {
-        console.error(err);
+
+        window.alert('Lưu trạng thái theo dõi thành công.');
+        resetActionPanel();
+        await loadTodayBookings();
+    } catch (error) {
+        console.error(error);
     }
 }

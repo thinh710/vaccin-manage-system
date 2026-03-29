@@ -138,6 +138,24 @@
     padding-bottom: 16px;
 }
 
+.medical-page .pre-screening-snippet,
+#pre-screening-box {
+    margin-top: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #f8fbff;
+    border: 1px solid rgba(23, 35, 59, 0.08);
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.medical-page .declaration-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 10px 0;
+}
+
 .medical-page .action-buttons {
     gap: 10px;
     margin-top: 12px;
@@ -163,9 +181,17 @@
     gap: 14px;
 }
 
+.medical-page #form-screening,
+.medical-page #form-injection,
+.medical-page #form-monitoring {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+}
+
 .medical-page #action-panel label {
     display: grid;
     gap: 8px;
+    min-width: 0;
 }
 
 .medical-page #action-panel form button {
@@ -178,6 +204,36 @@
 .medical-page #action-panel textarea {
     border-radius: 10px;
     background: #fff;
+    width: 100%;
+    min-width: 0;
+    min-height: 120px;
+    resize: vertical;
+}
+
+.medical-page #form-screening label:nth-of-type(4),
+.medical-page #form-monitoring label:nth-of-type(2) {
+    grid-column: 1 / -1;
+}
+
+.medical-page #form-screening button,
+.medical-page #form-injection button,
+.medical-page #form-monitoring button {
+    width: fit-content;
+    min-width: 140px;
+}
+
+.medical-page #form-screening button[type="submit"],
+.medical-page #form-injection button[type="submit"],
+.medical-page #form-monitoring button[type="submit"] {
+    grid-column: 1;
+    justify-self: start;
+}
+
+.medical-page #form-screening button[type="button"],
+.medical-page #form-injection button[type="button"],
+.medical-page #form-monitoring button[type="button"] {
+    grid-column: 2;
+    justify-self: start;
 }
 
 .medical-page .empty-state {
@@ -217,6 +273,25 @@
 
     .medical-shell {
         width: min(100% - 18px, 100%);
+    }
+
+    .medical-page #form-screening,
+    .medical-page #form-injection,
+    .medical-page #form-monitoring {
+        grid-template-columns: 1fr;
+    }
+
+    .medical-page .declaration-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .medical-page #form-screening button[type="submit"],
+    .medical-page #form-screening button[type="button"],
+    .medical-page #form-injection button[type="submit"],
+    .medical-page #form-injection button[type="button"],
+    .medical-page #form-monitoring button[type="submit"],
+    .medical-page #form-monitoring button[type="button"] {
+        grid-column: 1;
     }
 }
 

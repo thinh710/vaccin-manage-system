@@ -4,49 +4,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medical & Vaccination Dashboard</title>
-    <link rel="stylesheet" href="{% static 'users/css/staff_dashboard.css' %}">
-    <link rel="stylesheet" href="{% static 'medical/css/medical.css' %}">
+    <title>Dashboard y khoa và tiêm chủng</title>
+    <link rel="stylesheet" href="{% static 'users/css/staff_dashboard.css' %}?v=20260329-1">
+    <link rel="stylesheet" href="{% static 'medical/css/medical.css' %}?v=20260329-1">
 </head>
 <body class="medical-page">
     <main class="shell medical-shell">
         <section class="hero">
             <div class="hero-top">
                 <div>
-                    <div class="eyebrow">Doctor Station</div>
-                    <h1>Dashboard bac si cho kham sang loc va tiem phong</h1>
-                    <p>Theo doi lich tiem phong, lich kham suc khoe va xu ly luong benh nhan truoc, trong va sau tiem chung.</p>
+                    <div class="eyebrow">Trạm bác sĩ</div>
+                    <h1>Dashboard bác sĩ cho khám sàng lọc và tiêm phòng</h1>
+                    <p>Theo dõi lịch tiêm phòng, lịch khám sức khỏe và xử lý luồng bệnh nhân trước, trong và sau tiêm chủng.</p>
                 </div>
                 <div class="hero-meta">
-                    <strong>{{ user.full_name|default:"Nhan vien y te" }}</strong>
+                    <strong>{{ user.full_name|default:"Nhân viên y tế" }}</strong>
                     <span>{{ user.email|default:"staff@vaccin.com" }}</span>
-                    <div style="margin-top: 14px;" id="current-date">Ngay truc: {{ today|date:"d/m/Y" }}</div>
-                    <div style="margin-top: 8px;">Vai tro: Bac si phu trach y lenh</div>
-                    <a class="inventory-link" href="/assets/" style="margin-top: 16px;">Mo giao dien quan ly kho</a>
+                    <div style="margin-top: 14px;" id="current-date">Ngày trực: {{ today|date:"d/m/Y" }}</div>
+                    <div style="margin-top: 8px;">Vai trò: Bác sĩ phụ trách y lệnh</div>
+                    <a class="inventory-link" href="/assets/" style="margin-top: 16px;">Mở giao diện quản lý kho</a>
+                    <button class="inventory-link" id="logoutBtn" type="button" style="margin-top: 12px;">Đăng xuất</button>
                 </div>
             </div>
         </section>
 
         <section class="grid stats">
             <article class="card stat-card">
-                <small>Tong hom nay</small>
+                <small>Tổng hôm nay</small>
                 <strong id="stat-total">0</strong>
-                <span>Danh sach dat lich can bac si theo doi.</span>
+                <span>Danh sách đặt lịch cần bác sĩ theo dõi.</span>
             </article>
             <article class="card stat-card">
-                <small>Cho tiem</small>
+                <small>Chờ tiêm</small>
                 <strong id="stat-waiting">0</strong>
-                <span>Da sang loc xong va cho lenh tiem.</span>
+                <span>Đã sàng lọc xong và chờ lệnh tiêm.</span>
             </article>
             <article class="card stat-card">
-                <small>Da hoan thanh</small>
+                <small>Đã hoàn thành</small>
                 <strong id="stat-completed">0</strong>
-                <span>Da tiem va co theo doi sau tiem.</span>
+                <span>Đã tiêm và có theo dõi sau tiêm.</span>
             </article>
             <article class="card stat-card">
-                <small>Kho lien quan</small>
+                <small>Kho liên quan</small>
                 <strong>{{ vaccination_schedule|length }}</strong>
-                <span>Ca tiem sap toi de doi chieu ton kho.</span>
+                <span>Ca tiêm sắp tới để đối chiếu tồn kho.</span>
             </article>
         </section>
 
@@ -55,7 +56,7 @@
                 <div class="section-head section-head--compact">
                     <div>
                         <h2>{{ calendar_month_label }}</h2>
-                        <p>Lich tiem phong va lich kham suc khoe trong thang.</p>
+                        <p>Lịch tiêm phòng và lịch khám sức khỏe trong tháng.</p>
                     </div>
                 </div>
                 <div class="calendar-weekdays">
@@ -74,15 +75,15 @@
                 </div>
                 <div class="calendar-note">
                     <span class="calendar-dot"></span>
-                    <span>Ngay co lich can bac si xu ly</span>
+                    <span>Ngày có lịch cần bác sĩ xử lý</span>
                 </div>
             </article>
 
             <article class="card section schedule-card">
                 <div class="section-head section-head--compact">
                     <div>
-                        <h2>Lich tiem phong</h2>
-                        <p>Cac ca tiem sap toi can xac nhan y lenh.</p>
+                        <h2>Lịch tiêm phòng</h2>
+                        <p>Các ca tiêm sắp tới cần xác nhận y lệnh.</p>
                     </div>
                 </div>
                 <div class="schedule-list">
@@ -92,7 +93,7 @@
                             <span>{{ booking.vaccine_date|date:"d/m/Y" }} - {{ booking.vaccine_name }}</span>
                         </div>
                     {% empty %}
-                        <div class="empty-state">Chua co lich tiem phong sap toi.</div>
+                        <div class="empty-state">Chưa có lịch tiêm phòng sắp tới.</div>
                     {% endfor %}
                 </div>
             </article>
@@ -100,18 +101,18 @@
             <article class="card section schedule-card">
                 <div class="section-head section-head--compact">
                     <div>
-                        <h2>Lich kham suc khoe</h2>
-                        <p>Danh sach can duoc bac si xem xet truoc tiem.</p>
+                        <h2>Lịch khám sức khỏe</h2>
+                        <p>Danh sách cần được bác sĩ xem xét trước tiêm.</p>
                     </div>
                 </div>
                 <div class="schedule-list">
                     {% for booking in health_schedule %}
                         <div class="schedule-item">
                             <strong>{{ booking.full_name }}</strong>
-                            <span>{{ booking.vaccine_date|date:"d/m/Y" }} - Trang thai: {{ booking.status }}</span>
+                            <span>{{ booking.vaccine_date|date:"d/m/Y" }} - Trạng thái: {{ booking.status }}</span>
                         </div>
                     {% empty %}
-                        <div class="empty-state">Chua co lich kham suc khoe sap toi.</div>
+                        <div class="empty-state">Chưa có lịch khám sức khỏe sắp tới.</div>
                     {% endfor %}
                 </div>
             </article>
@@ -121,8 +122,8 @@
             <article class="card section">
                 <div class="section-head">
                     <div>
-                        <h2>Danh sach benh nhan hom nay</h2>
-                        <p>Chon benh nhan de thuc hien kham, tiem hoac theo doi phan ung.</p>
+                        <h2>Danh sách bệnh nhân hôm nay</h2>
+                        <p>Chọn bệnh nhân để thực hiện khám, tiêm hoặc theo dõi phản ứng.</p>
                     </div>
                 </div>
                 <div id="patient-list"></div>
@@ -131,83 +132,114 @@
             <article class="card section" id="action-panel">
                 <div class="section-head">
                     <div>
-                        <h2>Khu vuc thao tac</h2>
-                        <p id="action-subtitle">Vui long chon benh nhan tu danh sach.</p>
+                        <h2>Khu vực thao tác</h2>
+                        <p id="action-subtitle">Vui lòng chọn bệnh nhân từ danh sách.</p>
                     </div>
                 </div>
 
                 <div id="form-default" class="empty-state">
-                    Vui long chon mot thao tac tu danh sach benh nhan.
+                    Vui lòng chọn một thao tác từ danh sách bệnh nhân.
                 </div>
+
+                <div id="pre-screening-box" class="empty-state" style="display: none;"></div>
 
                 <form id="form-screening" style="display: none;" onsubmit="submitScreening(event)">
                     <input type="hidden" id="screen-booking-id">
                     <label>
-                        <strong>Nhiet do (°C):</strong>
-                        <input type="number" step="0.1" id="screen-temp" required placeholder="Vi du: 36.5">
+                        <strong>Nhiệt độ (°C):</strong>
+                        <input type="number" step="0.1" id="screen-temp" required placeholder="Ví dụ: 36.5">
                     </label>
                     <label>
-                        <strong>Huyet ap (mmHg):</strong>
-                        <input type="text" id="screen-bp" required placeholder="Vi du: 120/80">
+                        <strong>Huyết áp (mmHg):</strong>
+                        <input type="text" id="screen-bp" required placeholder="Ví dụ: 120/80">
                     </label>
                     <label>
-                        <strong>Ket luan:</strong>
+                        <strong>Kết luận:</strong>
                         <select id="screen-eligible" required>
-                            <option value="true">Du dieu kien tiem</option>
-                            <option value="false">Khong du dieu kien tiem</option>
+                            <option value="true">Đủ điều kiện tiêm</option>
+                            <option value="false">Không đủ điều kiện tiêm</option>
                         </select>
                     </label>
                     <label>
-                        <strong>Ghi chu cua bac si:</strong>
-                        <textarea id="screen-note" rows="3" placeholder="Nhap ghi chu tuy chon..."></textarea>
+                        <strong>Ghi chú của bác sĩ:</strong>
+                        <textarea id="screen-note" rows="3" placeholder="Nhập ghi chú tùy chọn..."></textarea>
                     </label>
-                    <button type="submit">Luu ket qua kham</button>
-                    <button type="button" class="action-btn" onclick="resetActionPanel()">Huy</button>
+                    <button type="submit">Lưu kết quả khám</button>
+                    <button type="button" class="action-btn" onclick="resetActionPanel()">Hủy</button>
                 </form>
 
                 <form id="form-injection" style="display: none;" onsubmit="submitInjection(event)">
                     <input type="hidden" id="inject-booking-id">
                     <label>
-                        <strong>Ma Vaccine:</strong>
-                        <input type="text" id="inject-vaccine" required placeholder="Ma vaccine...">
+                        <strong>Số lô (tùy chọn):</strong>
+                        <input type="text" id="inject-batch" placeholder="Hệ thống sẽ tự điền từ kho nếu có dữ liệu phù hợp...">
                     </label>
                     <label>
-                        <strong>So lo:</strong>
-                        <input type="text" id="inject-batch" required placeholder="So lo...">
+                        <strong>Người tiêm:</strong>
+                        <input type="text" id="inject-by" required placeholder="Họ tên người tiêm..." value="{{ user.full_name|default:'' }}">
                     </label>
                     <label>
-                        <strong>Nguoi tiem:</strong>
-                        <input type="text" id="inject-by" required placeholder="Ho ten nguoi tiem..." value="{{ user.full_name|default:'' }}">
-                    </label>
-                    <label>
-                        <strong>Mui thu:</strong>
+                        <strong>Mũi thứ:</strong>
                         <input type="number" id="inject-dose" required min="1" value="1">
                     </label>
-                    <button type="submit">Xac nhan tiem xong</button>
-                    <button type="button" class="action-btn" onclick="resetActionPanel()">Huy</button>
+                    <button type="submit">Xác nhận tiêm xong</button>
+                    <button type="button" class="action-btn" onclick="resetActionPanel()">Hủy</button>
                 </form>
 
                 <form id="form-monitoring" style="display: none;" onsubmit="submitMonitoring(event)">
                     <input type="hidden" id="monitor-vaccination-id">
                     <label>
-                        <strong>Phan ung sau tiem:</strong>
+                        <strong>Phản ứng sau tiêm:</strong>
                         <select id="monitor-reaction" required>
-                            <option value="Normal">Binh thuong</option>
-                            <option value="Mild">Nhe</option>
-                            <option value="Severe">Nang</option>
+                            <option value="Normal">Bình thường</option>
+                            <option value="Mild">Nhẹ</option>
+                            <option value="Severe">Nặng</option>
                         </select>
                     </label>
                     <label>
-                        <strong>Ghi chu:</strong>
-                        <textarea id="monitor-note" rows="3" placeholder="Nhap them chi tiet..."></textarea>
+                        <strong>Ghi chú:</strong>
+                        <textarea id="monitor-note" rows="3" placeholder="Nhập thêm chi tiết..."></textarea>
                     </label>
-                    <button type="submit">Luu theo doi</button>
-                    <button type="button" class="action-btn" onclick="resetActionPanel()">Huy</button>
+                    <button type="submit">Lưu theo dõi</button>
+                    <button type="button" class="action-btn" onclick="resetActionPanel()">Hủy</button>
                 </form>
             </article>
         </section>
     </main>
 
-    <script src="{% static 'medical/js/medical.js' %}"></script>
+    <script src="{% static 'medical/js/medical.js' %}?v=20260329-2"></script>
+    <script>
+        function getCookie(name) {
+            const cookies = document.cookie ? document.cookie.split(';') : [];
+            for (const cookie of cookies) {
+                const trimmedCookie = cookie.trim();
+                if (trimmedCookie.startsWith(name + '=')) {
+                    return decodeURIComponent(trimmedCookie.slice(name.length + 1));
+                }
+            }
+            return '';
+        }
+
+        document.getElementById('logoutBtn')?.addEventListener('click', async function () {
+            try {
+                const response = await fetch('/auth/logout/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Logout failed');
+                }
+
+                window.location.href = '/auth/login-page/';
+            } catch (error) {
+                alert('Không thể đăng xuất lúc này. Vui lòng thử lại.');
+            }
+        });
+    </script>
 </body>
 </html>

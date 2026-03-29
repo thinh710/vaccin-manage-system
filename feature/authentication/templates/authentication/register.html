@@ -4,16 +4,16 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dang ky | Vaccin Manage System</title>
+    <title>Đăng ký | Vaccin Manage System</title>
     <link rel="stylesheet" href="{% static 'authentication/css/auth.css' %}" />
 </head>
 <body class="auth-body">
     <div class="auth-shell auth-shell--register">
         <div class="auth-panel auth-panel--form">
             <div class="panel-head">
-                <span class="eyebrow" id="registerEyebrow">Tao tai khoan citizen</span>
-                <h2>Dang ky</h2>
-                <p id="registerDescription">Dien thong tin co ban de tao tai khoan citizen vao he thong.</p>
+                <span class="eyebrow" id="registerEyebrow">Tạo tài khoản công dân</span>
+                <h2>Đăng ký</h2>
+                <p id="registerDescription">Điền thông tin cơ bản để tạo tài khoản công dân vào hệ thống.</p>
             </div>
 
             <div id="messageBox" class="alert" hidden></div>
@@ -22,8 +22,8 @@
                 {% csrf_token %}
                 <div class="field-grid">
                     <div class="field-group">
-                        <label for="full_name">Ho va ten</label>
-                        <input id="full_name" name="full_name" type="text" placeholder="Nguyen Van A" required />
+                        <label for="full_name">Họ và tên</label>
+                        <input id="full_name" name="full_name" type="text" placeholder="Nguyễn Văn A" required />
                     </div>
 
                     <div class="field-group">
@@ -36,24 +36,24 @@
 
                 <div class="field-grid">
                     <div class="field-group">
-                        <label for="password">Mat khau</label>
+                        <label for="password">Mật khẩu</label>
                         <div class="password-wrap">
-                            <input id="password" name="password" type="password" placeholder="Toi thieu 6 ky tu" required />
-                            <button type="button" class="ghost-btn" data-toggle-password="#password">Hien</button>
+                            <input id="password" name="password" type="password" placeholder="Tối thiểu 6 ký tự" required />
+                            <button type="button" class="ghost-btn" data-toggle-password="#password">Hiện</button>
                         </div>
                     </div>
 
                     <div class="field-group">
-                        <label for="confirm_password">Xac nhan mat khau</label>
+                        <label for="confirm_password">Xác nhận mật khẩu</label>
                         <div class="password-wrap">
-                            <input id="confirm_password" name="confirm_password" type="password" placeholder="Nhap lai mat khau" required />
-                            <button type="button" class="ghost-btn" data-toggle-password="#confirm_password">Hien</button>
+                            <input id="confirm_password" name="confirm_password" type="password" placeholder="Nhập lại mật khẩu" required />
+                            <button type="button" class="ghost-btn" data-toggle-password="#confirm_password">Hiện</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="register-role-inline">
-                    <span class="register-role-label">Loai tai khoan</span>
+                    <span class="register-role-label">Loại tài khoản</span>
                     <div class="register-role-list">
                         <label class="register-role-chip">
                             <input type="radio" name="role_display" value="citizen" checked />
@@ -61,30 +61,30 @@
                         </label>
                         <label class="register-role-chip">
                             <input type="radio" name="role_display" value="admin" />
-                            <span>Bac si</span>
+                            <span>Bác sĩ</span>
                         </label>
                         <label class="register-role-chip">
                             <input type="radio" name="role_display" value="staff" />
-                            <span>Y ta</span>
+                            <span>Y tá</span>
                         </label>
                     </div>
                 </div>
 
-                <button id="submitBtn" type="submit" class="primary-btn">Tao tai khoan</button>
+                <button id="submitBtn" type="submit" class="primary-btn">Tạo tài khoản</button>
             </form>
 
             <div class="auth-footer">
-                <span>Da co tai khoan?</span>
-                <a href="/auth/login-page/">Dang nhap</a>
+                <span>Đã có tài khoản?</span>
+                <a href="/auth/login-page/">Đăng nhập</a>
             </div>
         </div>
 
         <div class="auth-panel auth-panel--brand compact">
             <div class="brand-badge">SAFE</div>
-            <h1 id="registerBrandTitle" style="font-size:2.2rem;font-weight:800;margin-bottom:10px;">Dang ky tai khoan citizen nhanh chong</h1>
-            <p id="registerBrandDescription" style="font-size:1.12rem;margin-bottom:18px;max-width:420px;">Bat dau voi he thong quan ly tiem chung chi trong vai buoc. Thong tin cua ban duoc luu tru ro rang, an toan va de quan ly.</p>
+            <h1 id="registerBrandTitle" style="font-size:2.2rem;font-weight:800;margin-bottom:10px;">Đăng ký tài khoản công dân nhanh chóng</h1>
+            <p id="registerBrandDescription" style="font-size:1.12rem;margin-bottom:18px;max-width:420px;">Bắt đầu với hệ thống quản lý tiêm chủng chỉ trong vài bước. Thông tin của bạn được lưu trữ rõ ràng, an toàn và dễ quản lý.</p>
             <div id="registerBrandNote" class="brand-note" style="font-size:1.04rem;">
-                Hoan tat dang ky de truy cap ho so, lich hen va cac chuc nang danh rieng cho citizen.
+                Hoàn tất đăng ký để truy cập hồ sơ, lịch hẹn và các chức năng dành riêng cho công dân.
             </div>
         </div>
     </div>
@@ -93,25 +93,25 @@
     <script>
         const roleContentMap = {
             citizen: {
-                eyebrow: 'Tao tai khoan citizen',
-                description: 'Dien thong tin co ban de tao tai khoan citizen vao he thong.',
-                brandTitle: 'Dang ky tai khoan citizen nhanh chong',
-                brandDescription: 'Bat dau voi he thong quan ly tiem chung chi trong vai buoc. Thong tin cua ban duoc luu tru ro rang, an toan va de quan ly.',
-                brandNote: 'Hoan tat dang ky de truy cap ho so, lich hen va cac chuc nang danh rieng cho citizen.'
+                eyebrow: 'Tạo tài khoản công dân',
+                description: 'Điền thông tin cơ bản để tạo tài khoản công dân vào hệ thống.',
+                brandTitle: 'Đăng ký tài khoản công dân nhanh chóng',
+                brandDescription: 'Bắt đầu với hệ thống quản lý tiêm chủng chỉ trong vài bước. Thông tin của bạn được lưu trữ rõ ràng, an toàn và dễ quản lý.',
+                brandNote: 'Hoàn tất đăng ký để truy cập hồ sơ, lịch hẹn và các chức năng dành riêng cho công dân.'
             },
             admin: {
-                eyebrow: 'Tao tai khoan admin / bac si',
-                description: 'Dien thong tin de tao tai khoan admin danh cho bac si va quan tri vien.',
-                brandTitle: 'Dang ky tai khoan bac si va quan tri',
-                brandDescription: 'Vai tro admin giup bac si theo doi lich tiem, quan ly kho vac xin va dieu phoi ho so trong he thong.',
-                brandNote: 'Sau khi dang ky, admin co the truy cap dashboard rieng de len lich, theo doi booking va quan ly kho.'
+                eyebrow: 'Tạo tài khoản admin / bác sĩ',
+                description: 'Điền thông tin để tạo tài khoản admin dành cho bác sĩ và quản trị viên.',
+                brandTitle: 'Đăng ký tài khoản bác sĩ và quản trị',
+                brandDescription: 'Vai trò admin giúp bác sĩ theo dõi lịch tiêm, quản lý kho vắc xin và điều phối hồ sơ trong hệ thống.',
+                brandNote: 'Sau khi đăng ký, admin có thể truy cập dashboard riêng để lên lịch, theo dõi booking và quản lý kho.'
             },
             staff: {
-                eyebrow: 'Tao tai khoan y ta',
-                description: 'Dien thong tin de tao tai khoan y ta ho tro van hanh tiem chung.',
-                brandTitle: 'Dang ky tai khoan y ta nhanh gon',
-                brandDescription: 'Tai khoan y ta phu hop cho tiep nhan, cap nhat thong tin mui tiem va phoi hop voi bac si trong ca truc.',
-                brandNote: 'Hoan tat dang ky de truy cap cac chuc nang ho tro lich hen, ho so va quy trinh tiem chung cho y ta.'
+                eyebrow: 'Tạo tài khoản y tá',
+                description: 'Điền thông tin để tạo tài khoản y tá hỗ trợ vận hành tiêm chủng.',
+                brandTitle: 'Đăng ký tài khoản y tá nhanh gọn',
+                brandDescription: 'Tài khoản y tá phù hợp cho tiếp nhận, cập nhật thông tin mũi tiêm và phối hợp với bác sĩ trong ca trực.',
+                brandNote: 'Hoàn tất đăng ký để truy cập các chức năng hỗ trợ lịch hẹn, hồ sơ và quy trình tiêm chủng cho y tá.'
             }
         };
 
