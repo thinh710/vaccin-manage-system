@@ -1,30 +1,77 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard | Vaccin Manage System</title>
-    <link rel="stylesheet" href="{% static 'authentication/css/auth.css' %}" />
-    <link rel="stylesheet" href="{% static 'users/css/dashboard.css' %}" />
+    <link rel="stylesheet" href="/static/authentication/css/auth.css?v=20260327-1" />
+    <link rel="stylesheet" href="/static/users/css/dashboard.css?v=20260327-4" />
+    <style>
+        .dashboard-hero-slider { position: relative; padding-bottom: 28px; }
+        .dashboard-hero { position: relative; min-height: 420px; border-radius: 18px; overflow: hidden; box-shadow: 0 24px 45px rgba(14, 165, 233, 0.18); background: #dff5fb; }
+        .dashboard-hero-track { display: flex; width: 100%; min-height: 420px; transition: transform 0.55s ease; }
+        .dashboard-hero-slide { flex: 0 0 100%; min-width: 100%; min-height: 420px; }
+        .dashboard-hero-image { display: block; width: 100%; height: 100%; min-height: 420px; object-fit: cover; }
+        .dashboard-hero-arrow { position: absolute; top: 50%; z-index: 3; width: 56px; height: 56px; margin-top: -42px; border: none; border-radius: 50%; background: rgba(255,255,255,.96); color: #0f766e; font-size: 2rem; line-height: 1; cursor: pointer; box-shadow: 0 12px 24px rgba(15,23,42,.16); }
+        .dashboard-hero-arrow.is-prev { left: 18px; }
+        .dashboard-hero-arrow.is-next { right: 18px; }
+        .dashboard-hero-dots { position: absolute; left: 50%; bottom: 0; z-index: 3; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; }
+        .dashboard-hero-dot { width: 12px; height: 12px; padding: 0; border: none; border-radius: 50%; background: rgba(15,118,110,.18); cursor: pointer; }
+        .dashboard-hero-dot.is-active { background: #ef4444; }
+        .seasonal-section { max-width: 1180px; margin: 0 auto; padding: 8px 24px 42px; }
+        .seasonal-title { margin: 0 0 18px; text-align: center; font-size: clamp(2rem, 3vw, 3rem); line-height: 1.08; color: #0f172a; }
+        .seasonal-title span { color: #f97316; }
+        .seasonal-tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 0; }
+        .seasonal-tab { min-height: 50px; padding: 0 22px; border: 1px solid #12b6c8; border-radius: 16px 16px 0 0; background: #fff; color: #334155; font-size: 1rem; font-weight: 700; cursor: pointer; }
+        .seasonal-tab.is-active { background: linear-gradient(135deg, #11b8c7, #0ea5b7); color: #fff; }
+        .seasonal-panel { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(340px, 0.95fr); gap: 18px; padding: 18px; border: 5px solid #10b6c8; border-radius: 0 20px 20px 20px; background: #f7fdff; box-shadow: 0 22px 44px rgba(17,184,199,.14); }
+        .seasonal-copy { position: relative; min-height: 540px; padding: 26px; border-radius: 18px; color: #fff; overflow: hidden; }
+        .seasonal-copy::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(7,76,88,.28), rgba(7,76,88,.04)); pointer-events: none; }
+        .seasonal-copy-content { position: relative; z-index: 1; max-width: 68%; }
+        .seasonal-copy-icon { width: 62px; height: 62px; border-radius: 16px; display: grid; place-items: center; background: rgba(255,255,255,.14); font-size: 1rem; font-weight: 800; letter-spacing: .08em; margin-bottom: 18px; }
+        .seasonal-copy h3 { margin: 0 0 14px; font-size: clamp(1.6rem, 2.2vw, 2.3rem); line-height: 1.2; }
+        .seasonal-copy p { margin: 0 0 14px; font-size: 1.02rem; line-height: 1.7; }
+        .seasonal-bullets { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+        .seasonal-bullets li { display: flex; align-items: start; gap: 10px; line-height: 1.6; }
+        .seasonal-bullet-dot { flex: 0 0 20px; width: 20px; height: 20px; border-radius: 50%; margin-top: 2px; background: rgba(255,255,255,.18); display: grid; place-items: center; font-size: .8rem; }
+        .seasonal-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .seasonal-card { background: #fff; border-radius: 18px; padding: 12px; box-shadow: 0 10px 24px rgba(15,23,42,.08); display: grid; align-content: start; }
+        .seasonal-card-meta { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px; font-size: .92rem; color: #475569; }
+        .seasonal-card-country { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #f8fafc; }
+        .seasonal-card-discount { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; background: #f59e0b; color: #fff; font-weight: 700; }
+        .seasonal-card-image { width: 100%; aspect-ratio: 1 / 1; object-fit: contain; border-radius: 14px; background: #fff; }
+        .seasonal-card-title { margin: 12px 0 4px; color: #475569; font-size: .98rem; }
+        .seasonal-card-desc { margin: 0 0 18px; color: #0f172a; font-weight: 700; font-size: .95rem; line-height: 1.45; min-height: 54px; }
+        .seasonal-card-price { color: #f97316; font-size: 1.02rem; font-weight: 800; }
+        .seasonal-card-price span { color: #64748b; font-weight: 500; }
+        .seasonal-card-price.is-cta { color: #0f172a; }
+        .seasonal-card-price.is-cta span { display: none; }
+        .seasonal-card-old-price { margin-top: 4px; color: #94a3b8; text-decoration: line-through; }
+        .seasonal-card-btn { margin-top: 14px; min-height: 44px; border: none; border-radius: 999px; background: linear-gradient(135deg, #dff4ff, #d4f0fb); color: #0f7f90; font-weight: 800; cursor: pointer; }
+        @media (max-width: 980px) { .seasonal-panel { grid-template-columns: 1fr; } .seasonal-copy { min-height: 420px; } .seasonal-copy-content { max-width: 100%; } }
+        @media (max-width: 720px) {
+            .seasonal-section { padding-left: 16px; padding-right: 16px; }
+            .seasonal-cards { grid-template-columns: 1fr; }
+            .seasonal-tab { border-radius: 14px; }
+            .seasonal-panel { border-radius: 18px; }
+            .seasonal-copy { min-height: 360px; padding: 20px; }
+        }
+    </style>
 </head>
 <body class="auth-body">
     <div class="dashboard-topbar">
         <div class="dashboard-topbar-inner">
             <div class="dashboard-brand">
                 <div class="dashboard-brand-mark" aria-hidden="true">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
+                    <span></span><span></span><span></span><span></span>
                 </div>
                 <div class="dashboard-brand-text">
-                    <strong>TIEM CHUNG VACCINE</strong>
-                    <span>Bao ve suc khoe cho ban va gia dinh</span>
+                    <strong>TIÊM CHỦNG VẮC XIN</strong>
+                    <span>Bảo vệ sức khỏe cho bạn và gia đình</span>
                 </div>
             </div>
             <div class="dashboard-user-menu">
-                <div class="dashboard-topbar-badge">Xin chao, {{ user.full_name }}</div>
+                <div class="dashboard-topbar-badge">Xin chào, {{ user.full_name }}</div>
                 <div class="dashboard-user-panel">
                     <div class="dashboard-user-info">
                         {% if user.avatar_data %}
@@ -33,23 +80,24 @@
                             <div class="dashboard-user-avatar">{{ user.full_name|slice:":1"|upper }}</div>
                         {% endif %}
                         <div class="dashboard-user-details">
-                            <div><strong>Ten:</strong> {{ user.full_name }}</div>
+                            <div><strong>Tên:</strong> {{ user.full_name }}</div>
                             <div><strong>Email:</strong> {{ user.email }}</div>
-                            <div><strong>Vai tro:</strong> {{ user.role }}</div>
-                            <div><strong>Trang thai:</strong> {{ user.status }}</div>
+                            <div><strong>Vai trò:</strong> {{ user.role }}</div>
+                            <div><strong>Trạng thái:</strong> {{ user.status }}</div>
                         </div>
                     </div>
                     <div class="dashboard-user-actions">
-                        <a class="dashboard-user-action" href="/users/profile/">Ho so</a>
-                        <button class="dashboard-user-action">Lich hen</button>
-                        <button class="dashboard-user-action">Tiem chung</button>
+                        <a class="dashboard-user-action" href="/users/profile/">Hồ sơ</a>
+                        <a class="dashboard-user-action" href="/booking/portal/">Lịch hẹn</a>
+                        <a class="dashboard-user-action" href="/users/screening/">Khai báo sàng lọc</a>
+                        <a class="dashboard-user-action" href="/users/system/">Tiêm chủng</a>
                     </div>
-                    <button id="logoutBtn" class="dashboard-user-action is-logout" type="button">Logout</button>
+                    <button id="logoutBtn" class="dashboard-user-action is-logout" type="button">Đăng xuất</button>
                     <div class="dashboard-user-note">
-                        <h3>Thong bao</h3>
+                        <h3>Thông báo</h3>
                         <ul>
-                            <li>Quan ly ho so va lich hen nhanh hon.</li>
-                            <li>Theo doi lich su tiem trong mot cho.</li>
+                            <li>Quản lý hồ sơ và lịch hẹn nhanh hơn.</li>
+                            <li>Theo dõi lịch sử tiêm trong một chỗ.</li>
                         </ul>
                     </div>
                 </div>
@@ -59,25 +107,150 @@
 
     <div class="dashboard-nav">
         <div class="dashboard-nav-inner">
-            <a class="dashboard-nav-item is-active" href="#">Vac xin phong benh</a>
-            <a class="dashboard-nav-item" href="#">Lich hen</a>
-            <a class="dashboard-nav-item" href="#">Goi vac xin</a>
-            <a class="dashboard-nav-item" href="#">He thong tiem chung</a>
-            <a class="dashboard-nav-item" href="#">Kien thuc tiem chung</a>
+            <a class="dashboard-nav-item is-active" href="#">Vắc xin phòng bệnh</a>
+            <a class="dashboard-nav-item" href="/booking/portal/">Lịch hẹn</a>
+            <a class="dashboard-nav-item" href="/users/screening/">Khai báo sàng lọc</a>
+            <a class="dashboard-nav-item" href="/users/packages/">Gói vắc xin</a>
+            <a class="dashboard-nav-item" href="/users/system/">Hệ thống tiêm chủng</a>
+            <a class="dashboard-nav-item" href="/users/knowledge/">Kiến thức tiêm chủng</a>
         </div>
     </div>
 
     <div class="dashboard-header">
-        <div class="dashboard-hero">
-            <div class="dashboard-hero-content">
-                <div class="dashboard-hero-chip">Tiem chung an toan</div>
-                <h1>Chao mung, {{ user.full_name }}</h1>
-                <p>Email dang ky: {{ user.email }}. Quan ly ho so, lich hen va tiem chung cua ban tai day voi giao dien truc quan, ro rang va de theo doi.</p>
+        <div class="dashboard-hero-slider">
+            <button class="dashboard-hero-arrow is-prev" type="button" id="heroPrevBtn" aria-label="Ảnh trước">&#8249;</button>
+            <div class="dashboard-hero" id="dashboardHero">
+                <div class="dashboard-hero-track" id="dashboardHeroTrack">
+                    {% for image_url in dashboard_hero_images %}
+                        <div class="dashboard-hero-slide">
+                            <img class="dashboard-hero-image" src="{{ image_url }}" alt="Banner tiêm chủng {{ forloop.counter }}">
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
+            <button class="dashboard-hero-arrow is-next" type="button" id="heroNextBtn" aria-label="Ảnh tiếp theo">&#8250;</button>
+            <div class="dashboard-hero-dots" id="dashboardHeroDots"></div>
         </div>
     </div>
 
+    <section class="seasonal-section">
+        <h2 class="seasonal-title">Mùa này cần <span>tiêm gì?</span></h2>
+        <div class="seasonal-tabs" id="seasonalTabs">
+            <button class="seasonal-tab is-active" type="button" data-key="hpv">HPV</button>
+            <button class="seasonal-tab" type="button" data-key="dengue">Sốt xuất huyết</button>
+            <button class="seasonal-tab" type="button" data-key="bexsero">Não mô cầu B</button>
+            <button class="seasonal-tab" type="button" data-key="acyw">Não mô cầu ACYW</button>
+            <button class="seasonal-tab" type="button" data-key="japanese">Viêm não Nhật Bản</button>
+            <button class="seasonal-tab" type="button" data-key="combo">6 trong 1</button>
+        </div>
+        <div class="seasonal-panel">
+            <div class="seasonal-copy" id="seasonalCopy">
+                <div class="seasonal-copy-content">
+                    <div class="seasonal-copy-icon" id="seasonalIcon">HPV</div>
+                    <h3 id="seasonalHeading"></h3>
+                    <p id="seasonalDescription"></p>
+                    <ul class="seasonal-bullets" id="seasonalBullets"></ul>
+                </div>
+            </div>
+            <div class="seasonal-cards" id="seasonalCards"></div>
+        </div>
+    </section>
+
     <script>
+        const dashboardHeroImages = {{ dashboard_hero_images_json|safe }};
+        const seasonalVaccinesData = {
+            hpv: {
+                icon: 'HPV',
+                heading: 'Phòng ngừa ung thư do HPV hiệu quả hơn với lịch tiêm đúng',
+                description: 'HPV là nguyên nhân chính gây ung thư cổ tử cung và nhiều bệnh lý khác. Tiêm đúng lịch giúp giảm nguy cơ và bảo vệ lâu dài cho cả nam và nữ.',
+                backgroundImage: '/static/users/img/seasonal-vaccines/hpv-banner.jpg',
+                bullets: [
+                    'Tiêm vắc xin đúng lịch là biện pháp phòng ngừa hiệu quả các bệnh liên quan đến HPV.',
+                    'Gardasil 9 bảo vệ 9 chủng, phù hợp cho người từ 9 đến 45 tuổi.',
+                    'Nên tư vấn với bác sĩ để chọn phác đồ tiêm phù hợp theo độ tuổi.'
+                ],
+                cards: [
+                    { country: 'Hoa Kỳ', discount: '-170.000đ', image: '/static/users/img/seasonal-vaccines/hpv-card.jpg', title: 'Vắc xin Gardasil 9 0.5ml', desc: 'Phòng bệnh ung thư do HPV 9 chủng', price: '2.948.000đ', oldPrice: '2.965.000đ' },
+                    { country: 'Hoa Kỳ', discount: '', image: '/static/users/img/seasonal-vaccines/hpv-card.jpg', title: 'Gói tư vấn HPV', desc: 'Đánh giá độ tuổi, lịch mũi và hướng đặt hẹn tiêm phù hợp', price: 'Đặt hẹn', oldPrice: '' }
+                ]
+            },
+            dengue: {
+                icon: 'SXH',
+                heading: 'Mùa mưa cần phòng sốt xuất huyết chủ động',
+                description: 'Sốt xuất huyết tăng nhanh trong mùa mưa, đặc biệt với trẻ em và người có sức đề kháng yếu. Cần kết hợp tiêm phòng và phòng muỗi đốt.',
+                backgroundImage: '/static/users/img/seasonal-vaccines/dengue-banner.jpg',
+                bullets: [
+                    'Theo dõi triệu chứng sốt cao, đau mỏi, xuất huyết dưới da để đi khám sớm.',
+                    'Tiêm vắc xin giúp giảm nguy cơ diễn tiến nặng ở nhóm phù hợp.',
+                    'Kết hợp dọn dẹp môi trường sống và ngủ màn phòng muỗi.'
+                ],
+                cards: [
+                    { country: 'Pháp', discount: '-90.000đ', image: '/static/users/img/seasonal-vaccines/dengue-card.jpg', title: 'Vắc xin Qdenga', desc: 'Hỗ trợ phòng sốt xuất huyết cho trẻ em và người lớn', price: '1.390.000đ', oldPrice: '1.480.000đ' },
+                    { country: 'Tư vấn', discount: '', image: '/static/users/img/seasonal-vaccines/dengue-card.jpg', title: 'Gói tư vấn mùa dịch', desc: 'Kiểm tra lịch tiêm và mức độ nguy cơ theo từng độ tuổi', price: 'Đặt hẹn', oldPrice: '' }
+                ]
+            },
+            bexsero: {
+                icon: 'MEN B',
+                heading: 'Bảo vệ trẻ nhỏ trước viêm não mô cầu nhóm B',
+                description: 'Viêm não mô cầu có thể diễn tiến rất nhanh. Bexsero là lựa chọn quan trọng đối với trẻ nhỏ và những người có nguy cơ cao.',
+                backgroundImage: '/static/users/img/seasonal-vaccines/meningo-banner.jpg',
+                bullets: [
+                    'Cần tiêm đúng lịch theo khuyến nghị của bác sĩ nhi khoa.',
+                    'Chú ý dấu hiệu sốt cao, cổ cứng, li bì, nôn ói để cấp cứu sớm.',
+                    'Có thể tiêm cùng các mũi khác nhưng cần được tư vấn lịch cụ thể.'
+                ],
+                cards: [
+                    { country: 'Ý', discount: '', image: '/static/users/img/seasonal-vaccines/meningo-card.jpg', title: 'Vắc xin Bexsero', desc: 'Phòng viêm não mô cầu nhóm B cho trẻ em và thanh thiếu niên', price: '2.350.000đ', oldPrice: '' },
+                    { country: 'Gói tiêm', discount: '', image: '/static/users/img/seasonal-vaccines/meningo-card.jpg', title: 'Tư vấn lịch tiêm mô cầu', desc: 'Tổng hợp lịch nhắc mũi để không bỏ lỡ các mốc quan trọng', price: 'Đặt hẹn', oldPrice: '' }
+                ]
+            },
+            acyw: {
+                icon: 'ACYW',
+                heading: 'Tăng cường bảo vệ với viêm não mô cầu ACYW',
+                description: 'Mũi ACYW phù hợp với học sinh, sinh viên, người đi du lịch và những người sống trong môi trường đông đúc.',
+                backgroundImage: '/static/users/img/seasonal-vaccines/meningo-banner.jpg',
+                bullets: [
+                    'Phù hợp với nhóm chuẩn bị du học, ở ký túc xá hoặc đi nước ngoài.',
+                    'Cần xem lại lịch sử tiêm trước đó để tránh trùng lặp mũi.',
+                    'Bác sĩ sẽ hướng dẫn thời điểm nhắc lại nếu cần.'
+                ],
+                cards: [
+                    { country: 'Hoa Kỳ', discount: '', image: '/static/users/img/seasonal-vaccines/meningo-card.jpg', title: 'Vắc xin Menactra / MenQuadfi', desc: 'Phòng viêm não mô cầu nhóm A, C, Y, W-135', price: '1.850.000đ', oldPrice: '' },
+                    { country: 'Lịch nhắc', discount: '', image: '/static/users/img/seasonal-vaccines/meningo-card.jpg', title: 'Phác đồ nhắc lại', desc: 'Theo dõi lịch nhắc cho học sinh, sinh viên và người đi du lịch', price: 'Đặt hẹn', oldPrice: '' }
+                ]
+            },
+            japanese: {
+                icon: 'JEV',
+                heading: 'Chuẩn bị mùa hè với tiêm phòng viêm não Nhật Bản',
+                description: 'Bệnh thường gia tăng vào mùa hè, nhất là ở trẻ em sống tại khu vực có muỗi truyền bệnh. Tiêm phòng sớm giúp bảo vệ tốt hơn.',
+                backgroundImage: '/static/users/img/seasonal-vaccines/combo-banner.jpg',
+                bullets: [
+                    'Nên xem lại lịch mũi cơ bản và nhắc lại trước cao điểm mùa hè.',
+                    'Phù hợp cho trẻ em và người lớn có nguy cơ theo chỉ định.',
+                    'Cần kết hợp phòng muỗi đốt và vệ sinh môi trường.'
+                ],
+                cards: [
+                    { country: 'Nhật Bản', discount: '', image: '/static/users/img/seasonal-vaccines/dengue-card.jpg', title: 'Vắc xin viêm não Nhật Bản', desc: 'Bảo vệ trước nguy cơ viêm não trong mùa hè', price: '890.000đ', oldPrice: '' },
+                    { country: 'Tư vấn', discount: '', image: '/static/users/img/seasonal-vaccines/dengue-card.jpg', title: 'Lịch tiêm theo mùa', desc: 'Tổng hợp các mũi nên tiêm trước khi vào mùa dịch', price: 'Đặt hẹn', oldPrice: '' }
+                ]
+            },
+            combo: {
+                icon: '6IN1',
+                heading: 'Mũi 6 trong 1 giúp trẻ nhỏ được bảo vệ sớm',
+                description: 'Vắc xin 6 trong 1 giúp giảm số mũi tiêm, hỗ trợ phòng nhiều bệnh nguy hiểm và tiện lợi cho gia đình trong giai đoạn đầu đời.',
+                backgroundImage: '/static/users/img/seasonal-vaccines/combo-banner.jpg',
+                bullets: [
+                    'Bảo vệ bạch hầu, ho gà, uốn ván, bại liệt, viêm gan B và Hib.',
+                    'Phù hợp với lịch tiêm cho trẻ nhỏ theo tư vấn của bác sĩ.',
+                    'Cần theo dõi lịch nhắc mũi để đảm bảo hiệu quả bảo vệ.'
+                ],
+                cards: [
+                    { country: 'Gói cơ bản', discount: '-120.000đ', image: '/static/users/img/seasonal-vaccines/combo-banner.jpg', title: 'Vắc xin 6 trong 1', desc: 'Giảm số mũi tiêm, bảo vệ nhiều bệnh cho trẻ nhỏ', price: '1.015.000đ', oldPrice: '1.135.000đ' },
+                    { country: 'Lịch tiêm', discount: '', image: '/static/users/img/seasonal-vaccines/combo-banner.jpg', title: 'Đặt lịch cho bé', desc: 'Theo dõi lịch mũi cơ bản và nhắc lại ngay tại dashboard', price: 'Đặt hẹn', oldPrice: '' }
+                ]
+            }
+        };
+
         function getCookie(name) {
             const cookies = document.cookie ? document.cookie.split(';') : [];
             for (const cookie of cookies) {
@@ -93,22 +266,92 @@
             try {
                 const response = await fetch('/auth/logout/', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
                     credentials: 'same-origin'
                 });
-
-                if (!response.ok) {
-                    throw new Error('Logout failed');
-                }
-
+                if (!response.ok) throw new Error('Logout failed');
                 window.location.href = '/auth/login-page/';
             } catch (error) {
-                alert('Khong the dang xuat luc nay. Vui long thu lai.');
+                alert('Không thể đăng xuất lúc này. Vui lòng thử lại.');
             }
         });
+
+        (function rotateDashboardHero() {
+            const hero = document.querySelector('.dashboard-hero');
+            const track = document.getElementById('dashboardHeroTrack');
+            const dotsContainer = document.getElementById('dashboardHeroDots');
+            const prevButton = document.getElementById('heroPrevBtn');
+            const nextButton = document.getElementById('heroNextBtn');
+            if (!hero || !track || !Array.isArray(dashboardHeroImages) || dashboardHeroImages.length === 0) return;
+
+            let currentIndex = 0;
+            let autoRotateId = null;
+
+            function renderDots() {
+                if (!dotsContainer) return;
+                dotsContainer.innerHTML = '';
+                dashboardHeroImages.forEach((_, index) => {
+                    const dot = document.createElement('button');
+                    dot.type = 'button';
+                    dot.className = 'dashboard-hero-dot' + (index === currentIndex ? ' is-active' : '');
+                    dot.setAttribute('aria-label', `Chuyển đến ảnh ${index + 1}`);
+                    dot.addEventListener('click', () => { currentIndex = index; updateHero(); restartAutoRotate(); });
+                    dotsContainer.appendChild(dot);
+                });
+            }
+
+            function updateHero() { track.style.transform = `translateX(-${currentIndex * 100}%)`; renderDots(); }
+            function goToNext() { currentIndex = (currentIndex + 1) % dashboardHeroImages.length; updateHero(); }
+            function goToPrev() { currentIndex = (currentIndex - 1 + dashboardHeroImages.length) % dashboardHeroImages.length; updateHero(); }
+            function restartAutoRotate() {
+                if (autoRotateId) window.clearInterval(autoRotateId);
+                if (dashboardHeroImages.length > 1) autoRotateId = window.setInterval(goToNext, 5000);
+            }
+
+            prevButton?.addEventListener('click', () => { goToPrev(); restartAutoRotate(); });
+            nextButton?.addEventListener('click', () => { goToNext(); restartAutoRotate(); });
+            updateHero();
+            restartAutoRotate();
+        })();
+
+        (function renderSeasonalVaccines() {
+            const tabs = Array.from(document.querySelectorAll('.seasonal-tab'));
+            const copy = document.getElementById('seasonalCopy');
+            const icon = document.getElementById('seasonalIcon');
+            const heading = document.getElementById('seasonalHeading');
+            const description = document.getElementById('seasonalDescription');
+            const bullets = document.getElementById('seasonalBullets');
+            const cards = document.getElementById('seasonalCards');
+            if (!tabs.length || !copy || !icon || !heading || !description || !bullets || !cards) return;
+
+            function renderCategory(key) {
+                const item = seasonalVaccinesData[key];
+                if (!item) return;
+                tabs.forEach((tab) => tab.classList.toggle('is-active', tab.dataset.key === key));
+                copy.style.background = `linear-gradient(135deg, rgba(17, 184, 199, 0.94), rgba(16, 148, 166, 0.96)), url("${item.backgroundImage}") center center/cover no-repeat`;
+                icon.textContent = item.icon;
+                heading.textContent = item.heading;
+                description.textContent = item.description;
+                bullets.innerHTML = item.bullets.map((bullet) => `<li><span class="seasonal-bullet-dot">+</span><span>${bullet}</span></li>`).join('');
+                cards.innerHTML = item.cards.map((card) => `
+                    <article class="seasonal-card">
+                        <div class="seasonal-card-meta">
+                            <span class="seasonal-card-country">${card.country}</span>
+                            ${card.discount ? `<span class="seasonal-card-discount">${card.discount}</span>` : ''}
+                        </div>
+                        <img class="seasonal-card-image" src="${card.image}" alt="${card.title}">
+                        <div class="seasonal-card-title">${card.title}</div>
+                        <p class="seasonal-card-desc">${card.desc}</p>
+                        <div class="seasonal-card-price${card.price === 'Đặt hẹn' ? ' is-cta' : ''}">${card.price}<span> / Liều</span></div>
+                        ${card.oldPrice ? `<div class="seasonal-card-old-price">${card.oldPrice}</div>` : ''}
+                        <button class="seasonal-card-btn" type="button" onclick="window.location.href='/booking/portal/?vaccine=${encodeURIComponent(card.title)}'">Đặt hẹn</button>
+                    </article>
+                `).join('');
+            }
+
+            tabs.forEach((tab) => tab.addEventListener('click', () => renderCategory(tab.dataset.key)));
+            renderCategory('hpv');
+        })();
     </script>
 </body>
 </html>

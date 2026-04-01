@@ -3,6 +3,15 @@ from django.contrib.auth.hashers import check_password, make_password
 
 
 class User(models.Model):
+    AUTH_PROVIDER_LOCAL = 'local'
+    AUTH_PROVIDER_GOOGLE = 'google'
+    AUTH_PROVIDER_FACEBOOK = 'facebook'
+    AUTH_PROVIDER_CHOICES = [
+        (AUTH_PROVIDER_LOCAL, 'Local'),
+        (AUTH_PROVIDER_GOOGLE, 'Google'),
+        (AUTH_PROVIDER_FACEBOOK, 'Facebook'),
+    ]
+
     BLOOD_GROUP_CHOICES = [
         ('A+', 'A+'),
         ('A-', 'A-'),
@@ -43,6 +52,12 @@ class User(models.Model):
     medical_history = models.TextField(blank=True)
     avatar_data = models.TextField(blank=True)
     password_hash = models.CharField(max_length=255)
+    auth_provider = models.CharField(
+        max_length=20,
+        choices=AUTH_PROVIDER_CHOICES,
+        default=AUTH_PROVIDER_LOCAL,
+    )
+    provider_user_id = models.CharField(max_length=255, blank=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_CITIZEN)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
     created_at = models.DateTimeField(auto_now_add=True)

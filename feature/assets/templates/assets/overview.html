@@ -1,0 +1,82 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tổng quan kho | Vaccin Manage System</title>
+    <link rel="stylesheet" href="{% static 'assets/css/overview.css' %}?v=20260328-1">
+</head>
+<body>
+    <main class="overview-shell">
+        <section class="overview-hero">
+            <div class="hero-copy">
+                <span class="eyebrow">Không gian kho</span>
+                <h1>Giao diện quản lý kho cho vắc xin</h1>
+                <p>
+                    Trang này giúp nhân sự phụ trách kho đi nhanh vào khu vực kho, theo dõi tình trạng tồn
+                    và thao tác điều phối trên một luồng giao diện rõ ràng hơn.
+                </p>
+
+                <div class="hero-actions">
+                    <a class="primary-link" href="/assets/dashboard-page/">Vào dashboard kho</a>
+                    <a class="ghost-link" href="/users/dashboard/">Quay lại dashboard</a>
+                </div>
+            </div>
+
+            <aside class="hero-panel">
+                <div class="user-badge">Tài khoản đang đăng nhập</div>
+                <h2>{{ user.full_name }}</h2>
+                <p>{{ user.email }}</p>
+                <div class="meta-row">
+                    <span>Ngày làm việc</span>
+                    <strong>{{ today|date:"d/m/Y" }}</strong>
+                </div>
+            </aside>
+        </section>
+
+        <section class="summary-grid">
+            <article class="summary-card">
+                <span>Tổng lô vắc xin</span>
+                <strong>{{ summary.total_vaccines }}</strong>
+                <p>Số lô đang được hệ thống assets theo dõi.</p>
+            </article>
+            <article class="summary-card">
+                <span>Tổng tồn kho</span>
+                <strong>{{ summary.total_stock }}</strong>
+                <p>Tổng số liều vắc xin đang có sẵn trong kho.</p>
+            </article>
+            <article class="summary-card warning">
+                <span>Cần bổ sung</span>
+                <strong>{{ summary.low_stock_count }}</strong>
+                <p>Các lô đang chạm mốc tồn tối thiểu cần xử lý sớm.</p>
+            </article>
+            <article class="summary-card danger">
+                <span>Hết hạn</span>
+                <strong>{{ summary.expired_count }}</strong>
+                <p>Cần khóa xuất kho và kiểm tra xử lý ngay.</p>
+            </article>
+        </section>
+
+        <section class="feature-grid">
+            <article class="feature-card">
+                <div class="feature-icon">01</div>
+                <h3>Thêm và cập nhật vắc xin</h3>
+                <p>Tạo lô mới, cập nhật nhà cung cấp, hạn sử dụng và vị trí bảo quản ngay trong dashboard kho.</p>
+            </article>
+            <article class="feature-card">
+                <div class="feature-icon">02</div>
+                <h3>Nghiệp vụ nhập xuất</h3>
+                <p>Ghi nhận phiếu nhập, phiếu xuất và điều chỉnh tồn kho từ giao diện thao tác nhanh.</p>
+            </article>
+            <article class="feature-card">
+                <div class="feature-icon">03</div>
+                <h3>Theo dõi cảnh báo</h3>
+                <p>Quan sát nhanh các lô sắp hết hạn, tồn thấp và lịch sử giao dịch mới nhất.</p>
+            </article>
+        </section>
+    </main>
+
+    <script src="{% static 'assets/js/overview.js' %}?v=20260328-1"></script>
+</body>
+</html>

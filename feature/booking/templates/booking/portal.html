@@ -1,0 +1,199 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đặt lịch vắc xin | Vaccin Manage System</title>
+    <link rel="stylesheet" href="{% static 'booking/css/portal.css' %}?v=20260328-1">
+</head>
+<body class="booking-page">
+    <main class="booking-shell">
+        <section class="booking-hero">
+            <div>
+                <div class="booking-eyebrow">Trung tâm đặt lịch</div>
+                <h1>
+                    {% if user.role == 'citizen' %}
+                        Đặt lịch tiêm chủng cho bạn và gia đình
+                    {% else %}
+                        Quản lý và điều phối booking tiêm chủng
+                    {% endif %}
+                </h1>
+                <p>
+                    {% if user.role == 'citizen' %}
+                        Chọn vắc xin, ngày tiêm và theo dõi trạng thái booking ngay trên một màn hình.
+                    {% else %}
+                        Theo dõi booking, cập nhật trạng thái và hỗ trợ điều phối các ca tiêm sắp tới.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="booking-hero-actions">
+                <a class="ghost-link" href="/users/dashboard/">Về dashboard</a>
+                <div class="hero-badge">{{ user.full_name }} - {{ user.role }}</div>
+            </div>
+        </section>
+
+        <section class="booking-stats">
+            <article class="stat-card">
+                <span>Tổng booking</span>
+                <strong id="stat-total">{{ booking_stats.total }}</strong>
+            </article>
+            <article class="stat-card">
+                <span>Chờ xác nhận</span>
+                <strong id="stat-pending">{{ booking_stats.pending }}</strong>
+            </article>
+            <article class="stat-card">
+                <span>Đã xác nhận</span>
+                <strong id="stat-confirmed">{{ booking_stats.confirmed }}</strong>
+            </article>
+            <article class="stat-card">
+                <span>Đã hoàn thành</span>
+                <strong id="stat-completed">{{ booking_stats.completed }}</strong>
+            </article>
+        </section>
+
+        <section class="booking-grid">
+            <article class="panel panel-form">
+                <div class="panel-head">
+                    <div>
+                        <h2 id="form-heading">Tạo booking mới</h2>
+                        <p id="form-subtitle">Thông tin sẽ được lưu và gửi sang quy trình xác nhận.</p>
+                    </div>
+                    <div class="mini-badge">Hôm nay {{ today|date:"d/m/Y" }}</div>
+                </div>
+
+                <div id="form-alert" class="form-alert" hidden></div>
+
+                <form id="booking-form">
+                    <input type="hidden" id="booking-id">
+
+                    <label class="field">
+                        <span>Họ và tên</span>
+                        <input id="full-name" type="text" value="{{ user.full_name }}" {% if user.role == 'citizen' %}readonly{% endif %} required>
+                    </label>
+
+                    <label class="field">
+                        <span>Số điện thoại</span>
+                        <input id="phone" type="text" value="{{ user.phone_number }}" required>
+                    </label>
+
+                    <label class="field">
+                        <span>Email</span>
+                        <input id="email" type="email" value="{{ user.email }}" {% if user.role == 'citizen' %}readonly{% endif %}>
+                    </label>
+
+                    <label class="field">
+                        <span>Loại vắc xin</span>
+                        <select id="vaccine-name" required>
+                            {% for vaccine in vaccines %}
+                                <option value="{{ vaccine.name }}" data-id="{{ vaccine.id }}" data-qty="{{ vaccine.quantity }}">
+                                    {{ vaccine.name }} - còn {{ vaccine.quantity }} liều
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </label>
+
+                    <div class="field-row">
+                        <label class="field">
+                            <span>Ngày tiêm</span>
+                            <input id="vaccine-date" type="date" min="{{ today|date:'Y-m-d' }}" required>
+                        </label>
+
+                        <label class="field">
+                            <span>Mũi thứ</span>
+                            <input id="dose-number" type="number" min="1" value="1" required>
+                        </label>
+                    </div>
+
+                    {% if user.role != 'citizen' %}
+                        <label class="field">
+                            <span>Trạng thái</span>
+                            <select id="status">
+                                <option value="pending">pending</option>
+                                <option value="confirmed">confirmed</option>
+                                <option value="checked_in">checked_in</option>
+                                <option value="screened">screened</option>
+                                <option value="completed">completed</option>
+                                <option value="delayed">delayed</option>
+                                <option value="cancelled">cancelled</option>
+                            </select>
+                        </label>
+                    {% else %}
+                        <input id="status" type="hidden" value="pending">
+                    {% endif %}
+
+                    <label class="field">
+                        <span>Ghi chú</span>
+                        <textarea id="note" rows="4" placeholder="Thêm yêu cầu hoặc thông tin sức khỏe cần lưu ý"></textarea>
+                    </label>
+
+                    <div class="form-actions">
+                        <button id="submit-btn" class="primary-btn" type="submit">Tạo booking</button>
+                        <button id="cancel-edit-btn" class="secondary-btn" type="button" hidden>Hủy chỉnh sửa</button>
+                    </div>
+                </form>
+            </article>
+
+            <article class="panel panel-table">
+                <div class="panel-head">
+                    <div>
+                        <h2>Danh sách booking</h2>
+                        <p>
+                            {% if user.role == 'citizen' %}
+                                Theo dõi trạng thái booking của bạn theo thời gian thực.
+                            {% else %}
+                                Tìm nhanh, lọc nhanh và cập nhật booking cho ca trực.
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="mini-badge" id="upcoming-badge">Sắp tới: {{ booking_stats.upcoming }}</div>
+                </div>
+
+                <div class="filters">
+                    <input id="filter-keyword" type="text" placeholder="Tìm theo tên, số điện thoại, vắc xin">
+                    <select id="filter-status">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="pending">pending</option>
+                        <option value="confirmed">confirmed</option>
+                        <option value="checked_in">checked_in</option>
+                        <option value="screened">screened</option>
+                        <option value="completed">completed</option>
+                        <option value="delayed">delayed</option>
+                        <option value="cancelled">cancelled</option>
+                    </select>
+                    <input id="filter-date" type="date">
+                    <button id="filter-btn" class="secondary-btn" type="button">Lọc</button>
+                </div>
+
+                <div id="booking-empty" class="empty-state" hidden>Chưa có booking nào phù hợp bộ lọc hiện tại.</div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Khách hàng</th>
+                                <th>Vắc xin</th>
+                                <th>Ngày tiêm</th>
+                                <th>Mũi</th>
+                                <th>Trạng thái</th>
+                                <th>Ghi chú</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="booking-table-body"></tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    {{ initial_bookings|json_script:"initial-bookings-data" }}
+    <script>
+        window.bookingPortalConfig = {
+            userRole: '{{ user.role }}',
+            today: '{{ today|date:"Y-m-d" }}',
+            vaccineOptions: [{% for vaccine in vaccine_options %}'{{ vaccine }}'{% if not forloop.last %}, {% endif %}{% endfor %}]
+        };
+    </script>
+    <script src="{% static 'booking/js/portal.js' %}?v=20260328-1"></script>
+</body>
+</html>

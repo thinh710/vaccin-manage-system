@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giao diện kho | Vaccin Manage System</title>
+    <style>
+        :root {
+            --bg: #f6f1e7;
+            --surface: rgba(255, 250, 243, 0.94);
+            --surface-strong: #fffdfa;
+            --ink: #1b2432;
+            --muted: #667085;
+            --line: rgba(27, 36, 50, 0.09);
+            --teal: #0f766e;
+            --teal-strong: #115e59;
+            --amber: #b45309;
+            --red: #b91c1c;
+            --blue: #1d4ed8;
+            --shadow: 0 24px 60px rgba(76, 57, 32, 0.14);
+            --radius-xl: 30px;
+            --radius-lg: 22px;
+            --radius-md: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(15, 118, 110, 0.15), transparent 30%),
+                radial-gradient(circle at right bottom, rgba(180, 83, 9, 0.14), transparent 24%),
+                linear-gradient(180deg, #fdfaf5 0%, var(--bg) 100%);
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .interface-shell {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        .hero,
+        .stat-card,
+        .nav-card,
+        .timeline-card,
+        .cta-band {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr);
+            gap: 24px;
+            padding: 34px;
+            border-radius: var(--radius-xl);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            margin-bottom: 16px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(15, 118, 110, 0.1);
+            color: var(--teal-strong);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.8rem;
+            font-weight: 800;
+        }
+
+        .hero h1,
+        .nav-card h3,
+        .timeline-card h2,
+        .cta-band h2 {
+            margin: 0 0 12px;
+        }
+
+        .hero h1 {
+            max-width: 11ch;
+            font-size: clamp(2.2rem, 4vw, 4rem);
+            line-height: 1;
+        }
+
+        .hero p,
+        .hero-side p,
+        .stat-card p,
+        .nav-card p,
+        .timeline-list li,
+        .cta-band p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 28px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 48px;
+            padding: 0 18px;
+            border-radius: 999px;
+            font-weight: 800;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            color: #fff;
+            background: linear-gradient(135deg, var(--teal), var(--teal-strong));
+            box-shadow: 0 16px 30px rgba(15, 118, 110, 0.22);
+        }
+
+        .btn-secondary {
+            background: var(--surface-strong);
+            border: 1px solid var(--line);
+        }
+
+        .hero-side {
+            display: grid;
+            gap: 16px;
+            align-content: start;
+        }
+
+        .user-card,
+        .status-strip {
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            background: rgba(255, 255, 255, 0.62);
+            border: 1px solid var(--line);
+        }
+
+        .user-chip {
+            display: inline-flex;
+            width: fit-content;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(29, 78, 216, 0.1);
+            color: var(--blue);
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+
+        .user-card strong,
+        .status-strip strong {
+            display: block;
+            margin: 12px 0 6px;
+            font-size: 1.1rem;
+        }
+
+        .stats-grid {
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .stat-card {
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            display: grid;
+            gap: 10px;
+        }
+
+        .stat-card span {
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-size: 0.82rem;
+            font-weight: 800;
+        }
+
+        .stat-card strong {
+            font-size: 2.3rem;
+            line-height: 1;
+        }
+
+        .stat-card.warning strong {
+            color: var(--amber);
+        }
+
+        .stat-card.danger strong {
+            color: var(--red);
+        }
+
+        .content-grid {
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.9fr);
+            gap: 20px;
+        }
+
+        .nav-stack,
+        .timeline-card {
+            display: grid;
+            gap: 18px;
+        }
+
+        .nav-card,
+        .timeline-card,
+        .cta-band {
+            padding: 24px;
+            border-radius: var(--radius-lg);
+        }
+
+        .nav-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .nav-index {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(15, 118, 110, 0.14), rgba(29, 78, 216, 0.1));
+            color: var(--teal-strong);
+            font-weight: 900;
+        }
+
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: fit-content;
+            min-height: 42px;
+            margin-top: 18px;
+            padding: 0 16px;
+            border-radius: 999px;
+            background: var(--surface-strong);
+            border: 1px solid var(--line);
+            font-weight: 800;
+        }
+
+        .timeline-list {
+            margin: 0;
+            padding-left: 18px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .cta-band {
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(18px);
+            transition: opacity 0.45s ease, transform 0.45s ease;
+        }
+
+        .reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 1100px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 820px) {
+            .interface-shell {
+                padding: 18px;
+            }
+
+            .hero {
+                grid-template-columns: 1fr;
+                padding: 24px;
+            }
+
+            .cta-band {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        @media (max-width: 620px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+            }
+
+            .btn,
+            .nav-link {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="interface-shell">
+        <section class="hero reveal">
+            <div>
+                <span class="eyebrow">Assets interface</span>
+                <h1>Giao diện quản lý kho vắc xin</h1>
+                <p>
+                    Màn hình này gom các điểm vào nhanh cho nhân sự phụ trách kho để theo dõi tồn kho,
+                    di chuyển giữa các khu overview và dashboard nghiệp vụ, đồng thời nhìn được tình trạng
+                    cảnh báo trong một bố cục rõ ràng.
+                </p>
+
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="/assets/overview/">Mở overview</a>
+                    <a class="btn btn-secondary" href="/assets/dashboard-page/">Mở dashboard kho</a>
+                </div>
+            </div>
+
+            <div class="hero-side">
+                <div class="user-card">
+                    <span class="user-chip">Inventory workspace</span>
+                    <strong>Quản lý assets thông minh</strong>
+                    <p>Tập trung tất cả luồng thao tác kho trong một điểm bắt đầu để dễ điều hướng và xử lý nghiệp vụ.</p>
+                </div>
+                <div class="status-strip">
+                    <span class="user-chip">Thông tin nhanh</span>
+                    <strong>3 khu vực chính</strong>
+                    <p>Portal, overview và dashboard kho đã được tách riêng để bạn dễ triển khai frontend và nối route.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats-grid">
+            <article class="stat-card reveal">
+                <span>Modules</span>
+                <strong>03</strong>
+                <p>Portal, overview và inventory dashboard.</p>
+            </article>
+            <article class="stat-card reveal">
+                <span>Loại thao tác</span>
+                <strong>04</strong>
+                <p>Thêm vắc xin, nhập kho, xuất kho, điều chỉnh.</p>
+            </article>
+            <article class="stat-card warning reveal">
+                <span>Cần bổ sung</span>
+                <strong>Low</strong>
+                <p>Khu vực cảnh báo tồn thấp sẵn sàng để nối dữ liệu thật.</p>
+            </article>
+            <article class="stat-card danger reveal">
+                <span>Rủi ro</span>
+                <strong>Expiry</strong>
+                <p>Đã có sẵn vị trí để gắn cảnh báo vắc xin hết hạn.</p>
+            </article>
+        </section>
+
+        <section class="content-grid">
+            <div class="nav-stack">
+                <article class="nav-card reveal">
+                    <div class="nav-card-top">
+                        <div class="nav-index">01</div>
+                        <strong>Portal assets</strong>
+                    </div>
+                    <h3>Màn hình vào nhanh</h3>
+                    <p>Phù hợp làm cửa vào cho nhân sự quản lý kho trước khi chuyển sang các khu nghiệp vụ chi tiết.</p>
+                    <a class="nav-link" href="/assets/portal/">Đi đến portal</a>
+                </article>
+
+                <article class="nav-card reveal">
+                    <div class="nav-card-top">
+                        <div class="nav-index">02</div>
+                        <strong>Overview assets</strong>
+                    </div>
+                    <h3>Tổng quan kho vắc xin</h3>
+                    <p>Cho hiển thị tổng tồn kho, cảnh báo và nội dung tổng hợp để bạn trình bày frontend đẹp hơn.</p>
+                    <a class="nav-link" href="/assets/overview/">Đi đến overview</a>
+                </article>
+
+                <article class="nav-card reveal">
+                    <div class="nav-card-top">
+                        <div class="nav-index">03</div>
+                        <strong>Dashboard kho</strong>
+                    </div>
+                    <h3>Xử lý nghiệp vụ trực tiếp</h3>
+                    <p>Cho phép thao tác CRUD, nhập xuất, điều chỉnh và xem lịch sử giao dịch kho.</p>
+                    <a class="nav-link" href="/assets/dashboard-page/">Đi đến dashboard</a>
+                </article>
+            </div>
+
+            <article class="timeline-card reveal">
+                <h2>Gợi ý bố cục cho assets</h2>
+                <ol class="timeline-list">
+                    <li>Bắt đầu từ một landing mạnh để admin chọn đúng khu vực cần vào.</li>
+                    <li>Đặt các thẻ thống kê ở lớp trên cùng để nhìn tồn kho và cảnh báo ngay.</li>
+                    <li>Bố trí các action card riêng cho nhập kho, xuất kho và điều chỉnh tồn.</li>
+                    <li>Hiển thị bảng vắc xin và lịch sử giao dịch ở các khối dễ theo dõi.</li>
+                    <li>Giữ khu cảnh báo low stock và expiry luôn nổi bật bằng màu sắc riêng.</li>
+                </ol>
+            </article>
+        </section>
+
+        <section class="cta-band reveal">
+            <div>
+                <h2>Sẵn sàng nối vào hệ thống</h2>
+                <p>Bạn có thể dùng file này như mockup giao diện hoặc đổi thành template Django khi cần render thật.</p>
+            </div>
+            <a class="btn btn-primary" href="/users/dashboard/">Quay lại dashboard</a>
+        </section>
+    </main>
+
+    <script>
+        (function () {
+            const items = document.querySelectorAll(".reveal");
+            items.forEach(function (item, index) {
+                window.setTimeout(function () {
+                    item.classList.add("is-visible");
+                }, index * 90);
+            });
+        })();
+    </script>
+</body>
+</html>

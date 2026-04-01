@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý kho vắc xin | Vaccin Manage System</title>
+    <link rel="stylesheet" href="/static/assets/css/dashboard.css?v=20260329-1">
+</head>
+<body>
+    <div class="inventory-app">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark">VMS</div>
+                <div>
+                    <strong>Kho vắc xin</strong>
+                    <span>Inventory workspace</span>
+                </div>
+            </div>
+
+            <div class="profile-card">
+                <div class="avatar">{{ user.full_name|slice:":1"|upper }}</div>
+                <div>
+                    <strong>{{ user.full_name }}</strong>
+                    <span>{{ user.email }}</span>
+                    <small>Ngày làm việc: {{ today|date:"d/m/Y" }}</small>
+                </div>
+            </div>
+
+            <nav class="side-nav">
+                <a class="side-link is-active" href="/assets/">Tổng quan kho</a>
+                <a class="side-link" href="/assets/suppliers-page/">Nhà cung cấp</a>
+                <a class="side-link" href="/assets/locations-page/">Vị trí bảo quản</a>
+                <a class="side-link" href="#inventory-panel">Danh sách vắc xin</a>
+                <a class="side-link" href="#transaction-panel">Giao dịch gần đây</a>
+                <a class="side-link" href="/assets/overview/">Báo cáo tổng hợp</a>
+                <a class="side-link" href="/users/dashboard/">Về dashboard</a>
+            </nav>
+
+            <section class="side-section">
+                <h2>Cảnh báo nhanh</h2>
+                <div class="mini-stat">
+                    <span>Cần bổ sung</span>
+                    <strong>{{ summary.low_stock_count }}</strong>
+                </div>
+                <div class="mini-stat danger">
+                    <span>Hết hạn</span>
+                    <strong>{{ summary.expired_count }}</strong>
+                </div>
+                <div class="mini-stat warning">
+                    <span>Sắp hết hạn</span>
+                    <strong>{{ summary.near_expiry_count }}</strong>
+                </div>
+            </section>
+        </aside>
+
+        <main class="workspace">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">Hệ thống quản lý kho</p>
+                    <h1>Tra cứu và điều phối vắc xin nhanh hơn</h1>
+                    <p class="topbar-copy">
+                        Tập trung danh sách lô vắc xin, tìm kiếm theo tên, lô, nhà cung cấp và lọc ngày các lô cần xử lý.
+                    </p>
+                </div>
+                <div class="topbar-actions">
+                    <button class="toolbar-btn toolbar-btn--blue" id="refreshPageBtn" type="button">Làm mới</button>
+                    <button class="toolbar-btn toolbar-btn--green" type="button" data-open-modal="#vaccineModal">Thêm vắc xin</button>
+                    <button class="toolbar-btn toolbar-btn--teal" type="button" data-open-modal="#importModal">Nhập dữ liệu</button>
+                    <button class="toolbar-btn toolbar-btn--orange" type="button" data-open-modal="#exportModal">Xuất kho</button>
+                    <button class="toolbar-btn toolbar-btn--gold" type="button" data-open-modal="#adjustModal">Điều chỉnh</button>
+                    <button class="toolbar-btn toolbar-btn--slate" id="exportCsvBtn" type="button">Xuất CSV</button>
+                    <button class="toolbar-btn toolbar-btn--danger" id="logoutBtn" type="button">Đăng xuất</button>
+                </div>
+            </header>
+
+            <section class="summary-row">
+                <article class="summary-card">
+                    <span>Tổng lô vắc xin</span>
+                    <strong>{{ summary.total_vaccines }}</strong>
+                    <p>Số lô đang được theo dõi trong kho.</p>
+                </article>
+                <article class="summary-card">
+                    <span>Tổng tồn kho</span>
+                    <strong>{{ summary.total_stock }}</strong>
+                    <p>Tổng số liều vắc xin hiện có.</p>
+                </article>
+                <article class="summary-card warning">
+                    <span>Cần nhập thêm</span>
+                    <strong>{{ summary.low_stock_count }}</strong>
+                    <p>Các lô đã chạm ngưỡng tồn tối thiểu.</p>
+                </article>
+                <article class="summary-card danger">
+                    <span>Hết hạn</span>
+                    <strong>{{ summary.expired_count }}</strong>
+                    <p>Cần khóa xuất kho và xử lý ngay.</p>
+                </article>
+            </section>
+
+            <div id="messageBox" class="alert" hidden></div>
+
+            <section class="workspace-grid">
+                <section class="panel panel--main" id="inventory-panel">
+                    <div class="panel-toolbar">
+                        <div class="search-box">
+                            <label for="inventorySearch">Tìm vắc xin</label>
+                            <input id="inventorySearch" type="search" placeholder="Nhập tên vắc xin, số lô, nhà cung cấp, vị trí...">
+                        </div>
+                        <div class="filter-group">
+                            <label>
+                                <span>Trạng thái</span>
+                                <select id="statusFilter">
+                                    <option value="all">Tất cả</option>
+                                    <option value="normal">Ổn định</option>
+                                    <option value="low">Cần bổ sung</option>
+                                    <option value="expiring">Sắp hết hạn</option>
+                                    <option value="expired">Hết hạn</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Nhà cung cấp</span>
+                                <select id="supplierFilter">
+                                    <option value="all">Tất cả</option>
+                                    {% for supplier in suppliers %}
+                                        <option value="{{ supplier.name|lower }}">{{ supplier.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>
+                                <span>Vị trí</span>
+                                <select id="locationFilter">
+                                    <option value="all">Tất cả</option>
+                                    {% for location in locations %}
+                                        <option value="{{ location.name|lower }}">{{ location.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="panel-head">
+                        <div>
+                            <h2>Danh sách vắc xin trong kho</h2>
+                            <p id="tableMeta">Đang hiển thị {{ vaccines|length }} lô vắc xin.</p>
+                        </div>
+                        <div class="head-actions">
+                            <button class="soft-btn" id="resetFiltersBtn" type="button">Xóa bộ lọc</button>
+                            <a class="soft-btn" href="/assets/overview/">Xem báo cáo</a>
+                        </div>
+                    </div>
+
+                    <div class="table-shell">
+                        <table class="inventory-table">
+                            <thead>
+                                <tr>
+                                    <th>Vắc xin</th>
+                                    <th>Số lô</th>
+                                    <th>Nhà sản xuất</th>
+                                    <th>Nhà cung cấp</th>
+                                    <th>Vị trí</th>
+                                    <th>Tồn kho</th>
+                                    <th>Hạn sử dụng</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vaccineTableBody">
+                                {% for vaccine in vaccines %}
+                                    <tr
+                                        data-search="{{ vaccine.name|lower }} {{ vaccine.batch_number|lower }} {{ vaccine.manufacturer|lower }} {{ vaccine.supplier.name|default:'chưa gán nhà cung cấp'|lower }} {{ vaccine.location.name|default:'chưa phân khu'|lower }}"
+                                        data-supplier="{{ vaccine.supplier.name|default:'chưa gán nhà cung cấp'|lower }}"
+                                        data-location="{{ vaccine.location.name|default:'chưa phân khu'|lower }}"
+                                        data-expiration="{{ vaccine.expiration_date|date:'Y-m-d' }}"
+                                        data-quantity="{{ vaccine.quantity }}"
+                                        data-minimum="{{ vaccine.minimum_stock }}"
+                                    >
+                                        <td>
+                                            <strong>{{ vaccine.name }}</strong>
+                                            <div class="muted-line">{{ vaccine.manufacturer }}</div>
+                                        </td>
+                                        <td>{{ vaccine.batch_number }}</td>
+                                        <td>{{ vaccine.manufacturer }}</td>
+                                        <td>{{ vaccine.supplier.name|default:"Chưa gán nhà cung cấp" }}</td>
+                                        <td>{{ vaccine.location.name|default:"Chưa phân khu" }}</td>
+                                        <td>
+                                            <div class="stock-cell">
+                                                <strong>{{ vaccine.quantity }}</strong>
+                                                <span>Tối thiểu {{ vaccine.minimum_stock }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>{{ vaccine.expiration_date|date:"d/m/Y" }}</div>
+                                            {% if vaccine.is_expired %}
+                                                <div class="danger-line">Đã hết hạn</div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if vaccine.is_expired %}
+                                                <span class="status-pill status-pill--danger">Hết hạn</span>
+                                            {% elif vaccine.quantity <= vaccine.minimum_stock %}
+                                                <span class="status-pill status-pill--warning">Cần bổ sung</span>
+                                            {% else %}
+                                                <span class="status-pill status-pill--ok">Ổn định</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="8">
+                                            <div class="empty-state">Chưa có vắc xin nào trong kho. Hãy tạo lô đầu tiên để bắt đầu quản lý.</div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div class="empty-state empty-state--search" id="searchEmptyState" hidden>Không tìm thấy vắc xin phù hợp với bộ lọc hiện tại.</div>
+                    </div>
+                </section>
+
+                <aside class="panel panel--side">
+                    <div class="panel-head">
+                        <div>
+                            <h2>Thao tác nhanh</h2>
+                            <p>Mở nghiệp vụ kho trong một lần bấm.</p>
+                        </div>
+                    </div>
+
+                    <div class="quick-actions">
+                        <button class="action-card action-card--green" type="button" data-open-modal="#vaccineModal">
+                            <strong>Thêm lô vắc xin</strong>
+                            <span>Tạo lô mới để đưa vào theo dõi trong kho.</span>
+                        </button>
+                        <button class="action-card action-card--teal" type="button" data-open-modal="#importModal">
+                            <strong>Nhập kho</strong>
+                            <span>Bổ sung tồn kho theo hóa đơn hoặc cấp phát.</span>
+                        </button>
+                        <button class="action-card action-card--orange" type="button" data-open-modal="#exportModal">
+                            <strong>Xuất kho</strong>
+                            <span>Điều phối vắc xin cho điểm tiêm và khoa phòng.</span>
+                        </button>
+                        <button class="action-card action-card--gold" type="button" data-open-modal="#adjustModal">
+                            <strong>Điều chỉnh tồn</strong>
+                            <span>Kiểm kê, hao hụt hoặc cập nhật chênh lệch.</span>
+                        </button>
+                    </div>
+
+                    <div class="support-card">
+                        <h3>Nhà cung cấp</h3>
+                        <ul>
+                            {% for supplier in suppliers %}
+                                <li>{{ supplier.name }}</li>
+                            {% empty %}
+                                <li>Chưa có nhà cung cấp.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div class="support-card">
+                        <h3>Vị trí bảo quản</h3>
+                        <ul id="locationSupportList">
+                            {% for location in locations %}
+                                <li>{{ location.name }}</li>
+                            {% empty %}
+                                <li data-empty-location>Chưa có vị trí bảo quản.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </aside>
+            </section>
+
+            <section class="panel" id="transaction-panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>Giao dịch gần đây</h2>
+                        <p>Theo dõi nhanh lịch sử nhập, xuất và điều chỉnh kho vắc xin.</p>
+                    </div>
+                </div>
+
+                <div class="transaction-list">
+                    {% for item in recent_transactions %}
+                        <article class="transaction-item transaction-item--{{ item.type }}">
+                            <div class="transaction-badge">{{ item.label }}</div>
+                            <div class="transaction-body">
+                                <strong>{{ item.vaccine_name }}</strong>
+                                <span>{{ item.meta }}</span>
+                            </div>
+                            <div class="transaction-meta">
+                                <strong>{{ item.quantity }} liều</strong>
+                                <span>{{ item.created_at|date:"d/m/Y H:i" }}</span>
+                            </div>
+                        </article>
+                    {% empty %}
+                        <div class="empty-state">Chưa có giao dịch kho nào được ghi nhận.</div>
+                    {% endfor %}
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal" id="vaccineModal" hidden>
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3>Thêm vắc xin mới</h3>
+                <button class="icon-btn" type="button" data-close-modal>&times;</button>
+            </div>
+            <form class="asset-form" data-endpoint="/assets/vaccines/" data-success="Đã tạo vắc xin mới thành công.">
+                {% csrf_token %}
+                <div class="field-grid">
+                    <label><span>Tên vắc xin</span><input name="name" type="text" required></label>
+                    <label><span>Nhà sản xuất</span><input name="manufacturer" type="text" required></label>
+                    <label><span>Số lô</span><input name="batch_number" type="text" required></label>
+                    <label><span>Số lượng tồn</span><input name="quantity" type="number" min="0" value="0" required></label>
+                    <label><span>Tồn tối thiểu</span><input name="minimum_stock" type="number" min="0" value="10" required></label>
+                    <label><span>Hạn sử dụng</span><input name="expiration_date" type="date" required></label>
+                    <label><span>Nhiệt độ bảo quản</span><input name="storage_temperature" type="text" placeholder="2-8 độ C"></label>
+                    <label>
+                        <span>Nhà cung cấp</span>
+                        <select name="supplier">
+                            <option value="">Chọn nhà cung cấp</option>
+                            {% for supplier in suppliers %}
+                                <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>
+                        <span>Vị trí bảo quản</span>
+                        <div class="field-inline-action">
+                            <select id="vaccineLocationSelect" name="location">
+                                <option value="">Chọn vị trí</option>
+                                {% for location in locations %}
+                                    <option value="{{ location.id }}">{{ location.name }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if user.role == 'admin' %}
+                                <button class="soft-btn soft-btn--compact" id="openQuickLocationModalBtn" type="button">Tạo vị trí mới</button>
+                            {% endif %}
+                        </div>
+                    </label>
+                </div>
+                <button class="primary-btn" type="submit">Lưu vắc xin</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="locationQuickModal" hidden>
+        <div class="modal-card modal-card--compact">
+            <div class="modal-head">
+                <h3>Tạo vị trí bảo quản mới</h3>
+                <button class="icon-btn" type="button" data-close-modal>&times;</button>
+            </div>
+            <form id="quickLocationForm">
+                {% csrf_token %}
+                <div class="field-grid">
+                    <label class="field-full">
+                        <span>Tên vị trí</span>
+                        <input id="quickLocationName" name="name" type="text" required placeholder="Ví dụ: Tủ lạnh 2-8°C - Khu A">
+                    </label>
+                    <label class="field-full">
+                        <span>Mô tả</span>
+                        <textarea id="quickLocationDescription" name="description" rows="3" placeholder="Mô tả ngắn về tủ, ngăn hoặc khu vực bảo quản"></textarea>
+                    </label>
+                </div>
+                <div class="modal-form-actions">
+                    <button class="primary-btn" id="quickLocationSubmitBtn" type="submit">Lưu vị trí</button>
+                    <button class="soft-btn" type="button" data-close-modal>Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="importModal" hidden>
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3>Nhập kho</h3>
+                <button class="icon-btn" type="button" data-close-modal>&times;</button>
+            </div>
+            <form class="asset-form" data-endpoint="/assets/imports/" data-success="Đã ghi nhận phiếu nhập kho.">
+                {% csrf_token %}
+                <div class="field-grid">
+                    <label>
+                        <span>Vắc xin</span>
+                        <select name="vaccine" required>
+                            <option value="">Chọn vắc xin</option>
+                            {% for vaccine in vaccines %}
+                                <option value="{{ vaccine.id }}">{{ vaccine.name }} - {{ vaccine.batch_number }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label><span>Số lượng nhập</span><input name="quantity" type="number" min="1" required></label>
+                    <label><span>Ngày nhập</span><input name="import_date" type="date" value="{{ today|date:'Y-m-d' }}" required></label>
+                    <label>
+                        <span>Nhà cung cấp</span>
+                        <select name="supplier">
+                            <option value="">Chọn nhà cung cấp</option>
+                            {% for supplier in suppliers %}
+                                <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label class="field-full"><span>Ghi chú</span><textarea name="note" rows="3" placeholder="Bổ sung tồn kho theo hóa đơn..."></textarea></label>
+                </div>
+                <button class="primary-btn" type="submit">Lưu phiếu nhập</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="exportModal" hidden>
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3>Xuất kho</h3>
+                <button class="icon-btn" type="button" data-close-modal>&times;</button>
+            </div>
+            <form class="asset-form" data-endpoint="/assets/exports/" data-success="Đã ghi nhận phiếu xuất kho.">
+                {% csrf_token %}
+                <div class="field-grid">
+                    <label>
+                        <span>Vắc xin</span>
+                        <select name="vaccine" required>
+                            <option value="">Chọn vắc xin</option>
+                            {% for vaccine in vaccines %}
+                                <option value="{{ vaccine.id }}">{{ vaccine.name }} - {{ vaccine.batch_number }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label><span>Số lượng xuất</span><input name="quantity" type="number" min="1" required></label>
+                    <label><span>Ngày xuất</span><input name="export_date" type="date" value="{{ today|date:'Y-m-d' }}" required></label>
+                    <label><span>Nơi nhận</span><input name="destination" type="text" required></label>
+                    <label class="field-full"><span>Ghi chú</span><textarea name="note" rows="3" placeholder="Cấp phát cho điểm tiêm..."></textarea></label>
+                </div>
+                <button class="primary-btn" type="submit">Lưu phiếu xuất</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="adjustModal" hidden>
+        <div class="modal-card">
+            <div class="modal-head">
+                <h3>Điều chỉnh kho</h3>
+                <button class="icon-btn" type="button" data-close-modal>&times;</button>
+            </div>
+            <form class="asset-form" data-endpoint="/assets/adjustments/" data-success="Đã lưu phiếu điều chỉnh kho.">
+                {% csrf_token %}
+                <div class="field-grid">
+                    <label>
+                        <span>Vắc xin</span>
+                        <select name="vaccine" required>
+                            <option value="">Chọn vắc xin</option>
+                            {% for vaccine in vaccines %}
+                                <option value="{{ vaccine.id }}">{{ vaccine.name }} - {{ vaccine.batch_number }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>
+                        <span>Loại điều chỉnh</span>
+                        <select name="adjustment_type" required>
+                            <option value="increase">Tăng</option>
+                            <option value="decrease">Giảm</option>
+                        </select>
+                    </label>
+                    <label><span>Số lượng</span><input name="quantity" type="number" min="1" required></label>
+                    <label><span>Lý do</span><input name="reason" type="text" required></label>
+                    <label class="field-full"><span>Ghi chú</span><textarea name="note" rows="3" placeholder="Kiểm kê, hao hụt, cập nhật lại tồn kho..."></textarea></label>
+                </div>
+                <button class="primary-btn" type="submit">Lưu điều chỉnh</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        window.inventoryDashboardToday = "{{ today|date:'Y-m-d' }}";
+    </script>
+    <script src="/static/assets/js/dashboard.js?v=20260329-1"></script>
+</body>
+</html>

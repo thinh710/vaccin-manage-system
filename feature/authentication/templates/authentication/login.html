@@ -15,14 +15,14 @@
             <ul class="brand-points" style="text-align:left;max-width:420px;">
                 <li>Theo dõi người dùng và phân quyền</li>
                 <li>Truy cập nhanh hồ sơ và lịch hẹn</li>
-                <li>Luồng đăng nhập/đăng ký rõ ràng</li>
+                <li>Hỗ trợ đăng nhập bằng email, Google và Facebook</li>
             </ul>
         </div>
 
         <div class="auth-panel auth-panel--form">
             <div class="panel-head">
                 <h2 style="font-size:2rem;font-weight:800;margin-bottom:8px;">Đăng nhập</h2>
-                <p style="font-size:1.08rem;color:#64748b;">Dùng email và mật khẩu của bạn để truy cập hệ thống.</p>
+                <p style="font-size:1.08rem;color:#64748b;">Dùng email và mật khẩu của bạn để truy cập hệ thống, hoặc đăng nhập nhanh bằng tài khoản mạng xã hội.</p>
             </div>
 
             <div id="messageBox" class="alert" hidden></div>
@@ -43,11 +43,18 @@
                 </div>
 
                 <button id="submitBtn" type="submit" class="primary-btn">Đăng nhập</button>
-                            <div class="social-login">
-                                <span>Hoặc đăng nhập bằng</span>
-                                <button class="btn-social google" type="button"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/google.svg" alt="Google" style="height:18px;margin-right:8px;"/> Google</button>
-                                <button class="btn-social facebook" type="button"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/facebook.svg" alt="Facebook" style="height:18px;margin-right:8px;"/> Facebook</button>
-                            </div>
+
+                <div class="social-login">
+                    <span>Hoặc đăng nhập bằng</span>
+                    <button id="googleLoginBtn" class="btn-social google" type="button">
+                        <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/google.svg" alt="Google" style="height:18px;margin-right:8px;" />
+                        Google
+                    </button>
+                    <button id="facebookLoginBtn" class="btn-social facebook" type="button">
+                        <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/facebook.svg" alt="Facebook" style="height:18px;margin-right:8px;" />
+                        Facebook
+                    </button>
+                </div>
             </form>
 
             <div class="auth-footer">
@@ -66,6 +73,27 @@
             endpoint: '/auth/login/',
             successRedirect: '/users/dashboard/'
         });
+
+        document.getElementById('googleLoginBtn')?.addEventListener('click', function () {
+            window.location.href = '/auth/social/google/start/';
+        });
+
+        document.getElementById('facebookLoginBtn')?.addEventListener('click', function () {
+            window.location.href = '/auth/social/facebook/start/';
+        });
+
+        (function showSocialError() {
+            const params = new URLSearchParams(window.location.search);
+            const socialError = params.get('social_error');
+            const messageBox = document.getElementById('messageBox');
+            if (!socialError || !messageBox) {
+                return;
+            }
+
+            messageBox.hidden = false;
+            messageBox.className = 'alert is-error';
+            messageBox.textContent = socialError;
+        })();
     </script>
 </body>
 </html>
