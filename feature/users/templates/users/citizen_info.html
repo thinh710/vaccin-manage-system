@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} | Vaccin Manage System</title>
+    <style>
+        :root {
+            --ink: #0f172a;
+            --muted: #475569;
+            --line: rgba(148, 163, 184, 0.24);
+            --card: rgba(255, 255, 255, 0.92);
+            --teal: #0f766e;
+            --sky: #0369a1;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(14, 165, 233, 0.16), transparent 28%),
+                linear-gradient(180deg, #f7fdff 0%, #fff8ef 100%);
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .shell {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 28px 20px 42px;
+        }
+
+        .hero,
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+        }
+
+        .hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 28px;
+            border-radius: 28px;
+        }
+
+        .eyebrow {
+            color: var(--teal);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.86rem;
+            font-weight: 700;
+        }
+
+        h1 {
+            margin: 10px 0 12px;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: 1.08;
+        }
+
+        .hero p,
+        .card p {
+            color: var(--muted);
+            line-height: 1.72;
+        }
+
+        .hero-side {
+            min-width: 240px;
+            display: grid;
+            gap: 12px;
+            align-content: start;
+        }
+
+        .chip {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 48px;
+            padding: 0 18px;
+            border-radius: 999px;
+            background: #e0f2fe;
+            color: var(--sky);
+            font-weight: 700;
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 46px;
+            padding: 0 18px;
+            border-radius: 999px;
+            font-weight: 700;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0f766e, #0891b2);
+            color: #fff;
+        }
+
+        .btn-secondary {
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            background: #fff;
+        }
+
+        .grid {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            border-radius: 22px;
+            padding: 22px;
+        }
+
+        .card h3 {
+            margin: 0 0 10px;
+            font-size: 1.24rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: var(--teal);
+            font-weight: 700;
+        }
+
+        @media (max-width: 860px) {
+            .hero {
+                flex-direction: column;
+            }
+
+            .hero-side,
+            .grid {
+                grid-template-columns: 1fr;
+                display: grid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="hero">
+            <div>
+                <div class="eyebrow">{{ eyebrow }}</div>
+                <h1>{{ title }}</h1>
+                <p>{{ description }}</p>
+                <div class="actions">
+                    <a class="btn btn-primary" href="{{ primary_action_href }}">{{ primary_action_label }}</a>
+                    <a class="btn btn-secondary" href="{{ secondary_action_href }}">{{ secondary_action_label }}</a>
+                </div>
+            </div>
+            <div class="hero-side">
+                <div class="chip">{{ user.full_name }}</div>
+                <div class="chip">{{ user.email }}</div>
+            </div>
+        </section>
+
+        <section class="grid">
+            {% for item in highlights %}
+                <article class="card">
+                    <h3>{{ item.title }}</h3>
+                    <p>{{ item.body }}</p>
+                </article>
+            {% endfor %}
+        </section>
+
+        <a class="back-link" href="/users/dashboard/">Về dashboard</a>
+    </main>
+</body>
+</html>

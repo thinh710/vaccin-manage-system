@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vị trí bảo quản | Vaccin Manage System</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --sidebar-bg: #0f172a;
+            --sidebar-muted: #cbd5e1;
+            --sidebar-accent: rgba(15, 118, 110, 0.22);
+            --teal: #0f766e;
+            --bg-page: #eef4f8;
+            --border: #d7e3ee;
+            --border-strong: #c5d5e4;
+            --text: #0f172a;
+            --muted: #64748b;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --success: #15803d;
+            --success-bg: #dcfce7;
+            --card-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+            --radius-lg: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", system-ui, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 24%),
+                radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.12), transparent 18%),
+                var(--bg-page);
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        button,
+        input,
+        textarea {
+            font: inherit;
+        }
+
+        .app-shell {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 320px minmax(0, 1fr);
+        }
+
+        .sidebar {
+            background: var(--sidebar-bg);
+            color: white;
+            padding: 28px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .brand,
+        .profile-card {
+            display: grid;
+            gap: 14px;
+        }
+
+        .brand {
+            grid-template-columns: 56px minmax(0, 1fr);
+            align-items: center;
+        }
+
+        .brand-mark,
+        .avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            font-weight: 800;
+        }
+
+        .brand-mark {
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, #60a5fa, #0f766e);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .profile-card {
+            grid-template-columns: 56px minmax(0, 1fr);
+            align-items: start;
+            padding: 18px;
+            border-radius: 24px;
+            background: rgba(148, 163, 184, 0.12);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+        }
+
+        .avatar {
+            border-radius: 50%;
+            font-size: 1.35rem;
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.28), rgba(15, 118, 110, 0.4));
+        }
+
+        .brand strong,
+        .profile-card strong,
+        .brand span,
+        .profile-card span,
+        .profile-card small {
+            display: block;
+        }
+
+        .brand span,
+        .profile-card span,
+        .profile-card small {
+            color: var(--sidebar-muted);
+            overflow-wrap: anywhere;
+        }
+
+        .side-nav,
+        .side-section,
+        .toast-stack {
+            display: grid;
+            gap: 12px;
+        }
+
+        .topbar-actions,
+        .form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .side-link {
+            padding: 14px 16px;
+            border-radius: 16px;
+            color: #e2e8f0;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .side-link:hover,
+        .side-link:focus-visible {
+            background: rgba(148, 163, 184, 0.14);
+            transform: translateX(2px);
+            outline: none;
+        }
+
+        .side-link.is-active {
+            background: var(--sidebar-accent);
+            color: white;
+            font-weight: 700;
+        }
+
+        .side-section h2 {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .mini-stat {
+            padding: 15px 16px;
+            border-radius: 16px;
+            background: rgba(148, 163, 184, 0.12);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+        }
+
+        .mini-stat span,
+        .mini-stat strong {
+            display: block;
+        }
+
+        .mini-stat span {
+            color: var(--sidebar-muted);
+            margin-bottom: 4px;
+        }
+
+        .mini-stat strong {
+            font-size: 1.2rem;
+        }
+
+        .workspace {
+            padding: 28px;
+        }
+
+        .topbar,
+        .stat-card,
+        .panel {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--card-shadow);
+        }
+
+        .topbar {
+            padding: 30px 32px;
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            color: var(--teal);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 700;
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: 1.05;
+            max-width: 10ch;
+        }
+
+        .topbar-copy {
+            margin: 18px 0 0;
+            max-width: 760px;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: var(--muted);
+        }
+
+        .header-meta {
+            display: grid;
+            gap: 14px;
+            min-width: 260px;
+            justify-items: end;
+        }
+
+        .meta-chip,
+        .count-pill,
+        .role-pill,
+        .toolbar-btn,
+        .inline-btn {
+            border-radius: 999px;
+        }
+
+        .meta-chip {
+            min-width: 220px;
+            padding: 14px 18px;
+            background: rgba(14, 165, 233, 0.12);
+            color: #0369a1;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .toolbar-btn,
+        .inline-btn {
+            border: 1px solid transparent;
+            padding: 12px 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .toolbar-btn:hover,
+        .toolbar-btn:focus-visible,
+        .inline-btn:hover,
+        .inline-btn:focus-visible {
+            transform: translateY(-1px);
+            outline: none;
+        }
+
+        .toolbar-btn--primary {
+            background: linear-gradient(135deg, #0f766e, #0ea5a4);
+            color: white;
+        }
+
+        .toolbar-btn--ghost,
+        .inline-btn {
+            background: white;
+            color: var(--text);
+            border-color: var(--border-strong);
+        }
+
+        .toolbar-btn[hidden] {
+            display: none !important;
+        }
+
+        .stats-row,
+        .content-grid {
+            display: grid;
+            gap: 22px;
+            margin-top: 24px;
+        }
+
+        .stats-row {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .stat-card,
+        .panel {
+            padding: 24px;
+        }
+
+        .stat-card span,
+        .stat-card strong,
+        .stat-card p {
+            display: block;
+        }
+
+        .stat-card span {
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .stat-card strong {
+            font-size: 2.2rem;
+            line-height: 1;
+            margin-bottom: 12px;
+        }
+
+        .stat-card p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .content-grid {
+            grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.9fr);
+            align-items: start;
+        }
+
+        .panel--sticky {
+            position: sticky;
+            top: 24px;
+        }
+
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            align-items: flex-start;
+            margin-bottom: 18px;
+        }
+
+        .panel-head h2,
+        .panel-head h3 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .panel-head p {
+            margin: 8px 0 0;
+            color: var(--muted);
+        }
+
+        .count-pill,
+        .role-pill {
+            white-space: nowrap;
+            padding: 10px 14px;
+            font-weight: 700;
+        }
+
+        .count-pill {
+            background: rgba(59, 130, 246, 0.1);
+            color: #1d4ed8;
+        }
+
+        .role-pill {
+            background: rgba(245, 158, 11, 0.14);
+            color: #b45309;
+        }
+
+        .search-box {
+            margin-bottom: 18px;
+        }
+
+        .search-box label,
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .search-box input,
+        .location-form input,
+        .location-form textarea {
+            width: 100%;
+            border-radius: 16px;
+            border: 1px solid var(--border-strong);
+            background: white;
+            padding: 14px 16px;
+            color: var(--text);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .search-box input:focus,
+        .location-form input:focus,
+        .location-form textarea:focus {
+            outline: none;
+            border-color: rgba(15, 118, 110, 0.65);
+            box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+        }
+
+        .table-shell {
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            overflow: hidden;
+            background: white;
+        }
+
+        .table-scroll {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 720px;
+        }
+
+        th,
+        td {
+            padding: 18px 16px;
+            border-bottom: 1px solid #e5edf5;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        th {
+            background: #f8fafc;
+            color: var(--muted);
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        tbody tr:hover {
+            background: rgba(15, 118, 110, 0.04);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .muted-copy {
+            color: var(--muted);
+        }
+
+        .description-cell {
+            max-width: 320px;
+            overflow-wrap: anywhere;
+        }
+
+        .action-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .inline-btn--danger {
+            border-color: rgba(220, 38, 38, 0.24);
+            color: var(--danger);
+        }
+
+        .state-box,
+        .read-only-box {
+            padding: 28px 24px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .state-box[hidden],
+        .table-shell[hidden] {
+            display: none !important;
+        }
+
+        .spinner {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 3px solid rgba(15, 118, 110, 0.18);
+            border-top-color: var(--teal);
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 14px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .location-form {
+            display: grid;
+            gap: 16px;
+        }
+
+        .location-form textarea {
+            min-height: 140px;
+            resize: vertical;
+        }
+
+        .form-note {
+            margin-top: 16px;
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .toast-stack {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            z-index: 40;
+        }
+
+        .toast {
+            min-width: 280px;
+            max-width: 360px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            box-shadow: 0 18px 36px rgba(15, 23, 42, 0.18);
+            border: 1px solid transparent;
+            animation: toast-in 0.22s ease;
+        }
+
+        .toast--success {
+            background: var(--success-bg);
+            color: var(--success);
+            border-color: rgba(21, 128, 61, 0.16);
+        }
+
+        .toast--error {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border-color: rgba(220, 38, 38, 0.16);
+        }
+
+        @keyframes toast-in {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .app-shell {
+                grid-template-columns: 1fr;
+            }
+
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .panel--sticky {
+                position: static;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .workspace {
+                padding: 16px;
+            }
+
+            .sidebar {
+                padding: 20px 16px;
+            }
+
+            .topbar,
+            .panel,
+            .stat-card {
+                padding: 20px;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                flex-direction: column;
+            }
+
+            .header-meta,
+            .topbar-actions {
+                width: 100%;
+                justify-items: stretch;
+            }
+
+            .meta-chip {
+                min-width: 0;
+                width: 100%;
+            }
+
+            .topbar-actions .toolbar-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark">VMS</div>
+                <div>
+                    <strong>Quản lý kho</strong>
+                    <span>Inventory workspace</span>
+                </div>
+            </div>
+
+            <div class="profile-card">
+                <div class="avatar">{{ user.full_name|default:user.email|slice:":1"|upper }}</div>
+                <div>
+                    <strong>{{ user.full_name }}</strong>
+                    <span>{{ user.email }}</span>
+                    <small>Vai trò: {{ user.role|title }}</small>
+                </div>
+            </div>
+
+            <nav class="side-nav">
+                <a class="side-link" href="/assets/">Tổng quan kho</a>
+                <a class="side-link" href="/assets/suppliers-page/">Nhà cung cấp</a>
+                <a class="side-link is-active" href="/assets/locations-page/">Vị trí bảo quản</a>
+                <a class="side-link" href="/assets/overview/">Báo cáo tổng hợp</a>
+                <a class="side-link" href="/users/dashboard/">Về dashboard</a>
+            </nav>
+
+            <section class="side-section">
+                <h2>Thống kê nhanh</h2>
+                <div class="mini-stat">
+                    <span>Tổng vị trí</span>
+                    <strong id="sidebarLocationCount">{{ location_count }}</strong>
+                </div>
+            </section>
+        </aside>
+
+        <main class="workspace">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">Quản lý kho</p>
+                    <h1>Vị trí bảo quản</h1>
+                    <p class="topbar-copy">
+                        Tạo và quản lý các khu vực, tủ lạnh hoặc ngăn lưu trữ dùng để gắn cho từng lô vắc xin.
+                    </p>
+                </div>
+
+                <div class="header-meta">
+                    <div class="meta-chip">{{ user.full_name }}</div>
+                    <div class="meta-chip">Tổng vị trí: {{ location_count }}</div>
+                    <div class="topbar-actions">
+                        {% if user.role == 'admin' %}
+                            <button class="toolbar-btn toolbar-btn--primary" id="openCreateBtn" type="button">Thêm vị trí</button>
+                        {% endif %}
+                        <button class="toolbar-btn toolbar-btn--ghost" id="refreshPageBtn" type="button">Làm mới</button>
+                    </div>
+                </div>
+            </header>
+
+            <section class="stats-row">
+                <article class="stat-card">
+                    <span>Tổng vị trí</span>
+                    <strong id="totalLocationsStat">{{ location_count }}</strong>
+                    <p>Tổng số vị trí bảo quản đang có trong hệ thống kho.</p>
+                </article>
+                <article class="stat-card">
+                    <span>Có mô tả</span>
+                    <strong id="describedLocationsStat">0</strong>
+                    <p>Các vị trí đã có ghi chú hoặc mô tả sử dụng cụ thể.</p>
+                </article>
+                <article class="stat-card">
+                    <span>Chưa có mô tả</span>
+                    <strong id="emptyDescriptionStat">0</strong>
+                    <p>Các vị trí mới tạo nhưng chưa được bổ sung thông tin chi tiết.</p>
+                </article>
+            </section>
+
+            <section class="content-grid">
+                <section class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2>Danh sách vị trí bảo quản</h2>
+                            <p id="tableMeta">Đang tải dữ liệu vị trí bảo quản...</p>
+                        </div>
+                        {% if user.role != 'admin' %}
+                            <div class="role-pill">Chế độ chỉ xem</div>
+                        {% else %}
+                            <div class="count-pill" id="tableCountPill">0 bản ghi</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="search-box">
+                        <label for="locationSearch">Tìm kiếm theo tên hoặc mô tả</label>
+                        <input id="locationSearch" type="search" placeholder="Nhập tên vị trí hoặc mô tả...">
+                    </div>
+
+                    <div class="state-box" id="loadingState">
+                        <div class="spinner"></div>
+                        <div>Đang tải danh sách vị trí bảo quản...</div>
+                    </div>
+
+                    <div class="state-box" id="emptyState" hidden>
+                        Chưa có vị trí bảo quản nào. Thêm vị trí đầu tiên.
+                    </div>
+
+                    <div class="table-shell" id="tableShell" hidden>
+                        <div class="table-scroll">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Tên vị trí</th>
+                                        <th>Mô tả</th>
+                                        <th>Ngày tạo</th>
+                                        <th>Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="locationTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <aside class="panel panel--sticky" id="formPanel">
+                    {% if user.role == 'admin' %}
+                        <div class="panel-head">
+                            <div>
+                                <h3 id="formTitle">Thêm vị trí bảo quản</h3>
+                                <p id="formSubtitle">Tạo khu vực lưu trữ mới để gắn cho các lô vắc xin trong kho.</p>
+                            </div>
+                        </div>
+
+                        <form class="location-form" id="locationForm">
+                            <div>
+                                <label class="form-label" for="locationName">Tên vị trí</label>
+                                <input id="locationName" name="name" type="text" required>
+                            </div>
+
+                            <div>
+                                <label class="form-label" for="locationDescription">Mô tả</label>
+                                <textarea id="locationDescription" name="description" rows="4" placeholder="Ví dụ: Tủ lạnh 2-8°C khu A, ngăn số 2"></textarea>
+                            </div>
+
+                            <div class="form-actions">
+                                <button class="toolbar-btn toolbar-btn--primary" id="saveLocationBtn" type="submit">Lưu vị trí</button>
+                                <button class="toolbar-btn toolbar-btn--ghost" id="resetLocationBtn" type="button">Hủy / Reset</button>
+                            </div>
+                        </form>
+
+                        <p class="form-note">
+                            Mỗi vị trí nên đặt tên rõ ràng để khi thêm lô vắc xin, nhân viên kho chọn nhanh và tránh nhầm khu bảo quản.
+                        </p>
+                    {% else %}
+                        <div class="panel-head">
+                            <div>
+                                <h3>Quyền truy cập</h3>
+                                <p>Nhân viên kho có thể xem danh sách vị trí bảo quản nhưng không được thêm, sửa hoặc xóa.</p>
+                            </div>
+                        </div>
+
+                        <div class="read-only-box">
+                            Chế độ hiện tại là chỉ xem. Hãy dùng tài khoản quản trị để cập nhật danh sách vị trí bảo quản.
+                        </div>
+                    {% endif %}
+                </aside>
+            </section>
+        </main>
+    </div>
+
+    <div class="toast-stack" id="toastStack"></div>
+
+    <script>
+        (function () {
+            const userRole = "{{ user.role|escapejs }}";
+            const canEdit = userRole === "admin";
+            const endpoint = "/assets/locations/";
+
+            const loadingState = document.getElementById("loadingState");
+            const emptyState = document.getElementById("emptyState");
+            const tableShell = document.getElementById("tableShell");
+            const tableBody = document.getElementById("locationTableBody");
+            const locationSearch = document.getElementById("locationSearch");
+            const tableMeta = document.getElementById("tableMeta");
+            const tableCountPill = document.getElementById("tableCountPill");
+            const totalLocationsStat = document.getElementById("totalLocationsStat");
+            const describedLocationsStat = document.getElementById("describedLocationsStat");
+            const emptyDescriptionStat = document.getElementById("emptyDescriptionStat");
+            const sidebarLocationCount = document.getElementById("sidebarLocationCount");
+            const refreshPageBtn = document.getElementById("refreshPageBtn");
+            const openCreateBtn = document.getElementById("openCreateBtn");
+            const toastStack = document.getElementById("toastStack");
+            const formPanel = document.getElementById("formPanel");
+
+            const locationForm = document.getElementById("locationForm");
+            const locationName = document.getElementById("locationName");
+            const locationDescription = document.getElementById("locationDescription");
+            const formTitle = document.getElementById("formTitle");
+            const formSubtitle = document.getElementById("formSubtitle");
+            const saveLocationBtn = document.getElementById("saveLocationBtn");
+            const resetLocationBtn = document.getElementById("resetLocationBtn");
+
+            let locations = [];
+            let filteredLocations = [];
+            let editingId = null;
+
+            function getCookie(name) {
+                const cookieValue = document.cookie
+                    .split(";")
+                    .map((item) => item.trim())
+                    .find((item) => item.startsWith(name + "="));
+                return cookieValue ? decodeURIComponent(cookieValue.split("=").slice(1).join("=")) : "";
+            }
+
+            function escapeHtml(value) {
+                return String(value ?? "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/\"/g, "&quot;")
+                    .replace(/'/g, "&#39;");
+            }
+
+            function normalizeText(value) {
+                return String(value ?? "").trim();
+            }
+
+            function formatDate(value) {
+                if (!value) {
+                    return "Chưa có";
+                }
+
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) {
+                    return "Chưa có";
+                }
+
+                return date.toLocaleDateString("vi-VN");
+            }
+
+            function parseLocationList(payload) {
+                if (Array.isArray(payload)) {
+                    return payload;
+                }
+
+                if (payload && Array.isArray(payload.results)) {
+                    return payload.results;
+                }
+
+                return [];
+            }
+
+            function parseErrorMessage(payload) {
+                if (!payload) {
+                    return "Không thể xử lý yêu cầu lúc này.";
+                }
+
+                if (typeof payload === "string") {
+                    return payload;
+                }
+
+                if (Array.isArray(payload)) {
+                    return payload.join(" ");
+                }
+
+                if (payload.detail) {
+                    return payload.detail;
+                }
+
+                const firstKey = Object.keys(payload)[0];
+                if (!firstKey) {
+                    return "Không thể xử lý yêu cầu lúc này.";
+                }
+
+                const value = payload[firstKey];
+                if (Array.isArray(value)) {
+                    return value.join(" ");
+                }
+
+                if (typeof value === "string") {
+                    return value;
+                }
+
+                return "Không thể xử lý yêu cầu lúc này.";
+            }
+
+            function showToast(message, type) {
+                const toast = document.createElement("div");
+                toast.className = "toast toast--" + (type === "error" ? "error" : "success");
+                toast.textContent = message;
+                toastStack.appendChild(toast);
+
+                window.setTimeout(() => {
+                    toast.remove();
+                }, 3000);
+            }
+
+            function setLoadingState(isLoading) {
+                loadingState.hidden = !isLoading;
+
+                if (isLoading) {
+                    emptyState.hidden = true;
+                    tableShell.hidden = true;
+                }
+            }
+
+            function updateStats(list) {
+                const total = list.length;
+                const withDescription = list.filter((item) => normalizeText(item.description)).length;
+
+                totalLocationsStat.textContent = String(total);
+                describedLocationsStat.textContent = String(withDescription);
+                emptyDescriptionStat.textContent = String(total - withDescription);
+                sidebarLocationCount.textContent = String(total);
+
+                if (tableCountPill) {
+                    tableCountPill.textContent = total + " bản ghi";
+                }
+            }
+
+            function updateMeta() {
+                const total = locations.length;
+                const visible = filteredLocations.length;
+
+                if (!total) {
+                    tableMeta.textContent = "Chưa có dữ liệu vị trí bảo quản trong hệ thống.";
+                    return;
+                }
+
+                if (visible === total) {
+                    tableMeta.textContent = "Hiển thị " + total + " vị trí bảo quản trong hệ thống.";
+                    return;
+                }
+
+                tableMeta.textContent = "Hiển thị " + visible + " / " + total + " vị trí phù hợp với bộ lọc.";
+            }
+
+            function renderTable() {
+                updateStats(locations);
+                updateMeta();
+
+                if (!filteredLocations.length) {
+                    tableBody.innerHTML = "";
+                    tableShell.hidden = true;
+                    emptyState.hidden = false;
+                    emptyState.textContent = locations.length
+                        ? "Không tìm thấy vị trí bảo quản phù hợp với từ khóa hiện tại."
+                        : "Chưa có vị trí bảo quản nào. Thêm vị trí đầu tiên.";
+                    return;
+                }
+
+                emptyState.hidden = true;
+                tableShell.hidden = false;
+
+                tableBody.innerHTML = filteredLocations.map((location) => {
+                    const description = normalizeText(location.description);
+                    const descriptionMarkup = description
+                        ? escapeHtml(description)
+                        : "<span class=\"muted-copy\">Chưa cập nhật</span>";
+                    const actions = canEdit
+                        ? [
+                            "<button class=\"inline-btn\" type=\"button\" data-action=\"edit\" data-id=\"" + location.id + "\">Sửa</button>",
+                            "<button class=\"inline-btn inline-btn--danger\" type=\"button\" data-action=\"delete\" data-id=\"" + location.id + "\">Xóa</button>",
+                        ].join("")
+                        : "<span class=\"muted-copy\">Chỉ xem</span>";
+
+                    return [
+                        "<tr>",
+                        "<td><strong>" + escapeHtml(location.name) + "</strong></td>",
+                        "<td class=\"description-cell\">" + descriptionMarkup + "</td>",
+                        "<td>" + escapeHtml(formatDate(location.created_at)) + "</td>",
+                        "<td><div class=\"action-row\">" + actions + "</div></td>",
+                        "</tr>",
+                    ].join("");
+                }).join("");
+            }
+
+            function applyFilter() {
+                const keyword = normalizeText(locationSearch.value).toLowerCase();
+
+                filteredLocations = locations.filter((location) => {
+                    const haystack = [
+                        location.name,
+                        location.description,
+                    ].map((item) => normalizeText(item).toLowerCase()).join(" ");
+
+                    return !keyword || haystack.includes(keyword);
+                });
+
+                renderTable();
+            }
+
+            function resetForm() {
+                if (!locationForm) {
+                    return;
+                }
+
+                editingId = null;
+                locationForm.reset();
+                formTitle.textContent = "Thêm vị trí bảo quản";
+                formSubtitle.textContent = "Tạo khu vực lưu trữ mới để gắn cho các lô vắc xin trong kho.";
+                saveLocationBtn.textContent = "Lưu vị trí";
+                resetLocationBtn.textContent = "Hủy / Reset";
+            }
+
+            function openCreateMode() {
+                resetForm();
+
+                if (formPanel) {
+                    formPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+
+                if (locationName) {
+                    locationName.focus();
+                }
+            }
+
+            function openEditMode(id) {
+                const location = locations.find((item) => String(item.id) === String(id));
+                if (!location || !locationForm) {
+                    return;
+                }
+
+                editingId = location.id;
+                formTitle.textContent = "Cập nhật vị trí bảo quản";
+                formSubtitle.textContent = "Chỉnh sửa tên khu vực hoặc mô tả lưu trữ hiện có.";
+                saveLocationBtn.textContent = "Lưu cập nhật";
+                resetLocationBtn.textContent = "Hủy chỉnh sửa";
+
+                locationName.value = normalizeText(location.name);
+                locationDescription.value = normalizeText(location.description);
+
+                formPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+                locationName.focus();
+            }
+
+            async function loadLocations() {
+                setLoadingState(true);
+
+                try {
+                    const response = await fetch(endpoint, {
+                        method: "GET",
+                        credentials: "same-origin",
+                        headers: {
+                            "Accept": "application/json",
+                        },
+                    });
+
+                    const payload = await response.json();
+                    if (!response.ok) {
+                        throw new Error(parseErrorMessage(payload));
+                    }
+
+                    locations = parseLocationList(payload);
+                    applyFilter();
+                } catch (error) {
+                    locations = [];
+                    filteredLocations = [];
+                    tableBody.innerHTML = "";
+                    emptyState.hidden = false;
+                    emptyState.textContent = error.message || "Không thể tải danh sách vị trí bảo quản.";
+                    tableShell.hidden = true;
+                    updateStats([]);
+                    tableMeta.textContent = "Không thể tải dữ liệu vị trí bảo quản.";
+                    showToast(error.message || "Không thể tải danh sách vị trí bảo quản.", "error");
+                } finally {
+                    setLoadingState(false);
+                }
+            }
+
+            async function saveLocation(event) {
+                event.preventDefault();
+
+                if (!canEdit) {
+                    return;
+                }
+
+                const payload = {
+                    name: normalizeText(locationName.value),
+                    description: normalizeText(locationDescription.value),
+                };
+
+                const method = editingId ? "PATCH" : "POST";
+                const requestUrl = editingId ? endpoint + editingId + "/" : endpoint;
+
+                saveLocationBtn.disabled = true;
+                saveLocationBtn.textContent = editingId ? "Đang cập nhật..." : "Đang lưu...";
+
+                try {
+                    const response = await fetch(requestUrl, {
+                        method: method,
+                        credentials: "same-origin",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                            "X-CSRFToken": getCookie("csrftoken"),
+                        },
+                        body: JSON.stringify(payload),
+                    });
+
+                    const payloadResponse = await response.json();
+                    if (!response.ok) {
+                        throw new Error(parseErrorMessage(payloadResponse));
+                    }
+
+                    if (editingId) {
+                        locations = locations.map((item) => (
+                            String(item.id) === String(payloadResponse.id) ? payloadResponse : item
+                        ));
+                        showToast("Đã cập nhật vị trí bảo quản.", "success");
+                    } else {
+                        locations = [payloadResponse].concat(locations);
+                        showToast("Đã thêm vị trí bảo quản.", "success");
+                    }
+
+                    resetForm();
+                    applyFilter();
+                } catch (error) {
+                    showToast(error.message || "Không thể lưu vị trí bảo quản.", "error");
+                } finally {
+                    saveLocationBtn.disabled = false;
+                    saveLocationBtn.textContent = editingId ? "Lưu cập nhật" : "Lưu vị trí";
+                }
+            }
+
+            async function deleteLocation(id) {
+                const location = locations.find((item) => String(item.id) === String(id));
+                if (!location) {
+                    return;
+                }
+
+                const confirmed = window.confirm("Xác nhận xóa vị trí bảo quản " + location.name + "?");
+                if (!confirmed) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(endpoint + location.id + "/", {
+                        method: "DELETE",
+                        credentials: "same-origin",
+                        headers: {
+                            "Accept": "application/json",
+                            "X-CSRFToken": getCookie("csrftoken"),
+                        },
+                    });
+
+                    if (!response.ok) {
+                        let payload = null;
+                        try {
+                            payload = await response.json();
+                        } catch (error) {
+                            payload = null;
+                        }
+
+                        throw new Error(parseErrorMessage(payload));
+                    }
+
+                    locations = locations.filter((item) => String(item.id) !== String(id));
+                    if (editingId && String(editingId) === String(id)) {
+                        resetForm();
+                    }
+                    applyFilter();
+                    showToast("Đã xóa vị trí bảo quản.", "success");
+                } catch (error) {
+                    showToast(error.message || "Không thể xóa vị trí bảo quản.", "error");
+                }
+            }
+
+            locationSearch.addEventListener("input", applyFilter);
+            refreshPageBtn.addEventListener("click", function () {
+                window.location.reload();
+            });
+
+            if (openCreateBtn) {
+                openCreateBtn.addEventListener("click", openCreateMode);
+            }
+
+            if (locationForm) {
+                locationForm.addEventListener("submit", saveLocation);
+            }
+
+            if (resetLocationBtn) {
+                resetLocationBtn.addEventListener("click", resetForm);
+            }
+
+            tableBody.addEventListener("click", function (event) {
+                const target = event.target.closest("[data-action]");
+                if (!target) {
+                    return;
+                }
+
+                const action = target.getAttribute("data-action");
+                const id = target.getAttribute("data-id");
+
+                if (action === "edit") {
+                    openEditMode(id);
+                    return;
+                }
+
+                if (action === "delete") {
+                    deleteLocation(id);
+                }
+            });
+
+            resetForm();
+            loadLocations();
+        })();
+    </script>
+</body>
+</html>

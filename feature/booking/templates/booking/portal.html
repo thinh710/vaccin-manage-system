@@ -1,0 +1,284 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đặt lịch vắc xin | Vaccin Manage System</title>
+    <link rel="stylesheet" href="{% static 'booking/css/portal.css' %}?v=20260328-1">
+</head>
+<body class="booking-page">
+    <main class="booking-shell">
+        <section class="booking-hero">
+            <div>
+                <div class="booking-eyebrow">Trung tâm đặt lịch</div>
+                <h1>
+                    {% if user.role == 'citizen' %}
+                        Đặt lịch tiêm chủng cho bạn và gia đình
+                    {% else %}
+                        Quản lý và điều phối booking tiêm chủng
+                    {% endif %}
+                </h1>
+                <p>
+                    {% if user.role == 'citizen' %}
+                        Chọn vắc xin, ngày tiêm và theo dõi trạng thái booking ngay trên một màn hình.
+                    {% else %}
+                        Theo dõi booking, cập nhật trạng thái và hỗ trợ điều phối các ca tiêm sắp tới.
+                    {% endif %}
+                </p>
+            </div>
+            <div class="booking-hero-actions">
+                <a class="ghost-link" href="/users/dashboard/">Về dashboard</a>
+                <div class="hero-badge">{{ user.full_name }} - {{ user.role }}</div>
+            </div>
+        </section>
+
+        <section class="booking-stats">
+            <article class="stat-card">
+                <span>Tổng booking</span>
+                <strong id="stat-total">{{ booking_stats.total }}</strong>
+            </article>
+            <article class="stat-card">
+                <span>Chờ xác nhận</span>
+                <strong id="stat-pending">{{ booking_stats.pending }}</strong>
+            </article>
+            <article class="stat-card">
+                <span>Đã xác nhận</span>
+                <strong id="stat-confirmed">{{ booking_stats.confirmed }}</strong>
+            </article>
+            <article class="stat-card">
+                <span>Đã hoàn thành</span>
+                <strong id="stat-completed">{{ booking_stats.completed }}</strong>
+            </article>
+        </section>
+
+        <section class="booking-grid">
+            <article class="panel panel-form">
+                <div class="panel-head">
+                    <div>
+                        <h2 id="form-heading">Tạo booking mới</h2>
+                        <p id="form-subtitle">Thông tin sẽ được lưu và gửi sang quy trình xác nhận.</p>
+                    </div>
+                    <div class="mini-badge">Hôm nay {{ today|date:"d/m/Y" }}</div>
+                </div>
+
+                <div id="form-alert" class="form-alert" hidden></div>
+
+                <form id="booking-form">
+                    <input type="hidden" id="booking-id">
+
+                    <label class="field">
+                        <span>Họ và tên</span>
+                        <input id="full-name" type="text" value="{{ user.full_name }}" {% if user.role == 'citizen' %}readonly{% endif %} required>
+                    </label>
+
+                    <label class="field">
+                        <span>Số điện thoại</span>
+                        <input id="phone" type="text" value="{{ user.phone_number }}" required>
+                    </label>
+
+                    <label class="field">
+                        <span>Email</span>
+                        <input id="email" type="email" value="{{ user.email }}" {% if user.role == 'citizen' %}readonly{% endif %}>
+                    </label>
+
+                    <label class="field">
+                        <span>Loại vắc xin</span>
+                        <select id="vaccine-name" required>
+                            {% for vaccine in vaccines %}
+                                <option value="{{ vaccine.name }}" data-id="{{ vaccine.id }}" data-qty="{{ vaccine.quantity }}">
+                                    {{ vaccine.name }} - còn {{ vaccine.quantity }} liều
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </label>
+
+                    <div class="field-row">
+                        <label class="field">
+                            <span>Ngày tiêm</span>
+                            <input id="vaccine-date" type="date" min="{{ today|date:'Y-m-d' }}" required>
+                        </label>
+
+                        <label class="field">
+                            <span>Mũi thứ</span>
+                            <input id="dose-number" type="number" min="1" value="1" required>
+                        </label>
+                    </div>
+
+                    {% if user.role != 'citizen' %}
+                        <label class="field">
+                            <span>Trạng thái</span>
+                            <select id="status">
+                                <option value="pending">pending</option>
+                                <option value="confirmed">confirmed</option>
+                                <option value="checked_in">checked_in</option>
+                                <option value="ready_to_inject">ready_to_inject</option>
+                                <option value="in_observation">in_observation</option>
+                                <option value="completed">completed</option>
+                                <option value="delayed">delayed</option>
+                                <option value="cancelled">cancelled</option>
+                            </select>
+                        </label>
+                    {% else %}
+                        <input id="status" type="hidden" value="pending">
+                    {% endif %}
+
+                    <label class="field">
+                        <span>Ghi chú</span>
+                        <textarea id="note" rows="4" placeholder="Thêm yêu cầu hoặc thông tin sức khỏe cần lưu ý"></textarea>
+                    </label>
+
+                    <div class="form-actions">
+                        <button id="submit-btn" class="primary-btn" type="submit">Tạo booking</button>
+                        <button id="cancel-edit-btn" class="secondary-btn" type="button" hidden>Hủy chỉnh sửa</button>
+                    </div>
+                </form>
+            </article>
+
+            <article class="panel panel-table">
+                <div class="panel-head">
+                    <div>
+                        <h2>Danh sách booking</h2>
+                        <p>
+                            {% if user.role == 'citizen' %}
+                                Theo dõi trạng thái booking của bạn theo thời gian thực.
+                            {% else %}
+                                Tìm nhanh, lọc nhanh và cập nhật booking cho ca trực.
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="mini-badge" id="upcoming-badge">Sắp tới: {{ booking_stats.upcoming }}</div>
+                </div>
+
+                <div class="filters">
+                    <input id="filter-keyword" type="text" placeholder="Tìm theo tên, số điện thoại, vắc xin">
+                    <select id="filter-status">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="pending">pending</option>
+                        <option value="confirmed">confirmed</option>
+                        <option value="checked_in">checked_in</option>
+                        <option value="ready_to_inject">ready_to_inject</option>
+                        <option value="in_observation">in_observation</option>
+                        <option value="completed">completed</option>
+                        <option value="delayed">delayed</option>
+                        <option value="cancelled">cancelled</option>
+                    </select>
+                    <input id="filter-date" type="date">
+                    <button id="filter-btn" class="secondary-btn" type="button">Lọc</button>
+                </div>
+
+                <div id="booking-empty" class="empty-state" hidden>Chưa có booking nào phù hợp bộ lọc hiện tại.</div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Khách hàng</th>
+                                <th>Vắc xin</th>
+                                <th>Ngày tiêm</th>
+                                <th>Mũi</th>
+                                <th>Trạng thái</th>
+                                <th>Ghi chú</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="booking-table-body"></tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <div id="reschedule-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:999; align-items:center; justify-content:center;">
+        <div style="background:#fff; border-radius:12px; padding:24px; width:100%; max-width:400px; margin:16px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);">
+            <h3 style="margin:0 0 16px;">Đặt lại lịch tiêm</h3>
+            <p id="reschedule-booking-info" style="font-size:13px; color:#6b7280; margin-bottom:16px;">Chọn ngày tiêm mới cho lịch này.</p>
+            <label style="display:flex; flex-direction:column; gap:6px; margin-bottom:16px;">
+                <strong>Ngày tiêm mới:</strong>
+                <input type="date" id="reschedule-date" style="padding:8px; border:1px solid #d1d5db; border-radius:6px; font: inherit;">
+            </label>
+            <div style="display:flex; gap:8px;">
+                <button class="primary-btn" style="border-radius:8px;" onclick="submitReschedule()">Xác nhận</button>
+                <button class="secondary-btn" style="border-radius:8px;" onclick="closeRescheduleModal()">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    {{ initial_bookings|json_script:"initial-bookings-data" }}
+    <script>
+        window.bookingPortalConfig = {
+            userRole: '{{ user.role }}',
+            today: '{{ today|date:"Y-m-d" }}',
+            vaccineOptions: [{% for vaccine in vaccine_options %}'{{ vaccine }}'{% if not forloop.last %}, {% endif %}{% endfor %}]
+        };
+    </script>
+    <!-- Modal: Khai báo sàng lọc trước tiêm -->
+    <div id="declaration-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto;">
+        <div style="background:#fff; border-radius:16px; padding:28px; width:100%; max-width:600px; margin:auto; box-shadow:0 24px 64px rgba(0,0,0,0.22); position:relative;">
+            <!-- Header -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
+                <div>
+                    <div style="font-size:12px; font-weight:700; color:#0f766e; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">Khai báo sàng lọc</div>
+                    <h3 style="margin:0; font-size:1.3rem;" id="decl-modal-title">Khai báo trước tiêm</h3>
+                    <p style="margin:6px 0 0; color:#6b7280; font-size:13px;" id="decl-modal-subtitle">Ngày tiêm: — | Vắc xin: —</p>
+                </div>
+                <button onclick="closeDeclarationModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:#94a3b8;line-height:1;padding:4px;">×</button>
+            </div>
+
+            <!-- Kết quả sàng lọc từ bác sĩ (ẩn nếu chưa có) -->
+            <div id="decl-screening-result" style="display:none; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:16px; margin-bottom:18px;">
+                <p style="margin:0 0 8px; font-weight:700; color:#166534;" id="decl-result-text"></p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
+                    <div style="background:#fff; border-radius:8px; padding:10px; border:1px solid #d1fae5;">
+                        <div style="font-size:11px; color:#6b7280; margin-bottom:2px;">Nhiệt độ</div>
+                        <strong id="decl-result-temp">—</strong>
+                    </div>
+                    <div style="background:#fff; border-radius:8px; padding:10px; border:1px solid #d1fae5;">
+                        <div style="font-size:11px; color:#6b7280; margin-bottom:2px;">Huyết áp</div>
+                        <strong id="decl-result-bp">—</strong>
+                    </div>
+                </div>
+                <p style="margin:10px 0 0; font-size:13px; color:#374151;" id="decl-result-note"></p>
+            </div>
+
+            <!-- Thông báo (success/warning) -->
+            <div id="decl-notice" style="display:none; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:13px;"></div>
+
+            <!-- Form khai báo -->
+            <form id="declaration-form" onsubmit="submitDeclaration(event)">
+                <div style="display:grid; gap:10px; margin-bottom:16px;">
+                    <label style="display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; font-weight:600; cursor:pointer;">
+                        <input type="checkbox" id="decl-fever" style="width:18px;height:18px;">
+                        <span>Tôi đang sốt hoặc có dấu hiệu nhiễm trùng</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; font-weight:600; cursor:pointer;">
+                        <input type="checkbox" id="decl-allergy" style="width:18px;height:18px;">
+                        <span>Tôi có tiền sử dị ứng thuốc hoặc phản ứng sau tiêm</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; font-weight:600; cursor:pointer;">
+                        <input type="checkbox" id="decl-chronic" style="width:18px;height:18px;">
+                        <span>Tôi có bệnh nền hoặc đang điều trị bệnh mạn tính</span>
+                    </label>
+                    <label style="display:grid; gap:6px; font-weight:600;">
+                        <span>Triệu chứng gần đây</span>
+                        <textarea id="decl-symptoms" rows="2" placeholder="Ví dụ: ho, sốt, đau họng..." style="padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font:inherit; resize:vertical;"></textarea>
+                    </label>
+                    <label style="display:grid; gap:6px; font-weight:600;">
+                        <span>Thuốc đang sử dụng</span>
+                        <textarea id="decl-medications" rows="2" placeholder="Ví dụ: thuốc huyết áp, kháng sinh..." style="padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font:inherit; resize:vertical;"></textarea>
+                    </label>
+                    <label style="display:grid; gap:6px; font-weight:600;">
+                        <span>Ghi chú thêm</span>
+                        <textarea id="decl-note" rows="2" placeholder="Thông tin khác cần lưu ý..." style="padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font:inherit; resize:vertical;"></textarea>
+                    </label>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="submit" class="primary-btn" id="decl-submit-btn" style="border-radius:8px;">Lưu khai báo</button>
+                    <button type="button" class="secondary-btn" onclick="closeDeclarationModal()" style="border-radius:8px;">Đóng</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'booking/js/portal.js' %}?v=20260402-3"></script>
+</body>
+</html>

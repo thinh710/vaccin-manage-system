@@ -1,0 +1,76 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cổng quản lý kho | Vaccin Manage System</title>
+    <link rel="stylesheet" href="{% static 'assets/css/portal.css' %}?v=20260328-1">
+</head>
+<body>
+    <main class="portal-shell">
+        <section class="portal-hero">
+            <div class="portal-copy">
+                <span class="portal-eyebrow">Kho vật tư</span>
+                <h1>Trung tâm giao diện cho khu vực kho</h1>
+                <p>
+                    Đây là màn hình vào nhanh cho nhân sự phụ trách kho để đi đến overview,
+                    dashboard kho và theo dõi chỉ số tồn kho vắc xin.
+                </p>
+                <div class="portal-actions">
+                    <a class="portal-btn portal-btn--primary" href="/assets/overview/">Mở overview</a>
+                    <a class="portal-btn portal-btn--ghost" href="/assets/dashboard-page/">Mở dashboard kho</a>
+                </div>
+            </div>
+
+            <div class="portal-side">
+                <div class="portal-user-card">
+                    <span>Đăng nhập bởi</span>
+                    <strong>{{ user.full_name }}</strong>
+                    <p>{{ user.email }}</p>
+                    <small>Ngày làm việc: {{ today|date:"d/m/Y" }}</small>
+                </div>
+            </div>
+        </section>
+
+        <section class="portal-stats">
+            <article class="portal-stat">
+                <span>Lô vắc xin</span>
+                <strong>{{ stats.total_vaccines }}</strong>
+            </article>
+            <article class="portal-stat">
+                <span>Tổng tồn</span>
+                <strong>{{ stats.total_stock }}</strong>
+            </article>
+            <article class="portal-stat warning">
+                <span>Cần bổ sung</span>
+                <strong>{{ stats.low_stock_count }}</strong>
+            </article>
+            <article class="portal-stat danger">
+                <span>Hết hạn</span>
+                <strong>{{ stats.expired_count }}</strong>
+            </article>
+        </section>
+
+        <section class="portal-grid">
+            <article class="portal-card">
+                <h2>Luồng di chuyển</h2>
+                <p>Vào khu overview để xem tổng quan và hướng dẫn thao tác trước khi vào dashboard nghiệp vụ.</p>
+                <a href="/assets/overview/">Đi đến overview</a>
+            </article>
+            <article class="portal-card">
+                <h2>Xử lý nghiệp vụ</h2>
+                <p>Mở dashboard kho để thêm vắc xin, nhập kho, xuất kho và điều chỉnh tồn kho.</p>
+                <a href="/assets/dashboard-page/">Đi đến dashboard kho</a>
+            </article>
+            <article class="portal-card">
+                <h2>Quay lại hệ thống</h2>
+                <p>Nếu cần chuyển khu vực làm việc, bạn có thể quay lại dashboard hệ thống.</p>
+                <a href="/users/dashboard/">Quay lại dashboard</a>
+            </article>
+        </section>
+    </main>
+
+    <script src="{% static 'assets/js/portal.js' %}?v=20260328-1"></script>
+</body>
+</html>
