@@ -31,6 +31,40 @@ def _require_session_user(request):
     return None, redirect("/auth/login-page/")
 
 
+def _find_active_citizen_by_email(email):
+    normalized_email = (email or "").strip().lower()
+    if not normalized_email:
+        return None
+
+    return User.objects.filter(
+        email__iexact=normalized_email,
+        role=User.ROLE_CITIZEN,
+        status=User.STATUS_ACTIVE,
+    ).first()
+
+
+def _resolve_booking_owner(payload, acting_user):
+    if acting_user.role == User.ROLE_CITIZEN:
+        return acting_user, None
+
+    requested_user_id = payload.get("user")
+    if requested_user_id not in (None, ""):
+        try:
+            owner = User.objects.get(
+                id=requested_user_id,
+                role=User.ROLE_CITIZEN,
+                status=User.STATUS_ACTIVE,
+            )
+        except (TypeError, ValueError, User.DoesNotExist):
+            return None, Response(
+                {"detail": "Chỉ được gán booking cho công dân đang hoạt động."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return owner, None
+
+    return _find_active_citizen_by_email(payload.get("email")), None
+
+
 def _scope_bookings_for_user(queryset, user):
     if not user:
         return queryset.none()
@@ -107,9 +141,13 @@ def booking_list_create(request):
         payload["email"] = payload.get("email") or user.email
         payload["status"] = Booking.STATUS_PENDING
 
+    booking_owner, error_response = _resolve_booking_owner(payload, user)
+    if error_response:
+        return error_response
+
     serializer = BookingSerializer(data=payload, context={"request": request, "session_user": user})
     if serializer.is_valid():
-        booking = serializer.save(user=user)
+        booking = serializer.save(user=booking_owner)
         return Response(
             BookingSerializer(booking, context={"session_user": user}).data,
             status=status.HTTP_201_CREATED,

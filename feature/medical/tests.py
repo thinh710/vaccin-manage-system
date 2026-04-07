@@ -173,6 +173,32 @@ class MedicalApiTests(APITestCase):
         booking.refresh_from_db()
         self.assertEqual(booking.status, Booking.STATUS_CONFIRMED)
 
+    def test_doctor_can_view_today_bookings_list(self):
+        doctor = User.objects.create(
+            full_name="Doctor Viewer",
+            email="doctor-viewer@example.com",
+            password_hash="x",
+            role=User.ROLE_DOCTOR,
+            status=User.STATUS_ACTIVE,
+        )
+        booking = Booking.objects.create(
+            full_name="Booking Today",
+            phone="0909000222",
+            email="today@example.com",
+            vaccine_name="Flu",
+            vaccine_date=timezone.localdate(),
+            dose_number=1,
+            status=Booking.STATUS_CONFIRMED,
+            booking_source=Booking.BOOKING_SOURCE_ONLINE,
+        )
+
+        self._login_as(doctor)
+        response = self.client.get(reverse("medical-today"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], booking.id)
+
     def test_staff_must_fill_pre_screening_after_check_in_when_customer_skipped_it(self):
         staff = User.objects.create(
             full_name="Staff Missing Declaration",
@@ -285,6 +311,84 @@ class MedicalApiTests(APITestCase):
         self.assertEqual(new_booking.rescheduled_from_id, source.id)
         self.assertTrue(hasattr(new_booking, "pre_screening"))
         self.assertTrue(new_booking.pre_screening.has_fever)
+
+    def test_reschedule_rejects_past_date(self):
+        staff = User.objects.create(
+            full_name="Staff Past Date",
+            email="staff-past@example.com",
+            password_hash="x",
+            role=User.ROLE_STAFF,
+            status=User.STATUS_ACTIVE,
+        )
+        source = Booking.objects.create(
+            full_name="Tran Thi C",
+            phone="0911333444",
+            email="c@example.com",
+            vaccine_name="Flu",
+            vaccine_date=timezone.localdate(),
+            dose_number=1,
+            status=Booking.STATUS_DELAYED,
+            booking_source=Booking.BOOKING_SOURCE_ONLINE,
+        )
+        self._login_as(staff)
+
+        response = self.client.post(
+            reverse("medical-reschedule", args=[source.id]),
+            {"vaccine_date": timezone.localdate() - timedelta(days=1)},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("vaccine_date", response.data)
+
+    def test_staff_reschedule_reuses_booking_validation_for_duplicate_active_booking(self):
+        staff = User.objects.create(
+            full_name="Staff Duplicate Guard",
+            email="staff-duplicate@example.com",
+            password_hash="x",
+            role=User.ROLE_STAFF,
+            status=User.STATUS_ACTIVE,
+        )
+        citizen = User.objects.create(
+            full_name="Citizen Duplicate Guard",
+            email="citizen-duplicate@example.com",
+            password_hash="x",
+            role=User.ROLE_CITIZEN,
+            status=User.STATUS_ACTIVE,
+        )
+        target_date = timezone.localdate() + timedelta(days=5)
+        source = Booking.objects.create(
+            user=citizen,
+            full_name="Citizen Duplicate Guard",
+            phone="0911000111",
+            email=citizen.email,
+            vaccine_name="Flu",
+            vaccine_date=timezone.localdate(),
+            dose_number=1,
+            status=Booking.STATUS_DELAYED,
+            booking_source=Booking.BOOKING_SOURCE_ONLINE,
+        )
+        Booking.objects.create(
+            user=citizen,
+            full_name="Citizen Duplicate Guard",
+            phone="0911000111",
+            email=citizen.email,
+            vaccine_name="Flu",
+            vaccine_date=target_date,
+            dose_number=1,
+            status=Booking.STATUS_PENDING,
+            booking_source=Booking.BOOKING_SOURCE_ONLINE,
+        )
+        self._login_as(staff)
+
+        response = self.client.post(
+            reverse("medical-reschedule", args=[source.id]),
+            {"vaccine_date": target_date},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("non_field_errors", response.data)
 
     def test_citizen_can_reschedule_delayed_booking_matched_by_email(self):
         citizen = User.objects.create(

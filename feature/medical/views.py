@@ -133,6 +133,16 @@ def _require_staff_user(request):
     return user, None
 
 
+def _require_medical_read_user(request):
+    """Dùng cho các màn hình/list API mà staff, doctor, admin đều cần xem."""
+    user = _get_api_session_user(request)
+    if not user:
+        return None, Response({"detail": "Bạn chưa đăng nhập."}, status=status.HTTP_401_UNAUTHORIZED)
+    if user.role not in [User.ROLE_ADMIN, User.ROLE_STAFF, User.ROLE_DOCTOR]:
+        return None, Response({"detail": "Bạn không có quyền dùng chức năng y khoa."}, status=status.HTTP_403_FORBIDDEN)
+    return user, None
+
+
 def _require_doctor_user(request):
     """Dùng cho bước khám sàng lọc — chỉ Doctor/Admin."""
     user = _get_api_session_user(request)
@@ -146,6 +156,18 @@ def _require_doctor_user(request):
     return user, None
 
 
+def _find_active_citizen_by_email(email):
+    normalized_email = (email or "").strip().lower()
+    if not normalized_email:
+        return None
+
+    return User.objects.filter(
+        email__iexact=normalized_email,
+        role=User.ROLE_CITIZEN,
+        status=User.STATUS_ACTIVE,
+    ).first()
+
+
 def _can_access_booking(user, booking):
     if user.role in [User.ROLE_ADMIN, User.ROLE_STAFF]:
         return True
@@ -156,7 +178,7 @@ def _can_access_booking(user, booking):
 
 @api_view(["GET"])
 def today_bookings(request):
-    _, error_response = _require_staff_user(request)
+    _, error_response = _require_medical_read_user(request)
     if error_response:
         return error_response
 
@@ -473,15 +495,9 @@ def walkin_checkin(request):
             "dose_number": request.data.get("dose_number", 1),
             "note": request.data.get("note", ""),
             "status": Booking.STATUS_CHECKED_IN,
-            "booking_source": Booking.BOOKING_SOURCE_WALKIN,
         }
 
-        # Tìm citizen theo email nếu có
-        citizen_email = request.data.get("email", "")
-        if citizen_email:
-            citizen = User.objects.filter(email__iexact=citizen_email).first()
-            if citizen:
-                booking_data["user"] = citizen.id
+        booking_owner = _find_active_citizen_by_email(request.data.get("email"))
 
         booking_serializer = BookingSerializer(
             data=booking_data,
@@ -489,7 +505,10 @@ def walkin_checkin(request):
         )
         if not booking_serializer.is_valid():
             return Response(booking_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        booking = booking_serializer.save()
+        booking = booking_serializer.save(
+            user=booking_owner,
+            booking_source=Booking.BOOKING_SOURCE_WALKIN,
+        )
 
         # Tạo PreScreeningDeclaration nếu có
         pre_data = request.data.get("pre_screening")
@@ -533,17 +552,31 @@ def reschedule_booking(request, booking_id):
     if not new_date_str:
         return Response({"detail": "Vui lòng cung cấp ngày tiêm mới."}, status=status.HTTP_400_BAD_REQUEST)
 
+    booking_owner = source.user
+    if booking_owner is None and user.role == User.ROLE_CITIZEN and _can_access_booking(user, source):
+        booking_owner = user
+    if booking_owner is None:
+        booking_owner = _find_active_citizen_by_email(source.email)
+
+    validation_user = booking_owner if booking_owner and booking_owner.role == User.ROLE_CITIZEN else user
+    payload = {
+        "full_name": source.full_name,
+        "phone": source.phone,
+        "email": source.email,
+        "vaccine_name": source.vaccine_name,
+        "vaccine_date": new_date_str,
+        "dose_number": source.dose_number,
+        "note": source.note,
+        "status": Booking.STATUS_PENDING,
+    }
+
+    serializer = BookingSerializer(data=payload, context={"session_user": validation_user})
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     with transaction.atomic():
-        new_booking = Booking.objects.create(
-            user=source.user,
-            full_name=source.full_name,
-            phone=source.phone,
-            email=source.email,
-            vaccine_name=source.vaccine_name,
-            vaccine_date=new_date_str,
-            dose_number=source.dose_number,
-            note=source.note,
-            status=Booking.STATUS_PENDING,
+        new_booking = serializer.save(
+            user=booking_owner,
             booking_source=source.booking_source,
             rescheduled_from=source,
         )

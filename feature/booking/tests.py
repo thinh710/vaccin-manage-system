@@ -66,3 +66,67 @@ class BookingApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'cancelled')
+
+    def test_staff_created_booking_without_matching_citizen_is_not_owned_by_staff(self):
+        staff = User.objects.create(
+            full_name='Staff User',
+            email='staff@example.com',
+            password_hash=make_password('secret123'),
+            role=User.ROLE_STAFF,
+            status=User.STATUS_ACTIVE,
+        )
+        session = self.client.session
+        session['user_id'] = staff.id
+        session.save()
+
+        response = self.client.post(
+            reverse('booking-list-create'),
+            {
+                'full_name': 'Guest Patient',
+                'phone': '0911222333',
+                'email': 'guest@example.com',
+                'vaccine_name': 'Flu',
+                'vaccine_date': str(timezone.localdate() + timedelta(days=4)),
+                'dose_number': 1,
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIsNone(response.data['user'])
+
+    def test_staff_created_booking_links_matching_citizen_by_email(self):
+        staff = User.objects.create(
+            full_name='Staff User',
+            email='staff-2@example.com',
+            password_hash=make_password('secret123'),
+            role=User.ROLE_STAFF,
+            status=User.STATUS_ACTIVE,
+        )
+        citizen = User.objects.create(
+            full_name='Citizen Match',
+            email='citizen-match@example.com',
+            phone_number='0912444555',
+            password_hash=make_password('secret123'),
+            role=User.ROLE_CITIZEN,
+            status=User.STATUS_ACTIVE,
+        )
+        session = self.client.session
+        session['user_id'] = staff.id
+        session.save()
+
+        response = self.client.post(
+            reverse('booking-list-create'),
+            {
+                'full_name': 'Citizen Match',
+                'phone': '0912444555',
+                'email': citizen.email,
+                'vaccine_name': 'Flu',
+                'vaccine_date': str(timezone.localdate() + timedelta(days=6)),
+                'dose_number': 1,
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['user'], citizen.id)
