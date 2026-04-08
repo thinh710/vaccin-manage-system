@@ -31,10 +31,44 @@ def _require_session_user(request):
     return None, redirect("/auth/login-page/")
 
 
+def _find_active_citizen_by_email(email):
+    normalized_email = (email or "").strip().lower()
+    if not normalized_email:
+        return None
+
+    return User.objects.filter(
+        email__iexact=normalized_email,
+        role=User.ROLE_CITIZEN,
+        status=User.STATUS_ACTIVE,
+    ).first()
+
+
+def _resolve_booking_owner(payload, acting_user):
+    if acting_user.role == User.ROLE_CITIZEN:
+        return acting_user, None
+
+    requested_user_id = payload.get("user")
+    if requested_user_id not in (None, ""):
+        try:
+            owner = User.objects.get(
+                id=requested_user_id,
+                role=User.ROLE_CITIZEN,
+                status=User.STATUS_ACTIVE,
+            )
+        except (TypeError, ValueError, User.DoesNotExist):
+            return None, Response(
+                {"detail": "Chỉ được gán booking cho công dân đang hoạt động."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return owner, None
+
+    return _find_active_citizen_by_email(payload.get("email")), None
+
+
 def _scope_bookings_for_user(queryset, user):
     if not user:
         return queryset.none()
-    if user.role in [User.ROLE_ADMIN, User.ROLE_STAFF]:
+    if user.role in [User.ROLE_ADMIN, User.ROLE_STAFF, User.ROLE_DOCTOR]:
         return queryset
     return queryset.filter(Q(user=user) | Q(email__iexact=user.email))
 
@@ -107,9 +141,13 @@ def booking_list_create(request):
         payload["email"] = payload.get("email") or user.email
         payload["status"] = Booking.STATUS_PENDING
 
+    booking_owner, error_response = _resolve_booking_owner(payload, user)
+    if error_response:
+        return error_response
+
     serializer = BookingSerializer(data=payload, context={"request": request, "session_user": user})
     if serializer.is_valid():
-        booking = serializer.save(user=user)
+        booking = serializer.save(user=booking_owner)
         return Response(
             BookingSerializer(booking, context={"session_user": user}).data,
             status=status.HTTP_201_CREATED,
@@ -154,7 +192,8 @@ def booking_detail(request, booking_id):
         else:
             medical_only_status_messages = {
                 Booking.STATUS_CHECKED_IN: "Check-in phải được thực hiện ở khu y khoa.",
-                Booking.STATUS_SCREENED: "Kết quả sàng lọc phải được cập nhật ở khu y khoa.",
+                Booking.STATUS_READY_TO_INJECT: "Kết quả sàng lọc phải được cập nhật ở khu y khoa.",
+                Booking.STATUS_IN_OBSERVATION: "Trạng thái theo dõi sau tiêm phải đến từ khu y khoa.",
                 Booking.STATUS_COMPLETED: "Xác nhận đã tiêm phải được cập nhật ở khu y khoa.",
                 Booking.STATUS_DELAYED: "Trạng thái tạm hoãn phải đến từ kết quả sàng lọc.",
             }
@@ -166,9 +205,9 @@ def booking_detail(request, booking_id):
                 )
 
             if next_status == Booking.STATUS_CONFIRMED:
-                if user.role != User.ROLE_ADMIN:
+                if user.role not in [User.ROLE_ADMIN, User.ROLE_STAFF, User.ROLE_DOCTOR]:
                     return Response(
-                        {"detail": "Chỉ bác sĩ/quản trị mới được xác nhận lịch tiêm."},
+                        {"detail": "Chỉ nhân viên hoặc quản trị viên mới được xác nhận lịch tiêm."},
                         status=status.HTTP_403_FORBIDDEN,
                     )
                 if booking.status not in [Booking.STATUS_PENDING, Booking.STATUS_DELAYED]:

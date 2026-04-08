@@ -87,17 +87,19 @@ function renderPreScreeningBox(bookingId) {
 function getStatusLabel(status) {
     switch (status) {
         case 'pending':
-            return 'Chờ bác sĩ xác nhận';
+            return 'Chờ duyệt lịch (Hành chính)';
         case 'confirmed':
             return 'Đã xác nhận, chờ check-in';
         case 'checked_in':
             return 'Đã check-in';
-        case 'screened':
-            return 'Đã sàng lọc, chờ tiêm';
+        case 'ready_to_inject':
+            return 'Chờ tiêm';
+        case 'in_observation':
+            return 'Đang theo dõi (30 phút)';
         case 'completed':
             return 'Hoàn thành';
         case 'delayed':
-            return 'Chờ bác sĩ xác nhận lại';
+            return 'Tạm hoãn';
         case 'cancelled':
             return 'Đã hủy';
         default:
@@ -108,11 +110,12 @@ function getStatusLabel(status) {
 function getStatusClass(status) {
     switch (status) {
         case 'confirmed':
-            return 'checked_in';
         case 'checked_in':
             return 'checked_in';
-        case 'screened':
-            return 'screened';
+        case 'ready_to_inject':
+            return 'ready_to_inject';
+        case 'in_observation':
+            return 'in_observation';
         case 'completed':
             return 'completed';
         case 'delayed':
@@ -123,33 +126,74 @@ function getStatusClass(status) {
 }
 
 function getWorkflowHint(booking) {
+    const role = window.medicalConfig?.userRole || 'staff';
     switch (booking.status) {
         case 'pending':
-            return '<div class="pre-screening-snippet">Booking đang chờ bác sĩ xác nhận, y tá chưa thể thao tác.</div>';
+            if (role === 'staff' || role === 'admin' || role === 'doctor') {
+                return '<div class="pre-screening-snippet" style="color:#0f766e;"><strong>Trạng thái hiện tại: Chờ duyệt lịch (Hành chính)</strong><br>Vui lòng kiểm tra tồn kho và xác nhận lịch hẹn cho bệnh nhân.</div>';
+            }
+            return '<div class="pre-screening-snippet">Booking đang chờ xác nhận hành chính.</div>';
         case 'confirmed':
-            return '<div class="pre-screening-snippet">Đã được bác sĩ xác nhận. Y tá có thể check-in để tiếp nhận bệnh nhân.</div>';
+            if (role === 'doctor') {
+                return '<div class="pre-screening-snippet">Lịch đã được xác nhận. Bước check-in sẽ do staff thực hiện tại quầy.</div>';
+            }
+            return '<div class="pre-screening-snippet">Đã xác nhận lịch. Y tá có thể check-in để tiếp nhận bệnh nhân.</div>';
         case 'checked_in':
-            return '<div class="pre-screening-snippet">Bệnh nhân đã check-in. Có thể mở form khám / sàng lọc.</div>';
+            if (role === 'doctor' || role === 'admin') {
+                return '<div class="pre-screening-snippet">Bệnh nhân đã check-in. Bác sĩ có thể thực hiện khám sàng lọc.</div>';
+            }
+            return '<div class="pre-screening-snippet" style="color:#b45309;"><strong>Đang chờ bác sĩ khám sàng lọc.</strong> Y tá chưa có thao tác tại bước này.</div>';
+        case 'ready_to_inject':
+            return '<div class="pre-screening-snippet">Bác sĩ đã duyệt. Y tá có thể mở form tiêm chủng.</div>';
+        case 'in_observation': {
+            const startTime = booking.injection_time ? new Date(booking.injection_time) : new Date();
+            const endTime = new Date(startTime.getTime() + 30 * 60 * 1000);
+            const timerId = `timer-${booking.id}`;
+            setTimeout(() => startCountdown(timerId, endTime), 100);
+            return `<div class="pre-screening-snippet">Đã tiêm xong. Đang theo dõi: <strong id="${timerId}">30:00</strong> còn lại.</div>`;
+        }
         case 'delayed':
-            return '<div class="pre-screening-snippet">Ca này đang tạm hoãn và cần bác sĩ xác nhận lại trước khi xử lý tiếp.</div>';
+            return '<div class="pre-screening-snippet" style="color:#b45309;">Ca này đang tạm hoãn. Bệnh nhân có thể đặt lại lịch từ trang Booking.</div>';
         default:
             return '';
     }
 }
 
 function getActionButton(booking) {
+    const role = window.medicalConfig?.userRole || 'staff';
+
+    if (booking.status === 'pending') {
+        if (role === 'staff' || role === 'admin' || role === 'doctor') {
+            return `<button class="action-btn" style="background:#0f766e;" onclick="confirmBooking('${booking.id}')">✔ Xác nhận lịch</button>`;
+        }
+        return '<span style="color:#94a3b8; font-size:13px;">Y tá/Hành chính cần duyệt trước</span>';
+    }
+
     if (booking.status === 'confirmed') {
-        return `<button class="action-btn" onclick="checkIn('${booking.id}')">Check-in</button>`;
+        if (role === 'staff' || role === 'admin') {
+            return `<button class="action-btn" onclick="checkIn('${booking.id}')">Check-in</button>`;
+        }
+        if (role === 'doctor') {
+            return '<span style="color:#94a3b8; font-size:13px;">Staff sẽ check-in tại quầy</span>';
+        }
+        return '';
     }
+
     if (booking.status === 'checked_in') {
-        return `<button class="action-btn" onclick="openScreeningForm('${booking.id}', '${escapeHtml(booking.full_name)}')">Khám / Sàng lọc</button>`;
+        if (role === 'doctor' || role === 'admin') {
+            return `<button class="action-btn" onclick="openScreeningForm('${booking.id}', '${escapeHtml(booking.full_name)}')">Nhập kết quả sàng lọc</button>`;
+        }
+        return '<span style="color:#b45309; font-size:13px; font-weight:600;">Đang chờ bác sĩ khám sàng lọc</span>';
     }
-    if (booking.status === 'screened') {
+
+    if (booking.status === 'ready_to_inject') {
         return `<button class="action-btn" onclick="openInjectionForm('${booking.id}', '${escapeHtml(booking.full_name)}', '${booking.dose_number}')">Tiêm chủng</button>`;
     }
-    if (booking.status === 'completed') {
-        return `<button class="action-btn" onclick="openMonitoringForm('${booking.id}', '${escapeHtml(booking.full_name)}')">Theo dõi phản ứng</button>`;
+
+    if (booking.status === 'in_observation') {
+        return `<button class="action-btn" onclick="openMonitoringForm('${booking.id}', '${escapeHtml(booking.full_name)}')">Hoàn tất theo dõi</button>`;
     }
+
     return '';
 }
 
@@ -185,7 +229,7 @@ async function loadTodayBookings() {
         data.forEach((booking) => {
             todayBookingsById[String(booking.id)] = booking;
 
-            if (booking.status === 'screened') {
+            if (booking.status === 'ready_to_inject') {
                 waitingInjectionCount += 1;
             }
             if (booking.status === 'completed') {
@@ -194,7 +238,6 @@ async function loadTodayBookings() {
 
             const row = document.createElement('div');
             row.className = 'patient-row';
-
             row.innerHTML = `
                 <div class="screening-main">
                     <strong>${escapeHtml(booking.full_name)} • ${escapeHtml(booking.vaccine_name)}</strong>
@@ -224,6 +267,7 @@ function resetActionPanel() {
     const screeningForm = document.getElementById('form-screening');
     const injectionForm = document.getElementById('form-injection');
     const monitoringForm = document.getElementById('form-monitoring');
+    const walkinForm = document.getElementById('form-walkin');
     const subtitle = document.getElementById('action-subtitle');
 
     defaultBox.style.display = 'block';
@@ -231,15 +275,48 @@ function resetActionPanel() {
     screeningForm.style.display = 'none';
     injectionForm.style.display = 'none';
     monitoringForm.style.display = 'none';
+    if (walkinForm) {
+        walkinForm.style.display = 'none';
+    }
     subtitle.innerText = 'Vui lòng chọn thao tác từ danh sách bệnh nhân.';
 
     screeningForm.reset();
     injectionForm.reset();
     monitoringForm.reset();
+    if (walkinForm) {
+        walkinForm.reset();
+    }
 }
 
 function hideDefault() {
     document.getElementById('form-default').style.display = 'none';
+}
+
+async function confirmBooking(bookingId) {
+    if (!window.confirm('Xác nhận duyệt lịch hẹn cho bệnh nhân này? Booking sẽ chuyển sang trạng thái "Đã xác nhận".')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/booking/${bookingId}/`, {
+            method: 'PATCH',
+            headers,
+            credentials: 'same-origin',
+            body: JSON.stringify({ status: 'confirmed' }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            window.alert(data.detail || data.status?.[0] || 'Không thể xác nhận lịch lúc này.');
+            return;
+        }
+
+        window.alert('Đã xác nhận lịch hẹn thành công.');
+        await loadTodayBookings();
+    } catch (error) {
+        console.error(error);
+        window.alert('Có lỗi kết nối khi xác nhận lịch.');
+    }
 }
 
 async function checkIn(bookingId) {
@@ -260,9 +337,14 @@ async function checkIn(bookingId) {
             return;
         }
 
-        window.alert('Check-in thành công.');
         resetActionPanel();
         await loadTodayBookings();
+
+        if (data.has_pre_screening === false) {
+            openMissingPrescreenModal(bookingId);
+        } else {
+            window.alert('Check-in thành công.');
+        }
     } catch (error) {
         console.error(error);
     }
@@ -287,7 +369,7 @@ async function submitScreening(event) {
         booking: parseInt(document.getElementById('screen-booking-id').value, 10),
         temperature: parseFloat(document.getElementById('screen-temp').value),
         blood_pressure: document.getElementById('screen-bp').value.trim(),
-        is_eligible: document.getElementById('screen-eligible').value === 'true',
+        decision: document.getElementById('screen-eligible').value,
         doctor_note: document.getElementById('screen-note').value.trim(),
     };
 
@@ -410,5 +492,168 @@ async function submitMonitoring(event) {
         await loadTodayBookings();
     } catch (error) {
         console.error(error);
+    }
+}
+
+function startCountdown(elementId, endTime) {
+    function tick() {
+        const el = document.getElementById(elementId);
+        if (!el) {
+            return;
+        }
+        const remaining = Math.max(0, endTime - Date.now());
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        el.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        if (remaining > 0) {
+            setTimeout(tick, 1000);
+        } else {
+            el.textContent = 'Đã đủ 30 phút, có thể hoàn tất';
+            el.style.color = '#16a34a';
+        }
+    }
+    tick();
+}
+
+function openWalkinForm() {
+    resetActionPanel();
+    hideDefault();
+    const walkinForm = document.getElementById('form-walkin');
+    if (walkinForm) {
+        walkinForm.style.display = 'grid';
+    }
+    document.getElementById('action-subtitle').innerText = 'Tiếp nhận khách vãng lai';
+    const dateInput = document.getElementById('walkin-date');
+    if (dateInput) {
+        dateInput.valueAsDate = new Date();
+    }
+}
+
+async function submitWalkin(event) {
+    event.preventDefault();
+    const payload = {
+        full_name: document.getElementById('walkin-name').value.trim(),
+        phone: document.getElementById('walkin-phone').value.trim(),
+        email: document.getElementById('walkin-email').value.trim(),
+        vaccine_name: document.getElementById('walkin-vaccine').value,
+        vaccine_date: document.getElementById('walkin-date').value,
+        dose_number: parseInt(document.getElementById('walkin-dose').value, 10),
+        pre_screening: {
+            has_fever: document.getElementById('walkin-fever').checked,
+            has_allergy_history: document.getElementById('walkin-allergy').checked,
+            has_chronic_condition: document.getElementById('walkin-chronic').checked,
+            recent_symptoms: document.getElementById('walkin-symptoms').value.trim(),
+            current_medications: document.getElementById('walkin-medications').value.trim(),
+        },
+    };
+
+    try {
+        const response = await fetch('/api/medical/walkin/', {
+            method: 'POST',
+            headers,
+            credentials: 'same-origin',
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            window.alert(`Lỗi: ${err.detail || JSON.stringify(err)}`);
+            return;
+        }
+
+        const booking = await response.json();
+        window.alert(`Tiếp nhận thành công! Booking #${booking.id} - ${booking.full_name} đã vào hàng đợi.`);
+        resetActionPanel();
+        await loadTodayBookings();
+    } catch (err) {
+        console.error(err);
+        window.alert('Có lỗi xảy ra khi tiếp nhận walk-in.');
+    }
+}
+
+function openMissingPrescreenModal(bookingId) {
+    const modal = document.getElementById('missing-prescreen-modal');
+    if (!modal) {
+        return;
+    }
+    document.getElementById('mpm-booking-id').value = bookingId;
+    document.getElementById('missing-prescreen-form').reset();
+    document.getElementById('mpm-booking-id').value = bookingId;
+    document.getElementById('mpm-notice').style.display = 'none';
+    modal.style.display = 'flex';
+}
+
+function closeMissingPrescreenModal() {
+    const modal = document.getElementById('missing-prescreen-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+async function submitMissingPrescreen(event) {
+    event.preventDefault();
+    const bookingId = document.getElementById('mpm-booking-id').value;
+    if (!bookingId) {
+        return;
+    }
+
+    const payload = {
+        has_fever: document.getElementById('mpm-fever').checked,
+        has_allergy_history: document.getElementById('mpm-allergy').checked,
+        has_chronic_condition: document.getElementById('mpm-chronic').checked,
+        recent_symptoms: document.getElementById('mpm-symptoms').value.trim(),
+        current_medications: document.getElementById('mpm-medications').value.trim(),
+        note: 'Bổ sung bởi y tá lúc check-in',
+    };
+
+    const btn = document.getElementById('mpm-submit-btn');
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu...';
+
+    function getMpmCSRF() {
+        const name = 'csrftoken=';
+        const cookies = document.cookie ? document.cookie.split(';') : [];
+        for (const c of cookies) {
+            const t = c.trim();
+            if (t.startsWith(name)) {
+                return decodeURIComponent(t.slice(name.length));
+            }
+        }
+        return '';
+    }
+
+    try {
+        const res = await fetch(`/api/medical/pre-screening/${bookingId}/`, {
+            method: 'PATCH',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getMpmCSRF(),
+            },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+
+        const notice = document.getElementById('mpm-notice');
+        if (!res.ok) {
+            notice.textContent = `Lỗi: ${data.detail || JSON.stringify(data)}`;
+            notice.style.cssText = 'display:block; background:#fff7ed; color:#92400e; border:1px solid #fed7aa; padding:10px 14px; border-radius:8px; margin-bottom:14px; font-size:13px;';
+        } else {
+            notice.textContent = 'Đã lưu khai báo bổ sung thành công.';
+            notice.style.cssText = 'display:block; background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; padding:10px 14px; border-radius:8px; margin-bottom:14px; font-size:13px;';
+            setTimeout(() => {
+                closeMissingPrescreenModal();
+                loadTodayBookings();
+            }, 1500);
+        }
+    } catch (err) {
+        console.error(err);
+        const notice = document.getElementById('mpm-notice');
+        notice.textContent = 'Có lỗi xảy ra khi lưu khai báo.';
+        notice.style.cssText = 'display:block; background:#fff7ed; color:#92400e; border:1px solid #fed7aa; padding:10px 14px; border-radius:8px; margin-bottom:14px; font-size:13px;';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
     }
 }

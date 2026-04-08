@@ -8,7 +8,8 @@ class Booking(models.Model):
     STATUS_CONFIRMED = 'confirmed'
     STATUS_CANCELLED = 'cancelled'
     STATUS_CHECKED_IN = 'checked_in'
-    STATUS_SCREENED = 'screened'
+    STATUS_READY_TO_INJECT = 'ready_to_inject'
+    STATUS_IN_OBSERVATION = 'in_observation'
     STATUS_COMPLETED = 'completed'
     STATUS_DELAYED = 'delayed'
 
@@ -17,7 +18,8 @@ class Booking(models.Model):
         (STATUS_CONFIRMED, 'Confirmed'),
         (STATUS_CANCELLED, 'Cancelled'),
         (STATUS_CHECKED_IN, 'Checked In'),
-        (STATUS_SCREENED, 'Screened'),
+        (STATUS_READY_TO_INJECT, 'Ready to Inject'),
+        (STATUS_IN_OBSERVATION, 'In Observation'),
         (STATUS_COMPLETED, 'Completed'),
         (STATUS_DELAYED, 'Delayed'),
     ]
@@ -26,7 +28,15 @@ class Booking(models.Model):
         STATUS_PENDING,
         STATUS_CONFIRMED,
         STATUS_CHECKED_IN,
-        STATUS_SCREENED,
+        STATUS_READY_TO_INJECT,
+        STATUS_IN_OBSERVATION,
+    ]
+
+    BOOKING_SOURCE_ONLINE = 'online'
+    BOOKING_SOURCE_WALKIN = 'walkin'
+    BOOKING_SOURCE_CHOICES = [
+        (BOOKING_SOURCE_ONLINE, 'Online'),
+        (BOOKING_SOURCE_WALKIN, 'Walk-in'),
     ]
 
     user = models.ForeignKey(
@@ -44,6 +54,18 @@ class Booking(models.Model):
     dose_number = models.PositiveSmallIntegerField(default=1)
     note = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    booking_source = models.CharField(
+        max_length=10,
+        choices=BOOKING_SOURCE_CHOICES,
+        default=BOOKING_SOURCE_ONLINE,
+    )
+    rescheduled_from = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='rescheduled_bookings',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

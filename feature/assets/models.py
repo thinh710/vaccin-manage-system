@@ -120,6 +120,16 @@ class StockImport(models.Model):
 
 
 class StockExport(models.Model):
+    EXPORT_TYPE_TRANSFER = 'transfer'
+    EXPORT_TYPE_DISPOSAL = 'disposal'
+    EXPORT_TYPE_EXPIRED  = 'expired'
+
+    EXPORT_TYPE_CHOICES = [
+        (EXPORT_TYPE_TRANSFER, 'Xuất chuyển'),
+        (EXPORT_TYPE_DISPOSAL, 'Xuất hủy'),
+        (EXPORT_TYPE_EXPIRED,  'Hủy hết hạn'),
+    ]
+
     vaccine = models.ForeignKey(
         Vaccine,
         on_delete=models.CASCADE,
@@ -129,6 +139,12 @@ class StockExport(models.Model):
     quantity = models.PositiveIntegerField(verbose_name="Số lượng xuất")
     export_date = models.DateField(verbose_name="Ngày xuất")
     destination = models.CharField(max_length=150, verbose_name="Nơi nhận")
+    export_type = models.CharField(
+        max_length=20,
+        choices=EXPORT_TYPE_CHOICES,
+        default=EXPORT_TYPE_TRANSFER,
+        verbose_name="Loại xuất",
+    )
     note = models.TextField(blank=True, null=True, verbose_name="Ghi chú")
     created_by = models.ForeignKey(
         User,

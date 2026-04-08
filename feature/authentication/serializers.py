@@ -9,7 +9,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'full_name', 'email', 'password', 'confirm_password', 'role', 'status', 'created_at']
+        fields = ['id', 'full_name', 'email', 'password', 'confirm_password', 'status', 'created_at']
         read_only_fields = ['id', 'status', 'created_at']
 
     def validate_email(self, value):
@@ -26,6 +26,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop('password')
         validated_data.pop('confirm_password')
+        validated_data['role'] = User.ROLE_CITIZEN
         user = User(**validated_data)
         user.set_password(password)
         user.save()

@@ -181,7 +181,6 @@ def register_view(request):
     full_name = serializer.validated_data['full_name']
     email = serializer.validated_data['email']
     password = serializer.validated_data['password']
-    role = serializer.validated_data.get('role', User.ROLE_CITIZEN)
 
     if User.objects.filter(email=email).exists():
         return Response({'email': ['Email đã tồn tại.']}, status=status.HTTP_400_BAD_REQUEST)
@@ -190,7 +189,7 @@ def register_view(request):
         full_name=full_name,
         email=email,
         password_hash=make_password(password),
-        role=role,
+        role=User.ROLE_CITIZEN,
         status=User.STATUS_ACTIVE,
         auth_provider=User.AUTH_PROVIDER_LOCAL,
     )

@@ -279,7 +279,7 @@ def dashboard(request: HttpRequest):
 
             screening_record = screening_by_booking_id.get(booking.id)
             if booking.status == Booking.STATUS_PENDING:
-                action = "waiting_doctor"
+                action = "confirm"
                 action_label = "Chờ bác sĩ xác nhận"
                 status_label = "Chờ bác sĩ xác nhận lịch"
             elif booking.status == Booking.STATUS_CONFIRMED:
@@ -287,7 +287,7 @@ def dashboard(request: HttpRequest):
                 action_label = "Check-in"
                 status_label = "Đã được bác sĩ xác nhận"
             elif booking.status == Booking.STATUS_CHECKED_IN:
-                action = "screening"
+                action = "waiting_doctor"
                 action_label = "Nhập kết quả sàng lọc"
                 status_label = "Cần sàng lọc"
             else:
@@ -320,11 +320,22 @@ def dashboard(request: HttpRequest):
                 for booking in todays_bookings
                 if booking.status in [Booking.STATUS_CONFIRMED, Booking.STATUS_CHECKED_IN]
             ),
+            "ready_to_inject_count": Booking.objects.filter(
+                vaccine_date=today,
+                status=Booking.STATUS_READY_TO_INJECT,
+            ).count(),
+            "in_observation_count": Booking.objects.filter(
+                vaccine_date=today,
+                status=Booking.STATUS_IN_OBSERVATION,
+            ).count(),
             "prioritized_screenings": prioritized_screenings[:6],
             "recent_medical_reviews": screening_results[:5],
         }
         context.update(_build_schedule_context(today))
         return render(request, "users/staff_dashboard.html", context)
+
+    if user.role == User.ROLE_DOCTOR:
+        return redirect("/medical/dashboard/")
 
     if user.role != User.ROLE_CITIZEN:
         return redirect("/auth/login-page/")
@@ -428,7 +439,8 @@ def screening_portal(request: HttpRequest):
         Booking.STATUS_PENDING: "Chờ xác nhận",
         Booking.STATUS_CONFIRMED: "Đã xác nhận",
         Booking.STATUS_CHECKED_IN: "Đã check-in",
-        Booking.STATUS_SCREENED: "Đã sàng lọc",
+        Booking.STATUS_READY_TO_INJECT: "Chờ tiêm",
+        Booking.STATUS_IN_OBSERVATION: "Đang theo dõi",
         Booking.STATUS_COMPLETED: "Đã hoàn thành",
         Booking.STATUS_DELAYED: "Tạm hoãn",
         Booking.STATUS_CANCELLED: "Đã hủy",
@@ -447,7 +459,7 @@ def screening_portal(request: HttpRequest):
                 "status": booking.status,
                 "status_label": status_labels.get(booking.status, booking.status),
                 "can_declare": booking.status
-                not in [Booking.STATUS_CANCELLED, Booking.STATUS_COMPLETED, Booking.STATUS_SCREENED],
+                not in [Booking.STATUS_CANCELLED, Booking.STATUS_COMPLETED, Booking.STATUS_READY_TO_INJECT],
                 "declaration": (
                     {
                         "has_fever": declaration.has_fever,
@@ -466,6 +478,7 @@ def screening_portal(request: HttpRequest):
                         "temperature": screening_result.temperature,
                         "blood_pressure": screening_result.blood_pressure,
                         "is_eligible": screening_result.is_eligible,
+                        "decision": screening_result.decision,
                         "doctor_note": screening_result.doctor_note or "",
                         "created_at": screening_result.created_at.isoformat(),
                     }

@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from feature.authentication.models import User
+from rest_framework import serializers as drf_serializers
 
 from .models import (
     Supplier,
@@ -19,7 +20,7 @@ from .models import (
     StockExport,
     StockAdjustment,
 )
-from .permissions import IsAdminOrReadOnly
+from .permissions import CanReadVaccineStock, IsAdminOrReadOnly
 from .serializers import (
     SupplierSerializer,
     StorageLocationSerializer,
@@ -45,7 +46,8 @@ def _get_session_user(request):
 
 
 def _can_manage_inventory(user):
-    return user.role in {User.ROLE_ADMIN, User.ROLE_STAFF}
+    """Chỉ Admin mới có quyền truy cập module quản lý kho."""
+    return user.role == User.ROLE_ADMIN
 
 
 def inventory_dashboard_page(request):
@@ -247,19 +249,19 @@ def location_management_page(request):
 class SupplierViewSet(viewsets.ModelViewSet):
     queryset = Supplier.objects.all().order_by("-created_at")
     serializer_class = SupplierSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [CanReadVaccineStock]
 
 
 class StorageLocationViewSet(viewsets.ModelViewSet):
     queryset = StorageLocation.objects.all().order_by("-created_at")
     serializer_class = StorageLocationSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [CanReadVaccineStock]
 
 
 class VaccineViewSet(viewsets.ModelViewSet):
     queryset = Vaccine.objects.select_related("supplier", "location").all().order_by("-created_at")
     serializer_class = VaccineSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [CanReadVaccineStock]
 
 
 class StockImportViewSet(viewsets.ModelViewSet):
@@ -281,13 +283,18 @@ class StockExportViewSet(viewsets.ModelViewSet):
     serializer_class = StockExportSerializer
     permission_classes = [IsAdminOrReadOnly]
 
-    @transaction.atomic
     def perform_create(self, serializer):
-        user = User.objects.filter(id=self.request.session.get("user_id")).first()
-        stock_export = serializer.save(created_by=user)
-        vaccine = stock_export.vaccine
-        vaccine.quantity -= stock_export.quantity
-        vaccine.save(update_fields=["quantity"])
+        with transaction.atomic():
+            user = User.objects.filter(id=self.request.session.get("user_id")).first()
+            stock_export = serializer.save(created_by=user)
+            vaccine = stock_export.vaccine
+            # Guard: không cho phép tồn kho âm (defense-in-depth ngoài serializer)
+            if vaccine.quantity < stock_export.quantity:
+                raise drf_serializers.ValidationError(
+                    {"detail": f"Tồn kho không đủ. Hiện có: {vaccine.quantity}, yêu cầu xuất: {stock_export.quantity}."}
+                )
+            vaccine.quantity -= stock_export.quantity
+            vaccine.save(update_fields=["quantity"])
 
 
 class StockAdjustmentViewSet(viewsets.ModelViewSet):
@@ -295,18 +302,23 @@ class StockAdjustmentViewSet(viewsets.ModelViewSet):
     serializer_class = StockAdjustmentSerializer
     permission_classes = [IsAdminOrReadOnly]
 
-    @transaction.atomic
     def perform_create(self, serializer):
-        user = User.objects.filter(id=self.request.session.get("user_id")).first()
-        adjustment = serializer.save(created_by=user)
-        vaccine = adjustment.vaccine
+        with transaction.atomic():
+            user = User.objects.filter(id=self.request.session.get("user_id")).first()
+            adjustment = serializer.save(created_by=user)
+            vaccine = adjustment.vaccine
 
-        if adjustment.adjustment_type == "increase":
-            vaccine.quantity += adjustment.quantity
-        else:
-            vaccine.quantity -= adjustment.quantity
+            if adjustment.adjustment_type == "increase":
+                vaccine.quantity += adjustment.quantity
+            else:
+                # Guard: không cho phép tồn kho âm
+                if vaccine.quantity < adjustment.quantity:
+                    raise drf_serializers.ValidationError(
+                        {"detail": f"Tồn kho không đủ để giảm. Hiện có: {vaccine.quantity}, yêu cầu giảm: {adjustment.quantity}."}
+                    )
+                vaccine.quantity -= adjustment.quantity
 
-        vaccine.save(update_fields=["quantity"])
+            vaccine.save(update_fields=["quantity"])
 
 
 class InventoryDashboardAPIView(APIView):
@@ -316,10 +328,10 @@ class InventoryDashboardAPIView(APIView):
         user_id = request.session.get("user_id")
         if not user_id or not User.objects.filter(
             id=user_id,
-            role__in=[User.ROLE_ADMIN, User.ROLE_STAFF],
+            role=User.ROLE_ADMIN,
             status=User.STATUS_ACTIVE,
         ).exists():
-            return Response({"detail": "Bạn không có quyền truy cập."}, status=403)
+            return Response({"detail": "Chỉ Admin mới được truy cập thống kê kho."}, status=403)
 
         today = timezone.now().date()
 

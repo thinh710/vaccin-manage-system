@@ -19,15 +19,35 @@ class PreScreeningDeclaration(models.Model):
 
 
 class ScreeningResult(models.Model):
+    DECISION_ELIGIBLE = "eligible"
+    DECISION_DELAYED = "delayed"
+    DECISION_CANCELLED = "cancelled"
+
+    DECISION_CHOICES = [
+        (DECISION_ELIGIBLE, "Eligible"),
+        (DECISION_DELAYED, "Delayed"),
+        (DECISION_CANCELLED, "Cancelled"),
+    ]
+
     booking = models.OneToOneField(Booking, on_delete=models.CASCADE, related_name="screening_result")
     temperature = models.FloatField()
     blood_pressure = models.CharField(max_length=50)
-    is_eligible = models.BooleanField()
+    decision = models.CharField(
+        max_length=20,
+        choices=DECISION_CHOICES,
+        default=DECISION_ELIGIBLE,
+    )
+    is_eligible = models.BooleanField(default=True)  # kept for legacy compatibility
     doctor_note = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        # Sync is_eligible from decision automatically
+        self.is_eligible = (self.decision == self.DECISION_ELIGIBLE)
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Screening for Booking {self.booking.id} - Eligible: {self.is_eligible}"
+        return f"Screening for Booking {self.booking.id} - {self.decision}"
 
 
 class VaccinationLog(models.Model):

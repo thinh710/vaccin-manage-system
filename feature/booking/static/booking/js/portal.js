@@ -141,7 +141,7 @@
         bookings.forEach((booking) => {
             const row = document.createElement("tr");
             const note = booking.note ? booking.note : "Không có";
-            const screeningActionLabel = ["screened", "completed", "delayed"].includes(booking.status)
+            const screeningActionLabel = ["ready_to_inject", "in_observation", "completed", "delayed"].includes(booking.status)
                 ? "Xem sàng lọc"
                 : "Khai báo";
             const screeningAction = config.userRole === "citizen" && booking.status !== "cancelled"
@@ -149,6 +149,9 @@
                 : "";
             const editAction = booking.can_edit
                 ? `<button class="action-btn" type="button" data-action="edit" data-id="${booking.id}">Sửa</button>`
+                : "";
+            const rescheduleAction = booking.status === 'delayed'
+                ? `<button class="action-btn" type="button" data-action="reschedule" data-id="${booking.id}">Đặt lại lịch</button>`
                 : "";
             const cancelAction = booking.can_cancel
                 ? `<button class="action-btn is-danger" type="button" data-action="cancel" data-id="${booking.id}">Hủy lịch</button>`
@@ -164,7 +167,7 @@
                 <td>Mũi ${booking.dose_number}</td>
                 <td><span class="status-badge status-${booking.status}">${booking.status}</span></td>
                 <td>${note}</td>
-                <td><div class="row-actions">${screeningAction}${editAction}${cancelAction}</div></td>
+                <td><div class="row-actions">${screeningAction}${editAction}${rescheduleAction}${cancelAction}</div></td>
             `;
             tableBody.appendChild(row);
         });
@@ -263,7 +266,12 @@
         }
 
         if (button.dataset.action === "screening") {
-            window.location.href = `/users/screening/?booking=${bookingId}`;
+            openDeclarationModal(String(bookingId));
+            return;
+        }
+
+        if (button.dataset.action === "reschedule") {
+            openRescheduleModal(String(bookingId));
             return;
         }
 
@@ -288,3 +296,228 @@
 
     renderTable();
 })();
+
+let reschedulingBookingId = null;
+let allPortalBookings = [];
+
+function openRescheduleModal(bookingId) {
+    reschedulingBookingId = bookingId;
+    // bookings var is scoped inside the IIFE, access via a re-fetch or store globally
+    const modal = document.getElementById('reschedule-modal');
+    if (!modal) return;
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    document.getElementById('reschedule-date').min = tomorrowStr;
+    document.getElementById('reschedule-date').value = '';
+    modal.style.display = 'flex';
+}
+
+function closeRescheduleModal() {
+    reschedulingBookingId = null;
+    const modal = document.getElementById('reschedule-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+async function submitReschedule() {
+    const newDate = document.getElementById('reschedule-date').value;
+    if (!newDate) {
+        alert('Vui lòng chọn ngày tiêm mới.');
+        return;
+    }
+
+    function getPortalCSRF() {
+        const name = 'csrftoken=';
+        const cookies = document.cookie ? document.cookie.split(';') : [];
+        for (const c of cookies) {
+            const t = c.trim();
+            if (t.startsWith(name)) return decodeURIComponent(t.slice(name.length));
+        }
+        return '';
+    }
+
+    try {
+        const response = await fetch(`/api/medical/${reschedulingBookingId}/reschedule/`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getPortalCSRF(),
+            },
+            body: JSON.stringify({ vaccine_date: newDate }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            alert(`Lỗi: ${data.detail || JSON.stringify(data)}`);
+            return;
+        }
+
+        alert(`Đặt lại lịch thành công! Booking mới #${data.id}.`);
+        closeRescheduleModal();
+        window.location.reload();
+    } catch (err) {
+        console.error(err);
+        alert('Có lỗi xảy ra khi đặt lại lịch.');
+    }
+}
+
+// ─── Declaration modal ───────────────────────────────────────────────────────
+
+let declarationBookingId = null;
+
+async function openDeclarationModal(bookingId) {
+    declarationBookingId = bookingId;
+    const modal = document.getElementById('declaration-modal');
+    if (!modal) return;
+
+    // Lấy thông tin booking từ danh sách đã render
+    const allRows = document.querySelectorAll('#booking-table-body tr');
+    let bookingInfo = null;
+    // Fallback: tìm trong initial_bookings data
+    try {
+        const raw = document.getElementById('initial-bookings-data');
+        const list = raw ? JSON.parse(raw.textContent) : [];
+        bookingInfo = list.find(b => String(b.id) === String(bookingId));
+    } catch (_) {}
+
+    if (bookingInfo) {
+        document.getElementById('decl-modal-title').textContent = `Khai báo trước tiêm — ${bookingInfo.vaccine_name}`;
+        document.getElementById('decl-modal-subtitle').textContent =
+            `Ngày tiêm: ${formatDate(bookingInfo.vaccine_date)} | Mũi ${bookingInfo.dose_number}`;
+    }
+
+    // Reset form
+    document.getElementById('declaration-form').reset();
+    document.getElementById('decl-notice').style.display = 'none';
+    document.getElementById('decl-screening-result').style.display = 'none';
+
+    // Fetch dữ liệu khai báo hiện tại
+    try {
+        const res = await fetch(`/api/medical/pre-screening/${bookingId}/`, { credentials: 'same-origin' });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok && data.declaration) {
+            const d = data.declaration;
+            document.getElementById('decl-fever').checked = Boolean(d.has_fever);
+            document.getElementById('decl-allergy').checked = Boolean(d.has_allergy_history);
+            document.getElementById('decl-chronic').checked = Boolean(d.has_chronic_condition);
+            document.getElementById('decl-symptoms').value = d.recent_symptoms || '';
+            document.getElementById('decl-medications').value = d.current_medications || '';
+            document.getElementById('decl-note').value = d.note || '';
+        }
+
+        // Hiện kết quả sàng lọc nếu đã có
+        if (res.ok && data.screening_result) {
+            const sr = data.screening_result;
+            const resultBox = document.getElementById('decl-screening-result');
+            const decision = sr.decision || (sr.is_eligible ? 'eligible' : 'delayed');
+            const textMap = {
+                eligible: '✅ Bác sĩ đánh giá bạn đủ điều kiện tiêm chủng.',
+                delayed:  '⏳ Bác sĩ yêu cầu tạm hoãn — vui lòng đặt lại lịch.',
+                cancelled: '🚫 Bác sĩ xác nhận có chống chỉ định tiêm.',
+            };
+            document.getElementById('decl-result-text').textContent = textMap[decision] || sr.decision;
+            document.getElementById('decl-result-temp').textContent = `${sr.temperature}°C`;
+            document.getElementById('decl-result-bp').textContent = sr.blood_pressure;
+            document.getElementById('decl-result-note').textContent = sr.doctor_note || 'Không có ghi chú thêm.';
+
+            // Màu nền theo quyết định
+            resultBox.style.background = decision === 'eligible' ? '#f0fdf4' : '#fff7ed';
+            resultBox.style.borderColor = decision === 'eligible' ? '#bbf7d0' : '#fed7aa';
+            document.getElementById('decl-result-text').style.color = decision === 'eligible' ? '#166534' : '#92400e';
+            resultBox.style.display = 'block';
+
+            // Disable form nếu đã có kết quả sàng lọc (không cần khai báo thêm)
+            const canEdit = ['pending', 'confirmed', 'checked_in', 'delayed'].includes(bookingInfo?.status);
+            setDeclarationFormEnabled(canEdit);
+        } else {
+            setDeclarationFormEnabled(true);
+        }
+    } catch (e) {
+        console.error('Không tải được dữ liệu khai báo:', e);
+        setDeclarationFormEnabled(true);
+    }
+
+    modal.style.display = 'flex';
+}
+
+function setDeclarationFormEnabled(enabled) {
+    const inputs = document.querySelectorAll(
+        '#declaration-form input, #declaration-form textarea, #declaration-form button[type="submit"]'
+    );
+    inputs.forEach(el => { el.disabled = !enabled; });
+    if (!enabled) {
+        showDeclNotice('Booking này không còn mở để cập nhật khai báo. Bạn chỉ có thể xem kết quả.', false);
+    }
+}
+
+function closeDeclarationModal() {
+    declarationBookingId = null;
+    const modal = document.getElementById('declaration-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function showDeclNotice(msg, isSuccess) {
+    const el = document.getElementById('decl-notice');
+    el.textContent = msg;
+    el.style.display = 'block';
+    el.style.background = isSuccess ? '#f0fdf4' : '#fff7ed';
+    el.style.color = isSuccess ? '#166534' : '#92400e';
+    el.style.border = isSuccess ? '1px solid #bbf7d0' : '1px solid #fed7aa';
+}
+
+async function submitDeclaration(event) {
+    event.preventDefault();
+    if (!declarationBookingId) return;
+
+    const payload = {
+        has_fever:             document.getElementById('decl-fever').checked,
+        has_allergy_history:   document.getElementById('decl-allergy').checked,
+        has_chronic_condition: document.getElementById('decl-chronic').checked,
+        recent_symptoms:       document.getElementById('decl-symptoms').value.trim(),
+        current_medications:   document.getElementById('decl-medications').value.trim(),
+        note:                  document.getElementById('decl-note').value.trim(),
+    };
+
+    const btn = document.getElementById('decl-submit-btn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu...';
+
+    function getPortalCSRF() {
+        const name = 'csrftoken=';
+        const cookies = document.cookie ? document.cookie.split(';') : [];
+        for (const c of cookies) {
+            const t = c.trim();
+            if (t.startsWith(name)) return decodeURIComponent(t.slice(name.length));
+        }
+        return '';
+    }
+
+    try {
+        // Dùng PATCH luôn vì backend hỗ trợ upsert
+        const res = await fetch(`/api/medical/pre-screening/${declarationBookingId}/`, {
+            method: 'PATCH',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getPortalCSRF(),
+            },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            showDeclNotice(`Lỗi: ${data.detail || JSON.stringify(data)}`, false);
+        } else {
+            showDeclNotice('✅ Đã lưu khai báo thành công!', true);
+        }
+    } catch (err) {
+        console.error(err);
+        showDeclNotice('Có lỗi xảy ra khi lưu khai báo.', false);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+}

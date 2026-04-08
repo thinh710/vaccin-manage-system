@@ -216,9 +216,14 @@
             color: #1d4ed8;
         }
 
-        .status-pill.screened {
-            background: rgba(21, 128, 61, 0.12);
-            color: var(--success);
+        .status-pill.ready_to_inject {
+            background: rgba(109, 40, 217, 0.12);
+            color: #6d28d9;
+        }
+
+        .status-pill.in_observation {
+            background: rgba(180, 83, 9, 0.12);
+            color: var(--warning);
         }
 
         .status-pill.delayed {
@@ -532,7 +537,14 @@
 
         function getDeclarationLabel(booking) {
             if (booking.screening_result) {
-                return booking.screening_result.is_eligible ? 'Đã có kết quả đủ điều kiện' : 'Đã có kết quả cần theo dõi thêm';
+                const decision = booking.screening_result.decision;
+                if (decision === 'eligible') return 'Đã khám — đủ điều kiện tiêm';
+                if (decision === 'delayed') return 'Đã khám — tạm hoãn tiêm';
+                if (decision === 'cancelled') return 'Đã khám — chống chỉ định';
+                // fallback cho kết quả cũ (is_eligible boolean)
+                return booking.screening_result.is_eligible
+                    ? 'Đã có kết quả đủ điều kiện'
+                    : 'Đã có kết quả cần theo dõi thêm';
             }
             if (booking.declaration) {
                 return 'Đã gửi khai báo trước tiêm';
@@ -621,9 +633,21 @@
 
             if (currentBooking.screening_result) {
                 resultPanel.hidden = false;
-                document.getElementById('result-summary').textContent = currentBooking.screening_result.is_eligible
-                    ? 'Nhân viên y tế đánh giá bạn đủ điều kiện tiếp tục quy trình tiêm.'
-                    : 'Nhân viên y tế đánh giá cần theo dõi thêm hoặc tạm hoãn tiêm.';
+                const decision = currentBooking.screening_result.decision;
+                let resultText;
+                if (decision === 'eligible') {
+                    resultText = 'Nhân viên y tế đánh giá bạn đủ điều kiện tiếp tục quy trình tiêm.';
+                } else if (decision === 'delayed') {
+                    resultText = 'Nhân viên y tế đánh giá cần tạm hoãn tiêm — vui lòng liên hệ để đặt lịch mới.';
+                } else if (decision === 'cancelled') {
+                    resultText = 'Nhân viên y tế xác nhận có chống chỉ định tiêm.';
+                } else {
+                    // fallback legacy
+                    resultText = currentBooking.screening_result.is_eligible
+                        ? 'Nhân viên y tế đánh giá bạn đủ điều kiện tiếp tục quy trình tiêm.'
+                        : 'Nhân viên y tế đánh giá cần theo dõi thêm hoặc tạm hoãn tiêm.';
+                }
+                document.getElementById('result-summary').textContent = resultText;
                 document.getElementById('result-temperature').textContent = `${currentBooking.screening_result.temperature}°C`;
                 document.getElementById('result-blood-pressure').textContent = currentBooking.screening_result.blood_pressure;
                 document.getElementById('result-note').textContent = currentBooking.screening_result.doctor_note || 'Chưa có ghi chú thêm từ nhân viên y tế.';

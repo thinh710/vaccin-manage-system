@@ -260,8 +260,9 @@ tbody td {
 }
 
 .status-pending { background: #fef3c7; color: #b45309; }
-.status-confirmed,
-.status-screened { background: #dcfce7; color: #166534; }
+.status-confirmed { background: #dcfce7; color: #166534; }
+.status-ready_to_inject { background: #ede9fe; color: #6d28d9; }
+.status-in_observation { background: #fef3c7; color: #b45309; }
 .status-checked_in { background: #dbeafe; color: #1d4ed8; }
 .status-completed { background: #dcfce7; color: #047857; }
 .status-delayed { background: #fee2e2; color: #b91c1c; }

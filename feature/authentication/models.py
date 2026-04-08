@@ -27,10 +27,12 @@ class User(models.Model):
     ROLE_ADMIN = 'admin'
     ROLE_CITIZEN = 'citizen'
     ROLE_STAFF = 'staff'
+    ROLE_DOCTOR = 'doctor'
     ROLE_CHOICES = [
         (ROLE_ADMIN, 'Admin'),
         (ROLE_CITIZEN, 'Citizen'),
         (ROLE_STAFF, 'Staff'),
+        (ROLE_DOCTOR, 'Doctor'),
     ]
 
     STATUS_ACTIVE = 'active'
