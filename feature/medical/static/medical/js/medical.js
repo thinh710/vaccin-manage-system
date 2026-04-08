@@ -187,11 +187,17 @@ function getActionButton(booking) {
     }
 
     if (booking.status === 'ready_to_inject') {
-        return `<button class="action-btn" onclick="openInjectionForm('${booking.id}', '${escapeHtml(booking.full_name)}', '${booking.dose_number}')">Tiêm chủng</button>`;
+        if (role === 'staff' || role === 'admin') {
+            return `<button class="action-btn" onclick="openInjectionForm('${booking.id}', '${escapeHtml(booking.full_name)}', '${booking.dose_number}')">Tiêm chủng</button>`;
+        }
+        return '<span style="color:#94a3b8; font-size:13px;">Staff/Admin sẽ xử lý bước tiêm</span>';
     }
 
     if (booking.status === 'in_observation') {
-        return `<button class="action-btn" onclick="openMonitoringForm('${booking.id}', '${escapeHtml(booking.full_name)}')">Hoàn tất theo dõi</button>`;
+        if (role === 'staff' || role === 'admin') {
+            return `<button class="action-btn" onclick="openMonitoringForm('${booking.id}', '${escapeHtml(booking.full_name)}')">Hoàn tất theo dõi</button>`;
+        }
+        return '<span style="color:#94a3b8; font-size:13px;">Staff/Admin sẽ hoàn tất theo dõi sau tiêm</span>';
     }
 
     return '';

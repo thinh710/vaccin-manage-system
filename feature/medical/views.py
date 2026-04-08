@@ -22,6 +22,38 @@ from .serializers import (
 )
 
 
+def _serialize_declaration(declaration):
+    if not declaration:
+        return None
+    return {
+        "id": declaration.id,
+        "booking": declaration.booking_id,
+        "has_fever": declaration.has_fever,
+        "has_allergy_history": declaration.has_allergy_history,
+        "has_chronic_condition": declaration.has_chronic_condition,
+        "recent_symptoms": declaration.recent_symptoms or "",
+        "current_medications": declaration.current_medications or "",
+        "note": declaration.note or "",
+        "created_at": declaration.created_at.isoformat(),
+        "updated_at": declaration.updated_at.isoformat(),
+    }
+
+
+def _serialize_screening_result(screening_result):
+    if not screening_result:
+        return None
+    return {
+        "id": screening_result.id,
+        "booking": screening_result.booking_id,
+        "temperature": screening_result.temperature,
+        "blood_pressure": screening_result.blood_pressure,
+        "decision": screening_result.decision,
+        "is_eligible": screening_result.is_eligible,
+        "doctor_note": screening_result.doctor_note or "",
+        "created_at": screening_result.created_at.isoformat(),
+    }
+
+
 def _get_session_user(request):
     user_id = request.session.get("user_id")
     if not user_id:
@@ -210,9 +242,14 @@ def pre_screening_declaration_detail(request, booking_id):
     declaration = PreScreeningDeclaration.objects.filter(booking=booking).first()
 
     if request.method == "GET":
-        if not declaration:
-            return Response({"booking": booking.id, "declaration": None})
-        return Response(PreScreeningDeclarationSerializer(declaration).data)
+        screening_result = ScreeningResult.objects.filter(booking=booking).first()
+        return Response(
+            {
+                "booking": booking.id,
+                "declaration": _serialize_declaration(declaration),
+                "screening_result": _serialize_screening_result(screening_result),
+            }
+        )
 
     # POST / PATCH — citizen hoặc staff đều được (staff điền hộ khi walk-in)
     if user.role not in [User.ROLE_CITIZEN, User.ROLE_STAFF, User.ROLE_ADMIN]:
@@ -545,6 +582,12 @@ def reschedule_booking(request, booking_id):
     if source.status != Booking.STATUS_DELAYED:
         return Response(
             {"detail": "Chỉ có thể đặt lại lịch cho các ca bị hoãn (Delayed)."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if source.rescheduled_bookings.exists():
+        return Response(
+            {"detail": "Booking này đã có lịch thay thế, không thể đặt lại thêm lần nữa."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 

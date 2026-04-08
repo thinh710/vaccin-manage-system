@@ -7,6 +7,7 @@ from .models import Booking
 class BookingSerializer(serializers.ModelSerializer):
     can_edit = serializers.SerializerMethodField(read_only=True)
     can_cancel = serializers.SerializerMethodField(read_only=True)
+    can_reschedule = serializers.SerializerMethodField(read_only=True)
     customer_label = serializers.SerializerMethodField(read_only=True)
     pre_screening = serializers.SerializerMethodField(read_only=True)
 
@@ -27,10 +28,11 @@ class BookingSerializer(serializers.ModelSerializer):
             'updated_at',
             'can_edit',
             'can_cancel',
+            'can_reschedule',
             'customer_label',
             'pre_screening',
         ]
-        read_only_fields = ['user', 'created_at', 'updated_at', 'can_edit', 'can_cancel', 'customer_label', 'pre_screening']
+        read_only_fields = ['user', 'created_at', 'updated_at', 'can_edit', 'can_cancel', 'can_reschedule', 'customer_label', 'pre_screening']
 
     def validate_phone(self, value):
         digits = ''.join(character for character in value if character.isdigit())
@@ -82,6 +84,9 @@ class BookingSerializer(serializers.ModelSerializer):
 
     def get_can_cancel(self, obj):
         return obj.status in [Booking.STATUS_PENDING, Booking.STATUS_CONFIRMED, Booking.STATUS_DELAYED]
+
+    def get_can_reschedule(self, obj):
+        return obj.status == Booking.STATUS_DELAYED and not obj.rescheduled_bookings.exists()
 
     def get_customer_label(self, obj):
         return f'{obj.full_name} - {obj.phone}'

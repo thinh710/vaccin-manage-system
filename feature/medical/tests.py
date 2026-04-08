@@ -273,6 +273,81 @@ class MedicalApiTests(APITestCase):
         )
         self.assertEqual(screening_response.status_code, status.HTTP_201_CREATED)
 
+    def test_pre_screening_get_returns_envelope_with_declaration_and_screening_result(self):
+        citizen = User.objects.create(
+            full_name="Citizen Envelope",
+            email="citizen-envelope@example.com",
+            password_hash="x",
+            role=User.ROLE_CITIZEN,
+            status=User.STATUS_ACTIVE,
+        )
+        booking = Booking.objects.create(
+            user=citizen,
+            full_name="Citizen Envelope",
+            phone="0912555666",
+            email=citizen.email,
+            vaccine_name="Flu",
+            vaccine_date=timezone.localdate(),
+            dose_number=1,
+            status=Booking.STATUS_CHECKED_IN,
+            booking_source=Booking.BOOKING_SOURCE_ONLINE,
+        )
+        declaration = PreScreeningDeclaration.objects.create(
+            booking=booking,
+            has_fever=False,
+            has_allergy_history=True,
+            has_chronic_condition=False,
+            recent_symptoms="Ho nhe",
+            current_medications="Vitamin C",
+            note="Da khai bao",
+        )
+        screening_result = ScreeningResult.objects.create(
+            booking=booking,
+            temperature=36.6,
+            blood_pressure="118/78",
+            decision=ScreeningResult.DECISION_ELIGIBLE,
+            doctor_note="Dat dieu kien",
+        )
+
+        self._login_as(citizen)
+        response = self.client.get(reverse("medical-pre-screening", args=[booking.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["booking"], booking.id)
+        self.assertEqual(response.data["declaration"]["id"], declaration.id)
+        self.assertEqual(response.data["declaration"]["recent_symptoms"], "Ho nhe")
+        self.assertEqual(response.data["screening_result"]["id"], screening_result.id)
+        self.assertEqual(response.data["screening_result"]["decision"], ScreeningResult.DECISION_ELIGIBLE)
+        self.assertEqual(response.data["screening_result"]["doctor_note"], "Dat dieu kien")
+
+    def test_pre_screening_get_returns_null_envelope_when_data_missing(self):
+        citizen = User.objects.create(
+            full_name="Citizen Empty Envelope",
+            email="citizen-empty-envelope@example.com",
+            password_hash="x",
+            role=User.ROLE_CITIZEN,
+            status=User.STATUS_ACTIVE,
+        )
+        booking = Booking.objects.create(
+            user=citizen,
+            full_name="Citizen Empty Envelope",
+            phone="0912777888",
+            email=citizen.email,
+            vaccine_name="Flu",
+            vaccine_date=timezone.localdate(),
+            dose_number=1,
+            status=Booking.STATUS_PENDING,
+            booking_source=Booking.BOOKING_SOURCE_ONLINE,
+        )
+
+        self._login_as(citizen)
+        response = self.client.get(reverse("medical-pre-screening", args=[booking.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["booking"], booking.id)
+        self.assertIsNone(response.data["declaration"])
+        self.assertIsNone(response.data["screening_result"])
+
     def test_staff_reschedule_restarts_booking_from_pending(self):
         staff = User.objects.create(
             full_name="Staff",
@@ -420,3 +495,38 @@ class MedicalApiTests(APITestCase):
         new_booking = Booking.objects.get(pk=response.data["id"])
         self.assertEqual(new_booking.status, Booking.STATUS_PENDING)
         self.assertEqual(new_booking.rescheduled_from_id, source.id)
+
+    def test_reschedule_rejects_second_replacement_for_same_source(self):
+        staff = User.objects.create(
+            full_name="Staff Second Guard",
+            email="staff-second-guard@example.com",
+            password_hash="x",
+            role=User.ROLE_STAFF,
+            status=User.STATUS_ACTIVE,
+        )
+        source = Booking.objects.create(
+            full_name="Tran Thi Guard",
+            phone="0911444555",
+            email="guard@example.com",
+            vaccine_name="Flu",
+            vaccine_date=timezone.localdate(),
+            dose_number=1,
+            status=Booking.STATUS_DELAYED,
+            booking_source=Booking.BOOKING_SOURCE_ONLINE,
+        )
+        self._login_as(staff)
+
+        first_response = self.client.post(
+            reverse("medical-reschedule", args=[source.id]),
+            {"vaccine_date": timezone.localdate() + timedelta(days=3)},
+            format="json",
+        )
+        second_response = self.client.post(
+            reverse("medical-reschedule", args=[source.id]),
+            {"vaccine_date": timezone.localdate() + timedelta(days=4)},
+            format="json",
+        )
+
+        self.assertEqual(first_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("lịch thay thế", second_response.data["detail"])

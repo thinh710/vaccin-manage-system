@@ -1,3 +1,6 @@
+let reschedulingBookingId = null;
+let allPortalBookings = [];
+
 (function () {
     const config = window.bookingPortalConfig || {};
     const initialBookingsNode = document.getElementById("initial-bookings-data");
@@ -25,6 +28,7 @@
     const doseNumberInput = document.getElementById("dose-number");
     const statusInput = document.getElementById("status");
     const noteInput = document.getElementById("note");
+    const isCitizenUser = config.userRole === "citizen";
 
     const defaultValues = {
         fullName: fullNameInput?.value || "",
@@ -61,8 +65,21 @@
         alertBox.classList.remove("is-error");
     }
 
+    function setEditLockedFields(isEditing) {
+        fullNameInput.readOnly = isCitizenUser;
+        emailInput.readOnly = isCitizenUser;
+
+        if (!isCitizenUser) {
+            return;
+        }
+
+        vaccineNameInput.disabled = isEditing;
+        doseNumberInput.readOnly = isEditing;
+        statusInput.disabled = isEditing;
+    }
+
     function collectFormPayload() {
-        return {
+        const fullPayload = {
             full_name: fullNameInput.value.trim(),
             phone: phoneInput.value.trim(),
             email: emailInput.value.trim(),
@@ -72,6 +89,16 @@
             status: statusInput.value,
             note: noteInput.value.trim(),
         };
+
+        if (editingBookingId && isCitizenUser) {
+            return {
+                phone: fullPayload.phone,
+                vaccine_date: fullPayload.vaccine_date,
+                note: fullPayload.note,
+            };
+        }
+
+        return fullPayload;
     }
 
     function resetForm() {
@@ -91,6 +118,7 @@
         doseNumberInput.value = "1";
         statusInput.value = "pending";
         vaccineDateInput.value = "";
+        setEditLockedFields(false);
     }
 
     function startEdit(booking) {
@@ -110,6 +138,7 @@
         document.getElementById("submit-btn").textContent = "Lưu thay đổi";
         cancelEditButton.hidden = false;
         clearAlert();
+        setEditLockedFields(isCitizenUser);
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -150,7 +179,7 @@
             const editAction = booking.can_edit
                 ? `<button class="action-btn" type="button" data-action="edit" data-id="${booking.id}">Sửa</button>`
                 : "";
-            const rescheduleAction = booking.status === 'delayed'
+            const rescheduleAction = booking.can_reschedule
                 ? `<button class="action-btn" type="button" data-action="reschedule" data-id="${booking.id}">Đặt lại lịch</button>`
                 : "";
             const cancelAction = booking.can_cancel
@@ -189,6 +218,7 @@
         const response = await fetch("/booking/" + suffix, { credentials: "same-origin" });
         const data = await response.json();
         bookings = Array.isArray(data) ? data : [];
+        allPortalBookings = bookings.slice();
         renderTable();
     }
 
@@ -294,11 +324,9 @@
         }
     }
 
+    allPortalBookings = bookings.slice();
     renderTable();
 })();
-
-let reschedulingBookingId = null;
-let allPortalBookings = [];
 
 function openRescheduleModal(bookingId) {
     reschedulingBookingId = bookingId;
@@ -372,15 +400,8 @@ async function openDeclarationModal(bookingId) {
     const modal = document.getElementById('declaration-modal');
     if (!modal) return;
 
-    // Lấy thông tin booking từ danh sách đã render
-    const allRows = document.querySelectorAll('#booking-table-body tr');
-    let bookingInfo = null;
-    // Fallback: tìm trong initial_bookings data
-    try {
-        const raw = document.getElementById('initial-bookings-data');
-        const list = raw ? JSON.parse(raw.textContent) : [];
-        bookingInfo = list.find(b => String(b.id) === String(bookingId));
-    } catch (_) {}
+    const bookingInfo =
+        allPortalBookings.find((booking) => String(booking.id) === String(bookingId)) || null;
 
     if (bookingInfo) {
         document.getElementById('decl-modal-title').textContent = `Khai báo trước tiêm — ${bookingInfo.vaccine_name}`;
@@ -429,15 +450,12 @@ async function openDeclarationModal(bookingId) {
             document.getElementById('decl-result-text').style.color = decision === 'eligible' ? '#166534' : '#92400e';
             resultBox.style.display = 'block';
 
-            // Disable form nếu đã có kết quả sàng lọc (không cần khai báo thêm)
-            const canEdit = ['pending', 'confirmed', 'checked_in', 'delayed'].includes(bookingInfo?.status);
-            setDeclarationFormEnabled(canEdit);
-        } else {
-            setDeclarationFormEnabled(true);
         }
+        const canEdit = ['pending', 'confirmed', 'checked_in', 'delayed'].includes(bookingInfo?.status);
+        setDeclarationFormEnabled(canEdit);
     } catch (e) {
         console.error('Không tải được dữ liệu khai báo:', e);
-        setDeclarationFormEnabled(true);
+        setDeclarationFormEnabled(['pending', 'confirmed', 'checked_in', 'delayed'].includes(bookingInfo?.status));
     }
 
     modal.style.display = 'flex';
