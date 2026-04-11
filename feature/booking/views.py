@@ -102,11 +102,178 @@ def _build_portal_context(user):
     }
 
 
+def _build_filtered_portal_context(request, user, *, error_message="", success_message=""):
+    context = _build_portal_context(user)
+    bookings = _scope_bookings_for_user(Booking.objects.select_related("user").all(), user)
+
+    keyword = request.GET.get("q", "").strip()
+    booking_status = request.GET.get("status", "").strip()
+    vaccine_date = request.GET.get("date", "").strip()
+    edit_id = request.GET.get("edit", "").strip()
+
+    if keyword:
+        bookings = bookings.filter(
+            Q(full_name__icontains=keyword)
+            | Q(phone__icontains=keyword)
+            | Q(vaccine_name__icontains=keyword)
+        )
+    if booking_status:
+        bookings = bookings.filter(status=booking_status)
+    if vaccine_date:
+        bookings = bookings.filter(vaccine_date=vaccine_date)
+
+    edit_booking = None
+    if edit_id:
+        edit_booking = _scope_bookings_for_user(Booking.objects.filter(pk=edit_id), user).first()
+
+    context.update(
+        {
+            "bookings": bookings.order_by("vaccine_date", "-id"),
+            "filter_keyword": keyword,
+            "filter_status": booking_status,
+            "filter_date": vaccine_date,
+            "edit_booking": edit_booking,
+            "error_message": error_message,
+            "success_message": success_message,
+        }
+    )
+    return context
+
+
 def booking_portal(request):
     user, redirect_response = _require_session_user(request)
     if redirect_response:
         return redirect_response
-    return render(request, "booking/portal.html", _build_portal_context(user))
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action in {"create", "update"}:
+            payload = request.POST.copy()
+            booking_id = payload.get("booking_id")
+            if user.role == User.ROLE_CITIZEN:
+                payload["full_name"] = payload.get("full_name") or user.full_name
+                payload["phone"] = payload.get("phone") or user.phone_number
+                payload["email"] = payload.get("email") or user.email
+                payload["status"] = Booking.STATUS_PENDING
+
+            booking_owner, error_response = _resolve_booking_owner(payload, user)
+            if error_response:
+                return render(
+                    request,
+                    "booking/portal.html",
+                    _build_filtered_portal_context(request, user, error_message=error_response.data.get("detail", "Không thể lưu booking.")),
+                )
+
+            if action == "update" and booking_id:
+                booking = _scope_bookings_for_user(Booking.objects.filter(pk=booking_id), user).first()
+                if not booking:
+                    return render(
+                        request,
+                        "booking/portal.html",
+                        _build_filtered_portal_context(request, user, error_message="Không tìm thấy booking để cập nhật."),
+                    )
+                serializer = BookingSerializer(
+                    booking,
+                    data=payload,
+                    partial=True,
+                    context={"request": request, "session_user": user},
+                )
+            else:
+                serializer = BookingSerializer(data=payload, context={"request": request, "session_user": user})
+
+            if serializer.is_valid():
+                if action == "update" and booking_id:
+                    serializer.save()
+                    return render(
+                        request,
+                        "booking/portal.html",
+                        _build_filtered_portal_context(request, user, success_message="Đã cập nhật booking."),
+                    )
+                serializer.save(user=booking_owner)
+                return render(
+                    request,
+                    "booking/portal.html",
+                    _build_filtered_portal_context(request, user, success_message="Đã tạo booking."),
+                )
+
+            error_text = " ".join(str(message) for messages in serializer.errors.values() for message in messages)
+            return render(
+                request,
+                "booking/portal.html",
+                _build_filtered_portal_context(request, user, error_message=error_text or "Dữ liệu booking không hợp lệ."),
+            )
+
+        if action == "cancel":
+            booking = _scope_bookings_for_user(Booking.objects.filter(pk=request.POST.get("booking_id")), user).first()
+            if not booking:
+                return render(
+                    request,
+                    "booking/portal.html",
+                    _build_filtered_portal_context(request, user, error_message="Không tìm thấy booking để hủy."),
+                )
+            serializer = BookingSerializer(
+                booking,
+                data={"status": Booking.STATUS_CANCELLED},
+                partial=True,
+                context={"request": request, "session_user": user},
+            )
+            if serializer.is_valid():
+                serializer.save()
+                return render(
+                    request,
+                    "booking/portal.html",
+                    _build_filtered_portal_context(request, user, success_message="Đã hủy booking."),
+                )
+            error_text = " ".join(str(message) for messages in serializer.errors.values() for message in messages)
+            return render(
+                request,
+                "booking/portal.html",
+                _build_filtered_portal_context(request, user, error_message=error_text or "Không thể hủy booking."),
+            )
+
+        if action == "reschedule":
+            source = _scope_bookings_for_user(Booking.objects.filter(pk=request.POST.get("booking_id")), user).first()
+            new_date = request.POST.get("vaccine_date")
+            if not source:
+                return render(
+                    request,
+                    "booking/portal.html",
+                    _build_filtered_portal_context(request, user, error_message="Không tìm thấy booking để đặt lại lịch."),
+                )
+            if source.status != Booking.STATUS_DELAYED:
+                return render(
+                    request,
+                    "booking/portal.html",
+                    _build_filtered_portal_context(request, user, error_message="Chỉ có thể đặt lại lịch cho booking đang tạm hoãn."),
+                )
+
+            payload = {
+                "full_name": source.full_name,
+                "phone": source.phone,
+                "email": source.email,
+                "vaccine_name": source.vaccine_name,
+                "vaccine_date": new_date,
+                "dose_number": source.dose_number,
+                "note": source.note,
+                "status": Booking.STATUS_PENDING,
+            }
+            validation_user = source.user if source.user and source.user.role == User.ROLE_CITIZEN else user
+            serializer = BookingSerializer(data=payload, context={"session_user": validation_user})
+            if serializer.is_valid():
+                serializer.save(user=source.user, booking_source=source.booking_source, rescheduled_from=source)
+                return render(
+                    request,
+                    "booking/portal.html",
+                    _build_filtered_portal_context(request, user, success_message="Đã tạo booking đặt lại lịch."),
+                )
+            error_text = " ".join(str(message) for messages in serializer.errors.values() for message in messages)
+            return render(
+                request,
+                "booking/portal.html",
+                _build_filtered_portal_context(request, user, error_message=error_text or "Không thể đặt lại lịch."),
+            )
+
+    return render(request, "booking/portal.html", _build_filtered_portal_context(request, user))
 
 
 @api_view(["GET", "POST"])

@@ -17,49 +17,81 @@ from .models import User
 from .serializers import LoginSerializer, RegisterSerializer, UserSerializer
 
 
-GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
-GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
-GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo'
-FACEBOOK_AUTH_URL = 'https://www.facebook.com/v19.0/dialog/oauth'
-FACEBOOK_TOKEN_URL = 'https://graph.facebook.com/v19.0/oauth/access_token'
-FACEBOOK_USERINFO_URL = 'https://graph.facebook.com/me'
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+FACEBOOK_AUTH_URL = "https://www.facebook.com/v19.0/dialog/oauth"
+FACEBOOK_TOKEN_URL = "https://graph.facebook.com/v19.0/oauth/access_token"
+FACEBOOK_USERINFO_URL = "https://graph.facebook.com/me"
+
+
+def _is_html_form_request(request: HttpRequest) -> bool:
+    content_type = request.content_type or ""
+    return content_type.startswith("application/x-www-form-urlencoded") or content_type.startswith(
+        "multipart/form-data"
+    )
 
 
 def _build_login_page_redirect(message: str):
-    query = urlencode({'social_error': message})
+    query = urlencode({"social_error": message})
     return redirect(f"{reverse('login-page')}?{query}")
 
 
 def _build_redirect_uri(request: HttpRequest, env_name: str, route_name: str) -> str:
-    configured_uri = os.getenv(env_name, '').strip()
+    configured_uri = os.getenv(env_name, "").strip()
     if configured_uri:
         return configured_uri
     return request.build_absolute_uri(reverse(route_name))
 
 
-def _oauth_json_request(url: str, method: str = 'GET', data: dict | None = None, headers: dict | None = None):
-    request_headers = {'Accept': 'application/json'}
+def _render_login_page(request: HttpRequest, *, error_message: str = "", success_message: str = ""):
+    return render(
+        request,
+        "authentication/login.html",
+        {
+            "error_message": error_message or request.GET.get("social_error", ""),
+            "success_message": success_message,
+            "email_value": request.POST.get("email", "").strip(),
+        },
+    )
+
+
+def _render_register_page(request: HttpRequest, *, error_message: str = "", success_message: str = ""):
+    return render(
+        request,
+        "authentication/register.html",
+        {
+            "error_message": error_message,
+            "success_message": success_message,
+            "full_name_value": request.POST.get("full_name", "").strip(),
+            "email_value": request.POST.get("email", "").strip(),
+        },
+    )
+
+
+def _oauth_json_request(url: str, method: str = "GET", data: dict | None = None, headers: dict | None = None):
+    request_headers = {"Accept": "application/json"}
     if headers:
         request_headers.update(headers)
 
     payload = None
     if data is not None:
-        payload = urlencode(data).encode('utf-8')
-        request_headers.setdefault('Content-Type', 'application/x-www-form-urlencoded')
+        payload = urlencode(data).encode("utf-8")
+        request_headers.setdefault("Content-Type", "application/x-www-form-urlencoded")
 
     request_object = Request(url, data=payload, headers=request_headers, method=method)
     with urlopen(request_object, timeout=15) as response:
-        return json.loads(response.read().decode('utf-8'))
+        return json.loads(response.read().decode("utf-8"))
 
 
-def _fetch_json_or_raise(url: str, method: str = 'GET', data: dict | None = None, headers: dict | None = None):
+def _fetch_json_or_raise(url: str, method: str = "GET", data: dict | None = None, headers: dict | None = None):
     try:
         return _oauth_json_request(url, method=method, data=data, headers=headers)
     except HTTPError as error:
-        error_body = error.read().decode('utf-8', errors='ignore')
-        raise ValueError(error_body or 'OAuth provider rejected the request.') from error
+        error_body = error.read().decode("utf-8", errors="ignore")
+        raise ValueError(error_body or "OAuth provider rejected the request.") from error
     except URLError as error:
-        raise ValueError(str(error.reason) or 'OAuth provider is unreachable.') from error
+        raise ValueError(str(error.reason) or "OAuth provider is unreachable.") from error
 
 
 def _start_social_flow(
@@ -69,36 +101,36 @@ def _start_social_flow(
     redirect_uri_env: str,
     route_name: str,
 ):
-    client_id = os.getenv(client_id_env, '').strip()
+    client_id = os.getenv(client_id_env, "").strip()
     if not client_id:
         return _build_login_page_redirect(
-            f'Bạn cần cấu hình {client_id_env} trong file .env trước khi đăng nhập bằng {provider}.'
+            f"Bạn cần cấu hình {client_id_env} trong file .env trước khi đăng nhập bằng {provider}."
         )
 
     state = secrets.token_urlsafe(24)
-    request.session[f'oauth_state_{provider}'] = state
+    request.session[f"oauth_state_{provider}"] = state
     redirect_uri = _build_redirect_uri(request, redirect_uri_env, route_name)
 
     if provider == User.AUTH_PROVIDER_GOOGLE:
         params = {
-            'client_id': client_id,
-            'redirect_uri': redirect_uri,
-            'response_type': 'code',
-            'scope': 'openid email profile',
-            'state': state,
-            'access_type': 'online',
-            'prompt': 'select_account',
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "scope": "openid email profile",
+            "state": state,
+            "access_type": "online",
+            "prompt": "select_account",
         }
-        return redirect(f'{GOOGLE_AUTH_URL}?{urlencode(params)}')
+        return redirect(f"{GOOGLE_AUTH_URL}?{urlencode(params)}")
 
     params = {
-        'client_id': client_id,
-        'redirect_uri': redirect_uri,
-        'response_type': 'code',
-        'scope': 'email,public_profile',
-        'state': state,
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "email,public_profile",
+        "state": state,
     }
-    return redirect(f'{FACEBOOK_AUTH_URL}?{urlencode(params)}')
+    return redirect(f"{FACEBOOK_AUTH_URL}?{urlencode(params)}")
 
 
 def _get_or_create_social_user(
@@ -107,17 +139,17 @@ def _get_or_create_social_user(
     full_name: str,
     provider: str,
     provider_user_id: str,
-    avatar_url: str = '',
+    avatar_url: str = "",
 ):
     normalized_email = email.strip().lower()
     user = User.objects.filter(email=normalized_email).first()
 
     if user and user.role != User.ROLE_CITIZEN:
-        raise ValueError('Tài khoản này đang thuộc nhóm admin/staff và không được đăng nhập qua mạng xã hội.')
+        raise ValueError("Tài khoản này thuộc nhóm nội bộ và không được đăng nhập qua mạng xã hội.")
 
     if user:
         if user.status != User.STATUS_ACTIVE:
-            raise ValueError('Tài khoản này chưa sẵn sàng để đăng nhập.')
+            raise ValueError("Tài khoản này chưa sẵn sàng để đăng nhập.")
         if not user.full_name and full_name:
             user.full_name = full_name
         if avatar_url and not user.avatar_data:
@@ -125,11 +157,13 @@ def _get_or_create_social_user(
         user.auth_provider = provider
         user.provider_user_id = provider_user_id
         user.role = User.ROLE_CITIZEN
-        user.save(update_fields=['full_name', 'avatar_data', 'auth_provider', 'provider_user_id', 'role', 'updated_at'])
+        user.save(
+            update_fields=["full_name", "avatar_data", "auth_provider", "provider_user_id", "role", "updated_at"]
+        )
         return user
 
     return User.objects.create(
-        full_name=full_name or normalized_email.split('@')[0],
+        full_name=full_name or normalized_email.split("@")[0],
         email=normalized_email,
         password_hash=make_password(secrets.token_urlsafe(32)),
         avatar_data=avatar_url,
@@ -147,10 +181,10 @@ def _complete_social_login(
     provider_user_id: str,
     email: str,
     full_name: str,
-    avatar_url: str = '',
+    avatar_url: str = "",
 ):
     if not email:
-        raise ValueError('Tài khoản mạng xã hội này chưa trả về email, không thể tạo user.')
+        raise ValueError("Tài khoản mạng xã hội này chưa trả về email, không thể tạo user.")
 
     user = _get_or_create_social_user(
         email=email,
@@ -159,31 +193,37 @@ def _complete_social_login(
         provider_user_id=provider_user_id,
         avatar_url=avatar_url,
     )
-    request.session['user_id'] = user.id
-    return redirect('/users/dashboard/')
+    request.session["user_id"] = user.id
+    return redirect("/users/dashboard/")
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def login_page(request: HttpRequest):
-    return render(request, 'authentication/login.html')
+    return _render_login_page(request)
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def register_page(request: HttpRequest):
-    return render(request, 'authentication/register.html')
+    return _render_register_page(request)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def register_view(request):
     serializer = RegisterSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
+    if not serializer.is_valid():
+        if _is_html_form_request(request):
+            error_text = " ".join(str(message) for messages in serializer.errors.values() for message in messages)
+            return _render_register_page(request, error_message=error_text or "Dữ liệu đăng ký không hợp lệ.")
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    full_name = serializer.validated_data['full_name']
-    email = serializer.validated_data['email']
-    password = serializer.validated_data['password']
+    full_name = serializer.validated_data["full_name"]
+    email = serializer.validated_data["email"]
+    password = serializer.validated_data["password"]
 
     if User.objects.filter(email=email).exists():
-        return Response({'email': ['Email đã tồn tại.']}, status=status.HTTP_400_BAD_REQUEST)
+        if _is_html_form_request(request):
+            return _render_register_page(request, error_message="Email đã tồn tại.")
+        return Response({"email": ["Email đã tồn tại."]}, status=status.HTTP_400_BAD_REQUEST)
 
     user = User.objects.create(
         full_name=full_name,
@@ -193,174 +233,192 @@ def register_view(request):
         status=User.STATUS_ACTIVE,
         auth_provider=User.AUTH_PROVIDER_LOCAL,
     )
-    request.session['user_id'] = user.id
+    request.session["user_id"] = user.id
+
+    if _is_html_form_request(request):
+        return redirect("/users/dashboard/")
 
     return Response(
         {
-            'message': 'Đăng ký thành công.',
-            'user': UserSerializer(user).data,
+            "message": "Đăng ký thành công.",
+            "user": UserSerializer(user).data,
         },
         status=status.HTTP_201_CREATED,
     )
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def login_view(request):
     serializer = LoginSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
+    if not serializer.is_valid():
+        if _is_html_form_request(request):
+            error_text = " ".join(str(message) for messages in serializer.errors.values() for message in messages)
+            return _render_login_page(request, error_message=error_text or "Thông tin đăng nhập không hợp lệ.")
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    email = serializer.validated_data['email']
-    password = serializer.validated_data['password']
+    email = serializer.validated_data["email"]
+    password = serializer.validated_data["password"]
 
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
-        return Response({'detail': 'Email hoặc mật khẩu không đúng.'}, status=status.HTTP_401_UNAUTHORIZED)
+        if _is_html_form_request(request):
+            return _render_login_page(request, error_message="Email hoặc mật khẩu không đúng.")
+        return Response({"detail": "Email hoặc mật khẩu không đúng."}, status=status.HTTP_401_UNAUTHORIZED)
 
     if user.status != User.STATUS_ACTIVE:
-        return Response({'detail': 'Tài khoản chưa sẵn sàng để đăng nhập.'}, status=status.HTTP_403_FORBIDDEN)
+        if _is_html_form_request(request):
+            return _render_login_page(request, error_message="Tài khoản chưa sẵn sàng để đăng nhập.")
+        return Response({"detail": "Tài khoản chưa sẵn sàng để đăng nhập."}, status=status.HTTP_403_FORBIDDEN)
 
     if not check_password(password, user.password_hash):
-        return Response({'detail': 'Email hoặc mật khẩu không đúng.'}, status=status.HTTP_401_UNAUTHORIZED)
+        if _is_html_form_request(request):
+            return _render_login_page(request, error_message="Email hoặc mật khẩu không đúng.")
+        return Response({"detail": "Email hoặc mật khẩu không đúng."}, status=status.HTTP_401_UNAUTHORIZED)
 
-    request.session['user_id'] = user.id
-    return Response({'message': 'Đăng nhập thành công.', 'user': UserSerializer(user).data})
+    request.session["user_id"] = user.id
+    if _is_html_form_request(request):
+        return redirect("/users/dashboard/")
+
+    return Response({"message": "Đăng nhập thành công.", "user": UserSerializer(user).data})
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def logout_view(request):
     request.session.flush()
-    return Response({'message': 'Đăng xuất thành công.'})
+    if _is_html_form_request(request):
+        return redirect("/auth/login-page/")
+    return Response({"message": "Đăng xuất thành công."})
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def me_view(request):
-    user_id = request.session.get('user_id')
+    user_id = request.session.get("user_id")
     if not user_id:
-        return Response({'detail': 'Bạn chưa đăng nhập.'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"detail": "Bạn chưa đăng nhập."}, status=status.HTTP_401_UNAUTHORIZED)
 
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
         request.session.flush()
-        return Response({'detail': 'Phiên đăng nhập không hợp lệ.'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"detail": "Phiên đăng nhập không hợp lệ."}, status=status.HTTP_401_UNAUTHORIZED)
 
     return Response(UserSerializer(user).data)
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def google_login_start(request: HttpRequest):
     return _start_social_flow(
         request,
         provider=User.AUTH_PROVIDER_GOOGLE,
-        client_id_env='GOOGLE_CLIENT_ID',
-        redirect_uri_env='GOOGLE_REDIRECT_URI',
-        route_name='google-login-callback',
+        client_id_env="GOOGLE_CLIENT_ID",
+        redirect_uri_env="GOOGLE_REDIRECT_URI",
+        route_name="google-login-callback",
     )
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def facebook_login_start(request: HttpRequest):
     return _start_social_flow(
         request,
         provider=User.AUTH_PROVIDER_FACEBOOK,
-        client_id_env='FACEBOOK_APP_ID',
-        redirect_uri_env='FACEBOOK_REDIRECT_URI',
-        route_name='facebook-login-callback',
+        client_id_env="FACEBOOK_APP_ID",
+        redirect_uri_env="FACEBOOK_REDIRECT_URI",
+        route_name="facebook-login-callback",
     )
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def google_login_callback(request: HttpRequest):
-    error_message = request.GET.get('error')
+    error_message = request.GET.get("error")
     if error_message:
-        return _build_login_page_redirect('Đăng nhập Google đã bị hủy.')
+        return _build_login_page_redirect("Đăng nhập Google đã bị hủy.")
 
-    expected_state = request.session.pop('oauth_state_google', '')
-    if not expected_state or expected_state != request.GET.get('state'):
-        return _build_login_page_redirect('Phiên đăng nhập Google không hợp lệ.')
+    expected_state = request.session.pop("oauth_state_google", "")
+    if not expected_state or expected_state != request.GET.get("state"):
+        return _build_login_page_redirect("Phiên đăng nhập Google không hợp lệ.")
 
-    code = request.GET.get('code', '').strip()
+    code = request.GET.get("code", "").strip()
     if not code:
-        return _build_login_page_redirect('Google không trả về mã xác thực.')
+        return _build_login_page_redirect("Google không trả về mã xác thực.")
 
-    client_id = os.getenv('GOOGLE_CLIENT_ID', '').strip()
-    client_secret = os.getenv('GOOGLE_CLIENT_SECRET', '').strip()
+    client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+    client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
     if not client_id or not client_secret:
-        return _build_login_page_redirect('Bạn cần cấu hình GOOGLE_CLIENT_ID và GOOGLE_CLIENT_SECRET trong file .env.')
+        return _build_login_page_redirect("Bạn cần cấu hình GOOGLE_CLIENT_ID và GOOGLE_CLIENT_SECRET trong file .env.")
 
-    redirect_uri = _build_redirect_uri(request, 'GOOGLE_REDIRECT_URI', 'google-login-callback')
+    redirect_uri = _build_redirect_uri(request, "GOOGLE_REDIRECT_URI", "google-login-callback")
 
     try:
         token_data = _fetch_json_or_raise(
             GOOGLE_TOKEN_URL,
-            method='POST',
+            method="POST",
             data={
-                'code': code,
-                'client_id': client_id,
-                'client_secret': client_secret,
-                'redirect_uri': redirect_uri,
-                'grant_type': 'authorization_code',
+                "code": code,
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
             },
         )
         user_info = _fetch_json_or_raise(
             GOOGLE_USERINFO_URL,
-            headers={'Authorization': f"Bearer {token_data['access_token']}"},
+            headers={"Authorization": f"Bearer {token_data['access_token']}"},
         )
         return _complete_social_login(
             request,
             provider=User.AUTH_PROVIDER_GOOGLE,
-            provider_user_id=str(user_info.get('sub', '')),
-            email=user_info.get('email', ''),
-            full_name=user_info.get('name', ''),
-            avatar_url=user_info.get('picture', ''),
+            provider_user_id=str(user_info.get("sub", "")),
+            email=user_info.get("email", ""),
+            full_name=user_info.get("name", ""),
+            avatar_url=user_info.get("picture", ""),
         )
     except (KeyError, ValueError) as error:
-        return _build_login_page_redirect(f'Đăng nhập Google thất bại: {error}')
+        return _build_login_page_redirect(f"Đăng nhập Google thất bại: {error}")
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def facebook_login_callback(request: HttpRequest):
-    error_message = request.GET.get('error') or request.GET.get('error_reason')
+    error_message = request.GET.get("error") or request.GET.get("error_reason")
     if error_message:
-        return _build_login_page_redirect('Đăng nhập Facebook đã bị hủy.')
+        return _build_login_page_redirect("Đăng nhập Facebook đã bị hủy.")
 
-    expected_state = request.session.pop('oauth_state_facebook', '')
-    if not expected_state or expected_state != request.GET.get('state'):
-        return _build_login_page_redirect('Phiên đăng nhập Facebook không hợp lệ.')
+    expected_state = request.session.pop("oauth_state_facebook", "")
+    if not expected_state or expected_state != request.GET.get("state"):
+        return _build_login_page_redirect("Phiên đăng nhập Facebook không hợp lệ.")
 
-    code = request.GET.get('code', '').strip()
+    code = request.GET.get("code", "").strip()
     if not code:
-        return _build_login_page_redirect('Facebook không trả về mã xác thực.')
+        return _build_login_page_redirect("Facebook không trả về mã xác thực.")
 
-    app_id = os.getenv('FACEBOOK_APP_ID', '').strip()
-    app_secret = os.getenv('FACEBOOK_APP_SECRET', '').strip()
+    app_id = os.getenv("FACEBOOK_APP_ID", "").strip()
+    app_secret = os.getenv("FACEBOOK_APP_SECRET", "").strip()
     if not app_id or not app_secret:
-        return _build_login_page_redirect('Bạn cần cấu hình FACEBOOK_APP_ID và FACEBOOK_APP_SECRET trong file .env.')
+        return _build_login_page_redirect("Bạn cần cấu hình FACEBOOK_APP_ID và FACEBOOK_APP_SECRET trong file .env.")
 
-    redirect_uri = _build_redirect_uri(request, 'FACEBOOK_REDIRECT_URI', 'facebook-login-callback')
+    redirect_uri = _build_redirect_uri(request, "FACEBOOK_REDIRECT_URI", "facebook-login-callback")
 
     try:
         token_data = _fetch_json_or_raise(
             FACEBOOK_TOKEN_URL,
             data={
-                'client_id': app_id,
-                'client_secret': app_secret,
-                'redirect_uri': redirect_uri,
-                'code': code,
+                "client_id": app_id,
+                "client_secret": app_secret,
+                "redirect_uri": redirect_uri,
+                "code": code,
             },
         )
         user_info = _fetch_json_or_raise(
             f"{FACEBOOK_USERINFO_URL}?{urlencode({'fields': 'id,name,email,picture.type(large)', 'access_token': token_data['access_token']})}"
         )
-        picture_data = user_info.get('picture', {}).get('data', {})
+        picture_data = user_info.get("picture", {}).get("data", {})
         return _complete_social_login(
             request,
             provider=User.AUTH_PROVIDER_FACEBOOK,
-            provider_user_id=str(user_info.get('id', '')),
-            email=user_info.get('email', ''),
-            full_name=user_info.get('name', ''),
-            avatar_url=picture_data.get('url', ''),
+            provider_user_id=str(user_info.get("id", "")),
+            email=user_info.get("email", ""),
+            full_name=user_info.get("name", ""),
+            avatar_url=picture_data.get("url", ""),
         )
     except (KeyError, ValueError) as error:
-        return _build_login_page_redirect(f'Đăng nhập Facebook thất bại: {error}')
+        return _build_login_page_redirect(f"Đăng nhập Facebook thất bại: {error}")

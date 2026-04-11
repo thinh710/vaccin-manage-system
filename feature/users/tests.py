@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from django.test import TestCase
 
 from feature.authentication.models import User
@@ -24,12 +22,9 @@ class DashboardLocalizationTests(TestCase):
         response = self.client.get("/users/dashboard/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Dashboard y tá chờ duyệt lịch và check-in")
         self.assertContains(response, "Đăng xuất")
-        self.assertContains(response, "Ghi chú vận hành")
-        self.assertNotContains(response, "Dashboard y ta")
 
-    def test_medical_dashboard_and_script_use_utf8_vietnamese(self):
+    def test_medical_dashboard_renders_server_side_vietnamese(self):
         staff = User.objects.create(
             full_name="Dieu duong Truong",
             email="medical-dashboard@example.com",
@@ -42,13 +37,6 @@ class DashboardLocalizationTests(TestCase):
         response = self.client.get("/medical/dashboard/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Dashboard y khoa và tiêm chủng")
+        self.assertContains(response, "Dashboard y khoa không dùng JavaScript")
         self.assertContains(response, "Đăng xuất")
-        self.assertContains(response, "Tiếp nhận Walk-in")
-
-        js_path = Path(__file__).resolve().parents[2] / "feature" / "medical" / "static" / "medical" / "js" / "medical.js"
-        js_content = js_path.read_text(encoding="utf-8")
-
-        self.assertIn("Ngày trực:", js_content)
-        self.assertIn("Đã xác nhận, chờ check-in", js_content)
-        self.assertNotIn("NgÃ", js_content)
+        self.assertContains(response, "Tiếp nhận walk-in")

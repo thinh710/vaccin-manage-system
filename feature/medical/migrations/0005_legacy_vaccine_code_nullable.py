@@ -1,6 +1,26 @@
 from django.db import migrations
 
 
+def make_legacy_vaccine_code_nullable(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+
+    schema_editor.execute(
+        "ALTER TABLE medical_vaccinationlog "
+        "ALTER COLUMN legacy_vaccine_code DROP NOT NULL;"
+    )
+
+
+def make_legacy_vaccine_code_not_nullable(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+
+    schema_editor.execute(
+        "ALTER TABLE medical_vaccinationlog "
+        "ALTER COLUMN legacy_vaccine_code SET NOT NULL;"
+    )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -8,19 +28,8 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql=(
-                        "ALTER TABLE medical_vaccinationlog "
-                        "ALTER COLUMN legacy_vaccine_code DROP NOT NULL;"
-                    ),
-                    reverse_sql=(
-                        "ALTER TABLE medical_vaccinationlog "
-                        "ALTER COLUMN legacy_vaccine_code SET NOT NULL;"
-                    ),
-                ),
-            ],
-            state_operations=[],
+        migrations.RunPython(
+            make_legacy_vaccine_code_nullable,
+            make_legacy_vaccine_code_not_nullable,
         ),
     ]

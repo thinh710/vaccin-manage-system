@@ -12,125 +12,97 @@
         <section class="booking-hero">
             <div>
                 <div class="booking-eyebrow">Trung tâm đặt lịch</div>
-                <h1>
-                    {% if user.role == 'citizen' %}
-                        Đặt lịch tiêm chủng cho bạn và gia đình
-                    {% else %}
-                        Quản lý và điều phối booking tiêm chủng
-                    {% endif %}
-                </h1>
-                <p>
-                    {% if user.role == 'citizen' %}
-                        Chọn vắc xin, ngày tiêm và theo dõi trạng thái booking ngay trên một màn hình.
-                    {% else %}
-                        Theo dõi booking, cập nhật trạng thái và hỗ trợ điều phối các ca tiêm sắp tới.
-                    {% endif %}
-                </p>
+                <h1>Cổng booking không dùng JavaScript</h1>
+                <p>Mọi thao tác tạo, sửa, hủy và đặt lại lịch đều được xử lý bằng form Django thuần.</p>
             </div>
             <div class="booking-hero-actions">
                 <a class="ghost-link" href="/users/dashboard/">Về dashboard</a>
+                <a class="ghost-link" href="/users/screening/">Khai báo sàng lọc</a>
                 <div class="hero-badge">{{ user.full_name }} - {{ user.role }}</div>
             </div>
         </section>
 
         <section class="booking-stats">
-            <article class="stat-card">
-                <span>Tổng booking</span>
-                <strong id="stat-total">{{ booking_stats.total }}</strong>
-            </article>
-            <article class="stat-card">
-                <span>Chờ xác nhận</span>
-                <strong id="stat-pending">{{ booking_stats.pending }}</strong>
-            </article>
-            <article class="stat-card">
-                <span>Đã xác nhận</span>
-                <strong id="stat-confirmed">{{ booking_stats.confirmed }}</strong>
-            </article>
-            <article class="stat-card">
-                <span>Đã hoàn thành</span>
-                <strong id="stat-completed">{{ booking_stats.completed }}</strong>
-            </article>
+            <article class="stat-card"><span>Tổng booking</span><strong>{{ booking_stats.total }}</strong></article>
+            <article class="stat-card"><span>Chờ xác nhận</span><strong>{{ booking_stats.pending }}</strong></article>
+            <article class="stat-card"><span>Đã xác nhận</span><strong>{{ booking_stats.confirmed }}</strong></article>
+            <article class="stat-card"><span>Đã hoàn thành</span><strong>{{ booking_stats.completed }}</strong></article>
         </section>
+
+        {% if error_message %}
+            <div class="form-alert is-error">{{ error_message }}</div>
+        {% endif %}
+        {% if success_message %}
+            <div class="form-alert">{{ success_message }}</div>
+        {% endif %}
 
         <section class="booking-grid">
             <article class="panel panel-form">
                 <div class="panel-head">
                     <div>
-                        <h2 id="form-heading">Tạo booking mới</h2>
-                        <p id="form-subtitle">Thông tin sẽ được lưu và gửi sang quy trình xác nhận.</p>
+                        <h2>{% if edit_booking %}Cập nhật booking{% else %}Tạo booking mới{% endif %}</h2>
+                        <p>Phiên bản này dùng submit toàn trang thay cho mã JavaScript.</p>
                     </div>
                     <div class="mini-badge">Hôm nay {{ today|date:"d/m/Y" }}</div>
                 </div>
 
-                <div id="form-alert" class="form-alert" hidden></div>
-
-                <form id="booking-form">
-                    <input type="hidden" id="booking-id">
+                <form method="post" action="/booking/portal/">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="{% if edit_booking %}update{% else %}create{% endif %}">
+                    <input type="hidden" name="booking_id" value="{% if edit_booking %}{{ edit_booking.id }}{% endif %}">
 
                     <label class="field">
                         <span>Họ và tên</span>
-                        <input id="full-name" type="text" value="{{ user.full_name }}" {% if user.role == 'citizen' %}readonly{% endif %} required>
+                        <input name="full_name" type="text" value="{% if edit_booking %}{{ edit_booking.full_name }}{% else %}{{ user.full_name }}{% endif %}" {% if user.role == 'citizen' %}readonly{% endif %} required>
                     </label>
-
                     <label class="field">
                         <span>Số điện thoại</span>
-                        <input id="phone" type="text" value="{{ user.phone_number }}" required>
+                        <input name="phone" type="text" value="{% if edit_booking %}{{ edit_booking.phone }}{% else %}{{ user.phone_number }}{% endif %}" required>
                     </label>
-
                     <label class="field">
                         <span>Email</span>
-                        <input id="email" type="email" value="{{ user.email }}" {% if user.role == 'citizen' %}readonly{% endif %}>
+                        <input name="email" type="email" value="{% if edit_booking %}{{ edit_booking.email }}{% else %}{{ user.email }}{% endif %}" {% if user.role == 'citizen' %}readonly{% endif %}>
                     </label>
-
                     <label class="field">
                         <span>Loại vắc xin</span>
-                        <select id="vaccine-name" required>
+                        <select name="vaccine_name" required>
                             {% for vaccine in vaccines %}
-                                <option value="{{ vaccine.name }}" data-id="{{ vaccine.id }}" data-qty="{{ vaccine.quantity }}">
+                                <option value="{{ vaccine.name }}" {% if edit_booking and edit_booking.vaccine_name == vaccine.name %}selected{% endif %}>
                                     {{ vaccine.name }} - còn {{ vaccine.quantity }} liều
                                 </option>
                             {% endfor %}
                         </select>
                     </label>
-
                     <div class="field-row">
                         <label class="field">
                             <span>Ngày tiêm</span>
-                            <input id="vaccine-date" type="date" min="{{ today|date:'Y-m-d' }}" required>
+                            <input name="vaccine_date" type="date" min="{{ today|date:'Y-m-d' }}" value="{% if edit_booking %}{{ edit_booking.vaccine_date|date:'Y-m-d' }}{% endif %}" required>
                         </label>
-
                         <label class="field">
                             <span>Mũi thứ</span>
-                            <input id="dose-number" type="number" min="1" value="1" required>
+                            <input name="dose_number" type="number" min="1" value="{% if edit_booking %}{{ edit_booking.dose_number }}{% else %}1{% endif %}" required>
                         </label>
                     </div>
-
                     {% if user.role != 'citizen' %}
                         <label class="field">
                             <span>Trạng thái</span>
-                            <select id="status">
-                                <option value="pending">pending</option>
-                                <option value="confirmed">confirmed</option>
-                                <option value="checked_in">checked_in</option>
-                                <option value="ready_to_inject">ready_to_inject</option>
-                                <option value="in_observation">in_observation</option>
-                                <option value="completed">completed</option>
-                                <option value="delayed">delayed</option>
-                                <option value="cancelled">cancelled</option>
+                            <select name="status">
+                                <option value="pending" {% if edit_booking and edit_booking.status == 'pending' %}selected{% endif %}>pending</option>
+                                <option value="confirmed" {% if edit_booking and edit_booking.status == 'confirmed' %}selected{% endif %}>confirmed</option>
+                                <option value="cancelled" {% if edit_booking and edit_booking.status == 'cancelled' %}selected{% endif %}>cancelled</option>
+                                <option value="delayed" {% if edit_booking and edit_booking.status == 'delayed' %}selected{% endif %}>delayed</option>
                             </select>
                         </label>
-                    {% else %}
-                        <input id="status" type="hidden" value="pending">
                     {% endif %}
-
                     <label class="field">
                         <span>Ghi chú</span>
-                        <textarea id="note" rows="4" placeholder="Thêm yêu cầu hoặc thông tin sức khỏe cần lưu ý"></textarea>
+                        <textarea name="note" rows="4">{% if edit_booking %}{{ edit_booking.note }}{% endif %}</textarea>
                     </label>
-
                     <div class="form-actions">
-                        <button id="submit-btn" class="primary-btn" type="submit">Tạo booking</button>
-                        <button id="cancel-edit-btn" class="secondary-btn" type="button" hidden>Hủy chỉnh sửa</button>
+                        <button class="primary-btn" type="submit">{% if edit_booking %}Lưu thay đổi{% else %}Tạo booking{% endif %}</button>
+                        {% if edit_booking %}
+                            <a class="secondary-btn" href="/booking/portal/">Hủy chỉnh sửa</a>
+                        {% endif %}
                     </div>
                 </form>
             </article>
@@ -139,35 +111,29 @@
                 <div class="panel-head">
                     <div>
                         <h2>Danh sách booking</h2>
-                        <p>
-                            {% if user.role == 'citizen' %}
-                                Theo dõi trạng thái booking của bạn theo thời gian thực.
-                            {% else %}
-                                Tìm nhanh, lọc nhanh và cập nhật booking cho ca trực.
-                            {% endif %}
-                        </p>
+                        <p>Lọc dữ liệu bằng query string và thao tác bằng form POST.</p>
                     </div>
-                    <div class="mini-badge" id="upcoming-badge">Sắp tới: {{ booking_stats.upcoming }}</div>
+                    <div class="mini-badge">Sắp tới: {{ booking_stats.upcoming }}</div>
                 </div>
 
-                <div class="filters">
-                    <input id="filter-keyword" type="text" placeholder="Tìm theo tên, số điện thoại, vắc xin">
-                    <select id="filter-status">
+                <form method="get" class="filters">
+                    <input name="q" type="text" value="{{ filter_keyword }}" placeholder="Tìm theo tên, số điện thoại, vắc xin">
+                    <select name="status">
                         <option value="">Tất cả trạng thái</option>
-                        <option value="pending">pending</option>
-                        <option value="confirmed">confirmed</option>
-                        <option value="checked_in">checked_in</option>
-                        <option value="ready_to_inject">ready_to_inject</option>
-                        <option value="in_observation">in_observation</option>
-                        <option value="completed">completed</option>
-                        <option value="delayed">delayed</option>
-                        <option value="cancelled">cancelled</option>
+                        <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>pending</option>
+                        <option value="confirmed" {% if filter_status == 'confirmed' %}selected{% endif %}>confirmed</option>
+                        <option value="checked_in" {% if filter_status == 'checked_in' %}selected{% endif %}>checked_in</option>
+                        <option value="ready_to_inject" {% if filter_status == 'ready_to_inject' %}selected{% endif %}>ready_to_inject</option>
+                        <option value="in_observation" {% if filter_status == 'in_observation' %}selected{% endif %}>in_observation</option>
+                        <option value="completed" {% if filter_status == 'completed' %}selected{% endif %}>completed</option>
+                        <option value="delayed" {% if filter_status == 'delayed' %}selected{% endif %}>delayed</option>
+                        <option value="cancelled" {% if filter_status == 'cancelled' %}selected{% endif %}>cancelled</option>
                     </select>
-                    <input id="filter-date" type="date">
-                    <button id="filter-btn" class="secondary-btn" type="button">Lọc</button>
-                </div>
+                    <input name="date" type="date" value="{{ filter_date }}">
+                    <button class="secondary-btn" type="submit">Lọc</button>
+                    <a class="secondary-btn" href="/booking/portal/">Xóa lọc</a>
+                </form>
 
-                <div id="booking-empty" class="empty-state" hidden>Chưa có booking nào phù hợp bộ lọc hiện tại.</div>
                 <div class="table-wrap">
                     <table>
                         <thead>
@@ -181,104 +147,49 @@
                                 <th>Thao tác</th>
                             </tr>
                         </thead>
-                        <tbody id="booking-table-body"></tbody>
+                        <tbody>
+                            {% for booking in bookings %}
+                                <tr>
+                                    <td><strong>{{ booking.full_name }}</strong><br><span>{{ booking.phone }}</span></td>
+                                    <td>{{ booking.vaccine_name }}</td>
+                                    <td>{{ booking.vaccine_date|date:"d/m/Y" }}</td>
+                                    <td>Mũi {{ booking.dose_number }}</td>
+                                    <td>{{ booking.status }}</td>
+                                    <td>{{ booking.note|default:"Không có" }}</td>
+                                    <td>
+                                        <a class="secondary-btn" href="/booking/portal/?edit={{ booking.id }}">Sửa</a>
+                                        {% if booking.status != 'cancelled' and booking.status != 'completed' %}
+                                            <form method="post" action="/booking/portal/" style="display:inline;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="cancel">
+                                                <input type="hidden" name="booking_id" value="{{ booking.id }}">
+                                                <button class="secondary-btn" type="submit">Hủy</button>
+                                            </form>
+                                        {% endif %}
+                                        {% if booking.status == 'delayed' %}
+                                            <form method="post" action="/booking/portal/" style="display:inline;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="reschedule">
+                                                <input type="hidden" name="booking_id" value="{{ booking.id }}">
+                                                <input type="date" name="vaccine_date" min="{{ today|date:'Y-m-d' }}" required>
+                                                <button class="secondary-btn" type="submit">Đặt lại lịch</button>
+                                            </form>
+                                        {% endif %}
+                                        {% if user.role == 'citizen' %}
+                                            <a class="secondary-btn" href="/users/screening/?booking={{ booking.id }}">Khai báo</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="7">Chưa có booking phù hợp.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
                     </table>
                 </div>
             </article>
         </section>
     </main>
-
-    <div id="reschedule-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:999; align-items:center; justify-content:center;">
-        <div style="background:#fff; border-radius:12px; padding:24px; width:100%; max-width:400px; margin:16px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);">
-            <h3 style="margin:0 0 16px;">Đặt lại lịch tiêm</h3>
-            <p id="reschedule-booking-info" style="font-size:13px; color:#6b7280; margin-bottom:16px;">Chọn ngày tiêm mới cho lịch này.</p>
-            <label style="display:flex; flex-direction:column; gap:6px; margin-bottom:16px;">
-                <strong>Ngày tiêm mới:</strong>
-                <input type="date" id="reschedule-date" style="padding:8px; border:1px solid #d1d5db; border-radius:6px; font: inherit;">
-            </label>
-            <div style="display:flex; gap:8px;">
-                <button class="primary-btn" style="border-radius:8px;" onclick="submitReschedule()">Xác nhận</button>
-                <button class="secondary-btn" style="border-radius:8px;" onclick="closeRescheduleModal()">Hủy</button>
-            </div>
-        </div>
-    </div>
-
-    {{ initial_bookings|json_script:"initial-bookings-data" }}
-    <script>
-        window.bookingPortalConfig = {
-            userRole: '{{ user.role }}',
-            today: '{{ today|date:"Y-m-d" }}',
-            vaccineOptions: [{% for vaccine in vaccine_options %}'{{ vaccine }}'{% if not forloop.last %}, {% endif %}{% endfor %}]
-        };
-    </script>
-    <!-- Modal: Khai báo sàng lọc trước tiêm -->
-    <div id="declaration-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:flex-start; justify-content:center; padding:20px; overflow-y:auto;">
-        <div style="background:#fff; border-radius:16px; padding:28px; width:100%; max-width:600px; margin:auto; box-shadow:0 24px 64px rgba(0,0,0,0.22); position:relative;">
-            <!-- Header -->
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
-                <div>
-                    <div style="font-size:12px; font-weight:700; color:#0f766e; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">Khai báo sàng lọc</div>
-                    <h3 style="margin:0; font-size:1.3rem;" id="decl-modal-title">Khai báo trước tiêm</h3>
-                    <p style="margin:6px 0 0; color:#6b7280; font-size:13px;" id="decl-modal-subtitle">Ngày tiêm: — | Vắc xin: —</p>
-                </div>
-                <button onclick="closeDeclarationModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:#94a3b8;line-height:1;padding:4px;">×</button>
-            </div>
-
-            <!-- Kết quả sàng lọc từ bác sĩ (ẩn nếu chưa có) -->
-            <div id="decl-screening-result" style="display:none; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:16px; margin-bottom:18px;">
-                <p style="margin:0 0 8px; font-weight:700; color:#166534;" id="decl-result-text"></p>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
-                    <div style="background:#fff; border-radius:8px; padding:10px; border:1px solid #d1fae5;">
-                        <div style="font-size:11px; color:#6b7280; margin-bottom:2px;">Nhiệt độ</div>
-                        <strong id="decl-result-temp">—</strong>
-                    </div>
-                    <div style="background:#fff; border-radius:8px; padding:10px; border:1px solid #d1fae5;">
-                        <div style="font-size:11px; color:#6b7280; margin-bottom:2px;">Huyết áp</div>
-                        <strong id="decl-result-bp">—</strong>
-                    </div>
-                </div>
-                <p style="margin:10px 0 0; font-size:13px; color:#374151;" id="decl-result-note"></p>
-            </div>
-
-            <!-- Thông báo (success/warning) -->
-            <div id="decl-notice" style="display:none; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:13px;"></div>
-
-            <!-- Form khai báo -->
-            <form id="declaration-form" onsubmit="submitDeclaration(event)">
-                <div style="display:grid; gap:10px; margin-bottom:16px;">
-                    <label style="display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; font-weight:600; cursor:pointer;">
-                        <input type="checkbox" id="decl-fever" style="width:18px;height:18px;">
-                        <span>Tôi đang sốt hoặc có dấu hiệu nhiễm trùng</span>
-                    </label>
-                    <label style="display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; font-weight:600; cursor:pointer;">
-                        <input type="checkbox" id="decl-allergy" style="width:18px;height:18px;">
-                        <span>Tôi có tiền sử dị ứng thuốc hoặc phản ứng sau tiêm</span>
-                    </label>
-                    <label style="display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; font-weight:600; cursor:pointer;">
-                        <input type="checkbox" id="decl-chronic" style="width:18px;height:18px;">
-                        <span>Tôi có bệnh nền hoặc đang điều trị bệnh mạn tính</span>
-                    </label>
-                    <label style="display:grid; gap:6px; font-weight:600;">
-                        <span>Triệu chứng gần đây</span>
-                        <textarea id="decl-symptoms" rows="2" placeholder="Ví dụ: ho, sốt, đau họng..." style="padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font:inherit; resize:vertical;"></textarea>
-                    </label>
-                    <label style="display:grid; gap:6px; font-weight:600;">
-                        <span>Thuốc đang sử dụng</span>
-                        <textarea id="decl-medications" rows="2" placeholder="Ví dụ: thuốc huyết áp, kháng sinh..." style="padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font:inherit; resize:vertical;"></textarea>
-                    </label>
-                    <label style="display:grid; gap:6px; font-weight:600;">
-                        <span>Ghi chú thêm</span>
-                        <textarea id="decl-note" rows="2" placeholder="Thông tin khác cần lưu ý..." style="padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; font:inherit; resize:vertical;"></textarea>
-                    </label>
-                </div>
-                <div style="display:flex; gap:8px;">
-                    <button type="submit" class="primary-btn" id="decl-submit-btn" style="border-radius:8px;">Lưu khai báo</button>
-                    <button type="button" class="secondary-btn" onclick="closeDeclarationModal()" style="border-radius:8px;">Đóng</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script src="{% static 'booking/js/portal.js' %}?v=20260402-3"></script>
 </body>
 </html>

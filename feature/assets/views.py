@@ -31,6 +31,49 @@ from .serializers import (
 )
 
 
+def _flatten_serializer_errors(serializer):
+    return " ".join(str(message) for messages in serializer.errors.values() for message in messages)
+
+
+def _apply_inventory_filters(request, vaccines, today):
+    keyword = request.GET.get("q", "").strip().lower()
+    supplier_value = request.GET.get("supplier", "").strip().lower()
+    location_value = request.GET.get("location", "").strip().lower()
+    status_value = request.GET.get("status", "").strip().lower()
+
+    filtered = []
+    for vaccine in vaccines:
+        vaccine_status = "normal"
+        if vaccine.expiration_date < today:
+            vaccine_status = "expired"
+        elif vaccine.quantity <= vaccine.minimum_stock:
+            vaccine_status = "low"
+        elif today <= vaccine.expiration_date <= today + timedelta(days=30):
+            vaccine_status = "expiring"
+
+        search_blob = " ".join(
+            [
+                vaccine.name.lower(),
+                vaccine.batch_number.lower(),
+                vaccine.manufacturer.lower(),
+                (vaccine.supplier.name.lower() if vaccine.supplier else ""),
+                (vaccine.location.name.lower() if vaccine.location else ""),
+            ]
+        )
+
+        if keyword and keyword not in search_blob:
+            continue
+        if supplier_value and (not vaccine.supplier or vaccine.supplier.name.lower() != supplier_value):
+            continue
+        if location_value and (not vaccine.location or vaccine.location.name.lower() != location_value):
+            continue
+        if status_value and vaccine_status != status_value:
+            continue
+        filtered.append(vaccine)
+
+    return filtered
+
+
 def _get_session_user(request):
     user_id = request.session.get("user_id")
     if not user_id:
@@ -131,9 +174,87 @@ def inventory_dashboard_page(request):
         reverse=True,
     )[:8]
 
+    if request.method == "POST":
+        action = request.POST.get("action")
+        page_error = ""
+        page_success = ""
+
+        if action == "create_supplier":
+            serializer = SupplierSerializer(data=request.POST)
+            if serializer.is_valid():
+                serializer.save()
+                page_success = "Đã tạo nhà cung cấp."
+            else:
+                page_error = _flatten_serializer_errors(serializer) or "Không thể tạo nhà cung cấp."
+
+        elif action == "create_location":
+            serializer = StorageLocationSerializer(data=request.POST)
+            if serializer.is_valid():
+                serializer.save()
+                page_success = "Đã tạo vị trí bảo quản."
+            else:
+                page_error = _flatten_serializer_errors(serializer) or "Không thể tạo vị trí bảo quản."
+
+        elif action == "create_vaccine":
+            serializer = VaccineSerializer(data=request.POST)
+            if serializer.is_valid():
+                serializer.save()
+                page_success = "Đã tạo lô vắc xin."
+            else:
+                page_error = _flatten_serializer_errors(serializer) or "Không thể tạo lô vắc xin."
+
+        elif action == "import_stock":
+            serializer = StockImportSerializer(data=request.POST)
+            if serializer.is_valid():
+                stock_import = serializer.save(created_by=user)
+                stock_import.vaccine.quantity += stock_import.quantity
+                stock_import.vaccine.save(update_fields=["quantity"])
+                page_success = "Đã ghi nhận phiếu nhập."
+            else:
+                page_error = _flatten_serializer_errors(serializer) or "Không thể nhập kho."
+
+        elif action == "export_stock":
+            serializer = StockExportSerializer(data=request.POST)
+            if serializer.is_valid():
+                with transaction.atomic():
+                    stock_export = serializer.save(created_by=user)
+                    vaccine = stock_export.vaccine
+                    vaccine.quantity -= stock_export.quantity
+                    vaccine.save(update_fields=["quantity"])
+                page_success = "Đã ghi nhận phiếu xuất."
+            else:
+                page_error = _flatten_serializer_errors(serializer) or "Không thể xuất kho."
+
+        elif action == "adjust_stock":
+            serializer = StockAdjustmentSerializer(data=request.POST)
+            if serializer.is_valid():
+                with transaction.atomic():
+                    adjustment = serializer.save(created_by=user)
+                    vaccine = adjustment.vaccine
+                    if adjustment.adjustment_type == "increase":
+                        vaccine.quantity += adjustment.quantity
+                    else:
+                        vaccine.quantity -= adjustment.quantity
+                    vaccine.save(update_fields=["quantity"])
+                page_success = "Đã ghi nhận điều chỉnh kho."
+            else:
+                page_error = _flatten_serializer_errors(serializer) or "Không thể điều chỉnh kho."
+
+        vaccines = list(
+            Vaccine.objects.select_related("supplier", "location")
+            .all()
+            .order_by("expiration_date", "-created_at")
+        )
+        suppliers = list(Supplier.objects.all().order_by("name"))
+        locations = list(StorageLocation.objects.all().order_by("name"))
+
+    filtered_vaccines = _apply_inventory_filters(request, vaccines, today)
+
     context = {
         "user": user,
         "today": today,
+        "page_error": locals().get("page_error", ""),
+        "page_success": locals().get("page_success", ""),
         "summary": {
             "total_vaccines": total_vaccines,
             "total_stock": total_stock,
@@ -141,10 +262,14 @@ def inventory_dashboard_page(request):
             "expired_count": expired_count,
             "near_expiry_count": near_expiry_count,
         },
-        "vaccines": vaccines,
+        "vaccines": filtered_vaccines,
         "suppliers": suppliers,
         "locations": locations,
         "recent_transactions": recent_transactions,
+        "filter_keyword": request.GET.get("q", ""),
+        "filter_status": request.GET.get("status", ""),
+        "filter_supplier": request.GET.get("supplier", ""),
+        "filter_location": request.GET.get("location", ""),
     }
     return render(request, "assets/dashboard.html", context)
 

@@ -26,20 +26,13 @@
                     <h2>{{ user.full_name }}</h2>
                     <p>{{ phone }}</p>
                 </div>
-
-                <nav class="profile-menu">
-                    <a class="profile-menu-item is-active" href="/users/profile/">Thông tin cá nhân</a>
-                    <a class="profile-menu-item" href="/users/dashboard/">Tổng quan tài khoản</a>
-                    <a class="profile-menu-item" href="/booking/portal/">Lịch hẹn tiêm chủng</a>
-                    <a class="profile-menu-item" href="/users/system/">Hồ sơ sức khỏe</a>
-                </nav>
             </aside>
 
             <section class="profile-main">
                 <div class="profile-panel">
                     <div class="profile-panel-head">
                         <h1>Thông tin cá nhân</h1>
-                        <p>Cập nhật thông tin liên hệ, sức khỏe cơ bản và ảnh đại diện của bạn.</p>
+                        <p>Trang này đã bỏ hoàn toàn JavaScript. Nếu muốn cập nhật avatar, nhập trực tiếp URL hoặc chuỗi data URL.</p>
                     </div>
 
                     <div class="profile-panel-body">
@@ -50,25 +43,9 @@
                             <div class="profile-alert error">{{ error_message }}</div>
                         {% endif %}
 
-                        <form id="profileForm" class="profile-form" method="post" novalidate>
+                        <form class="profile-form" method="post">
                             {% csrf_token %}
-                            <input id="avatar_data" type="hidden" name="avatar_data" value="{{ user.avatar_data }}">
-                            <input id="remove_avatar" type="hidden" name="remove_avatar" value="0">
-
-                            <div class="profile-avatar-editor">
-                                <div id="avatarPreview" class="profile-avatar-frame">
-                                    {% if user.avatar_data %}
-                                        <img class="profile-avatar-image profile-avatar-image--large" src="{{ user.avatar_data }}" alt="{{ user.full_name }}">
-                                    {% else %}
-                                        <div class="profile-avatar profile-avatar--large">{{ user.full_name|slice:":1"|upper }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="profile-avatar-actions">
-                                    <label class="profile-button profile-button--secondary" for="avatarFile">Chọn ảnh hồ sơ</label>
-                                    <input id="avatarFile" type="file" accept="image/*" hidden>
-                                    <button id="removeAvatarBtn" class="profile-button profile-button--ghost" type="button">Xóa ảnh</button>
-                                </div>
-                            </div>
+                            <input type="hidden" name="remove_avatar" value="0">
 
                             <div class="profile-form-grid">
                                 <div class="profile-field">
@@ -82,14 +59,6 @@
                                 <div class="profile-field">
                                     <label for="phone_number">Số điện thoại</label>
                                     <input id="phone_number" name="phone_number" type="text" value="{% if phone != 'Chưa cập nhật' %}{{ phone }}{% endif %}">
-                                </div>
-                                <div class="profile-field">
-                                    <label for="role">Vai trò</label>
-                                    <input id="role" type="text" value="{{ user.role }}" disabled>
-                                </div>
-                                <div class="profile-field">
-                                    <label for="status">Trạng thái</label>
-                                    <input id="status" type="text" value="{{ user.status }}" disabled>
                                 </div>
                                 <div class="profile-field">
                                     <label for="gender">Giới tính</label>
@@ -120,6 +89,10 @@
                                     <label for="medical_history">Tiền sử bệnh</label>
                                     <textarea id="medical_history" name="medical_history" rows="4">{% if medical_history != 'Chưa cập nhật' %}{{ medical_history }}{% endif %}</textarea>
                                 </div>
+                                <div class="profile-field profile-field--full">
+                                    <label for="avatar_data">Avatar URL / Data URL</label>
+                                    <textarea id="avatar_data" name="avatar_data" rows="4">{{ user.avatar_data }}</textarea>
+                                </div>
                             </div>
 
                             <div class="profile-actions">
@@ -127,12 +100,25 @@
                                 <button class="profile-button profile-button--primary" type="submit">Lưu thay đổi</button>
                             </div>
                         </form>
+
+                        <form method="post" style="margin-top:12px;">
+                            {% csrf_token %}
+                            <input type="hidden" name="full_name" value="{{ user.full_name }}">
+                            <input type="hidden" name="email" value="{{ user.email }}">
+                            <input type="hidden" name="phone_number" value="{{ user.phone_number }}">
+                            <input type="hidden" name="gender" value="{{ user.gender }}">
+                            <input type="hidden" name="date_of_birth" value="{% if user.date_of_birth %}{{ user.date_of_birth|date:'Y-m-d' }}{% endif %}">
+                            <input type="hidden" name="blood_group" value="{{ user.blood_group }}">
+                            <input type="hidden" name="allergies" value="{{ user.allergies }}">
+                            <input type="hidden" name="medical_history" value="{{ user.medical_history }}">
+                            <input type="hidden" name="avatar_data" value="">
+                            <input type="hidden" name="remove_avatar" value="1">
+                            <button class="profile-button profile-button--ghost" type="submit">Xóa avatar</button>
+                        </form>
                     </div>
                 </div>
             </section>
         </section>
     </main>
-
-    <script src="{% static 'users/js/profile.js' %}?v=20260328-1"></script>
 </body>
 </html>

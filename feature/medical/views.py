@@ -22,6 +22,10 @@ from .serializers import (
 )
 
 
+def _flatten_serializer_errors(serializer):
+    return " ".join(str(message) for messages in serializer.errors.values() for message in messages)
+
+
 def _get_session_user(request):
     user_id = request.session.get("user_id")
     if not user_id:
@@ -96,16 +100,181 @@ def medical_dashboard(request):
         return redirect("/users/dashboard/")
 
     today = date.today()
+    page_error = ""
+    page_success = ""
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        booking_id = request.POST.get("booking_id")
+
+        if action == "confirm_booking" and user.role in [User.ROLE_ADMIN, User.ROLE_STAFF, User.ROLE_DOCTOR]:
+            booking = Booking.objects.filter(pk=booking_id).first()
+            if booking and booking.status in [Booking.STATUS_PENDING, Booking.STATUS_DELAYED]:
+                booking.status = Booking.STATUS_CONFIRMED
+                booking.save(update_fields=["status", "updated_at"])
+                page_success = "Đã xác nhận lịch hẹn."
+            else:
+                page_error = "Không thể xác nhận booking này."
+
+        elif action == "check_in" and user.role in [User.ROLE_ADMIN, User.ROLE_STAFF]:
+            booking = Booking.objects.filter(pk=booking_id).first()
+            if booking and booking.status == Booking.STATUS_CONFIRMED:
+                booking.status = Booking.STATUS_CHECKED_IN
+                booking.save(update_fields=["status", "updated_at"])
+                page_success = "Đã check-in bệnh nhân."
+            else:
+                page_error = "Không thể check-in booking này."
+
+        elif action == "save_prescreen" and user.role in [User.ROLE_ADMIN, User.ROLE_STAFF]:
+            booking = Booking.objects.filter(pk=booking_id).first()
+            if booking:
+                declaration = PreScreeningDeclaration.objects.filter(booking=booking).first()
+                payload = {
+                    "has_fever": bool(request.POST.get("has_fever")),
+                    "has_allergy_history": bool(request.POST.get("has_allergy_history")),
+                    "has_chronic_condition": bool(request.POST.get("has_chronic_condition")),
+                    "recent_symptoms": request.POST.get("recent_symptoms", "").strip(),
+                    "current_medications": request.POST.get("current_medications", "").strip(),
+                    "note": request.POST.get("note", "").strip(),
+                }
+                serializer = (
+                    PreScreeningDeclarationSerializer(declaration, data=payload, partial=True)
+                    if declaration
+                    else PreScreeningDeclarationSerializer(data=payload)
+                )
+                if serializer.is_valid():
+                    serializer.save(booking=booking)
+                    page_success = "Đã lưu khai báo y tế bổ sung."
+                else:
+                    page_error = _flatten_serializer_errors(serializer) or "Không thể lưu khai báo y tế."
+            else:
+                page_error = "Không tìm thấy booking."
+
+        elif action == "screening" and user.role in [User.ROLE_ADMIN, User.ROLE_DOCTOR]:
+            booking = Booking.objects.filter(pk=booking_id).first()
+            if booking and booking.status == Booking.STATUS_CHECKED_IN:
+                payload = {
+                    "booking": booking.id,
+                    "temperature": request.POST.get("temperature"),
+                    "blood_pressure": request.POST.get("blood_pressure"),
+                    "decision": request.POST.get("decision"),
+                    "doctor_note": request.POST.get("doctor_note", "").strip(),
+                }
+                existing = ScreeningResult.objects.filter(booking=booking).first()
+                serializer = (
+                    ScreeningResultSerializer(existing, data=payload)
+                    if existing
+                    else ScreeningResultSerializer(data=payload)
+                )
+                if serializer.is_valid():
+                    serializer.save()
+                    if payload["decision"] == "eligible":
+                        booking.status = Booking.STATUS_READY_TO_INJECT
+                    elif payload["decision"] == "delayed":
+                        booking.status = Booking.STATUS_DELAYED
+                    else:
+                        booking.status = Booking.STATUS_CANCELLED
+                    booking.save(update_fields=["status", "updated_at"])
+                    page_success = "Đã lưu kết quả sàng lọc."
+                else:
+                    page_error = _flatten_serializer_errors(serializer) or "Không thể lưu kết quả sàng lọc."
+            else:
+                page_error = "Booking chưa ở trạng thái có thể sàng lọc."
+
+        elif action == "inject" and user.role in [User.ROLE_ADMIN, User.ROLE_STAFF]:
+            booking = Booking.objects.filter(pk=booking_id).first()
+            if booking and booking.status == Booking.STATUS_READY_TO_INJECT:
+                payload = {
+                    "booking": booking.id,
+                    "batch_number": request.POST.get("batch_number", "").strip(),
+                    "injected_by": request.POST.get("injected_by", "").strip(),
+                    "dose_number": request.POST.get("dose_number"),
+                }
+                serializer = VaccinationLogSerializer(data=payload)
+                if serializer.is_valid():
+                    try:
+                        with transaction.atomic():
+                            serializer.save()
+                            booking.status = Booking.STATUS_IN_OBSERVATION
+                            booking.save(update_fields=["status", "updated_at"])
+                        page_success = "Đã lưu thông tin tiêm."
+                    except IntegrityError:
+                        page_error = "Không thể lưu hồ sơ tiêm."
+                else:
+                    page_error = _flatten_serializer_errors(serializer) or "Không thể lưu hồ sơ tiêm."
+            else:
+                page_error = "Booking chưa sẵn sàng để tiêm."
+
+        elif action == "monitor" and user.role in [User.ROLE_ADMIN, User.ROLE_STAFF]:
+            booking = Booking.objects.filter(pk=booking_id).first()
+            vaccination_log = VaccinationLog.objects.filter(booking=booking).first() if booking else None
+            if booking and vaccination_log and booking.status == Booking.STATUS_IN_OBSERVATION:
+                payload = {
+                    "vaccination_log": vaccination_log.id,
+                    "reaction_status": request.POST.get("reaction_status"),
+                    "notes": request.POST.get("notes", "").strip(),
+                }
+                serializer = PostInjectionTrackingSerializer(data=payload)
+                if serializer.is_valid():
+                    serializer.save()
+                    booking.status = Booking.STATUS_COMPLETED
+                    booking.save(update_fields=["status", "updated_at"])
+                    page_success = "Đã hoàn tất theo dõi sau tiêm."
+                else:
+                    page_error = _flatten_serializer_errors(serializer) or "Không thể lưu theo dõi."
+            else:
+                page_error = "Booking chưa ở giai đoạn theo dõi sau tiêm."
+
+        elif action == "walkin" and user.role in [User.ROLE_ADMIN, User.ROLE_STAFF]:
+            booking_payload = {
+                "full_name": request.POST.get("full_name"),
+                "phone": request.POST.get("phone"),
+                "email": request.POST.get("email"),
+                "vaccine_name": request.POST.get("vaccine_name"),
+                "vaccine_date": request.POST.get("vaccine_date"),
+                "dose_number": request.POST.get("dose_number"),
+                "status": Booking.STATUS_CHECKED_IN,
+            }
+            booking_serializer = BookingSerializer(data=booking_payload, context={"session_user": user})
+            if booking_serializer.is_valid():
+                booking = booking_serializer.save(
+                    user=_find_active_citizen_by_email(request.POST.get("email")),
+                    booking_source=Booking.BOOKING_SOURCE_WALKIN,
+                )
+                pre_payload = {
+                    "has_fever": bool(request.POST.get("walkin_has_fever")),
+                    "has_allergy_history": bool(request.POST.get("walkin_has_allergy_history")),
+                    "has_chronic_condition": bool(request.POST.get("walkin_has_chronic_condition")),
+                    "recent_symptoms": request.POST.get("walkin_recent_symptoms", "").strip(),
+                    "current_medications": request.POST.get("walkin_current_medications", "").strip(),
+                    "note": request.POST.get("walkin_note", "").strip(),
+                }
+                pre_serializer = PreScreeningDeclarationSerializer(data=pre_payload)
+                if pre_serializer.is_valid():
+                    pre_serializer.save(booking=booking)
+                page_success = "Đã tiếp nhận khách vãng lai."
+            else:
+                page_error = _flatten_serializer_errors(booking_serializer) or "Không thể tạo walk-in."
     vaccines = list(
         Vaccine.objects.filter(
             quantity__gt=0,
             expiration_date__gte=timezone.localdate(),
         ).order_by("name").values("id", "name", "quantity", "batch_number")
     )
+    today_bookings_list = (
+        Booking.objects.filter(vaccine_date=today)
+        .exclude(status=Booking.STATUS_CANCELLED)
+        .select_related("pre_screening", "screening_result", "vaccination_log")
+        .order_by("id")
+    )
+
     context = {
         "user": user,
         "today": today,
         "vaccines": vaccines,
+        "page_error": page_error,
+        "page_success": page_success,
+        "today_bookings_list": today_bookings_list,
     }
     context.update(_build_schedule_context(today))
     return render(request, "medical/medical.html", context)
