@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý kho vắc xin | Vaccin Manage System</title>
+    <title>Biểu mẫu nghiệp vụ kho | Vaccin Manage System</title>
     <link rel="stylesheet" href="/static/assets/css/dashboard.css?v=20260411-6">
 </head>
 <body>
@@ -27,43 +27,25 @@
             </div>
 
             <nav class="side-nav">
-                <a class="side-link is-active" href="/assets/dashboard-page/">Tổng quan kho</a>
+                <a class="side-link" href="/assets/dashboard-page/">Tổng quan kho</a>
                 <a class="side-link" href="/assets/suppliers-page/">Nhà cung cấp</a>
                 <a class="side-link" href="/assets/locations-page/">Vị trí bảo quản</a>
                 <a class="side-link" href="/assets/overview/">Báo cáo tổng hợp</a>
+                <a class="side-link is-active" href="/assets/forms-page/">Biểu mẫu nghiệp vụ</a>
                 <a class="side-link" href="/users/dashboard/">Về dashboard</a>
-                <a class="side-link" href="/assets/forms-page/">Bi&#7875;u m&#7851;u nghi&#7879;p v&#7909;</a>
             </nav>
-
-            <section class="side-section">
-                <h2>ThÃªm nhanh</h2>
-                <a class="side-link" href="#form-create-supplier">+ NhÃ  cung cáº¥p</a>
-                <a class="side-link" href="#form-create-location">+ Vá»‹ trÃ­ báº£o quáº£n</a>
-                <a class="side-link" href="#form-create-vaccine">+ Táº¡o lÃ´ váº¯c xin</a>
-                <a class="side-link" href="#form-import-stock">+ Nháº­p kho</a>
-                <a class="side-link" href="#form-export-stock">+ Xuáº¥t kho</a>
-                <a class="side-link" href="#form-adjust-stock">+ Äiá»u chá»‰nh kho</a>
-            </section>
-            <section class="side-section side-section--quick-links">
-                <h2>Th&ecirc;m nhanh</h2>
-                <a class="side-link" href="#form-create-supplier">+ Nh&agrave; cung c&#7845;p</a>
-                <a class="side-link" href="#form-create-location">+ V&#7883; tr&iacute; b&#7843;o qu&#7843;n</a>
-                <a class="side-link" href="#form-create-vaccine">+ T&#7841;o l&ocirc; v&#7855;c xin</a>
-                <a class="side-link" href="#form-import-stock">+ Nh&#7853;p kho</a>
-                <a class="side-link" href="#form-export-stock">+ Xu&#7845;t kho</a>
-                <a class="side-link" href="#form-adjust-stock">+ &#272;i&#7873;u ch&#7881;nh kho</a>
-            </section>
         </aside>
 
         <main class="workspace">
             <header class="topbar">
                 <div>
                     <p class="eyebrow">Hệ thống quản lý kho</p>
-                    <h1>Dashboard kho không dùng JavaScript</h1>
-                    <p class="topbar-copy">Lọc danh sách bằng GET và thực hiện nghiệp vụ bằng form POST thuần Django.</p>
+                    <h1>Biểu mẫu nghiệp vụ</h1>
+                    <p class="topbar-copy">Tách riêng khỏi trang tổng quan để nhập liệu, cập nhật tồn kho và tạo lô mới thuận tiện hơn.</p>
                 </div>
                 <div class="topbar-actions">
-                    <a class="toolbar-btn toolbar-btn--blue" href="/assets/dashboard-page/">Làm mới</a>
+                    <a class="toolbar-btn toolbar-btn--blue" href="/assets/forms-page/">Làm mới</a>
+                    <a class="toolbar-btn toolbar-btn--slate" href="/assets/dashboard-page/">Về tổng quan</a>
                     <form method="post" action="/auth/logout/">
                         {% csrf_token %}
                         <button class="toolbar-btn toolbar-btn--danger" type="submit">Đăng xuất</button>
@@ -85,97 +67,15 @@
                 <div class="alert success">{{ page_success }}</div>
             {% endif %}
 
-            <section class="workspace-grid workspace-grid--single">
-                <section class="panel panel--main">
-                    <div class="panel-head">
-                        <div>
-                            <h2>Danh sách vắc xin</h2>
-                            <p>Đang hiển thị {{ vaccines|length }} lô phù hợp bộ lọc.</p>
-                        </div>
+            <section class="panel panel--forms-page">
+                <div class="panel-head">
+                    <div>
+                        <h2>Biểu mẫu nghiệp vụ</h2>
+                        <p>Chọn đúng biểu mẫu để thêm dữ liệu mới hoặc cập nhật tồn kho hiện có.</p>
                     </div>
+                </div>
 
-                    <form method="get" class="panel-toolbar">
-                        <div class="search-box">
-                            <label for="q">Tìm vắc xin</label>
-                            <input id="q" name="q" type="search" value="{{ filter_keyword }}" placeholder="Tên vắc xin, số lô, nhà sản xuất">
-                        </div>
-                        <div class="filter-group">
-                            <label>
-                                <span>Trạng thái</span>
-                                <select name="status">
-                                    <option value="">Tất cả</option>
-                                    <option value="normal" {% if filter_status == 'normal' %}selected{% endif %}>Ổn định</option>
-                                    <option value="low" {% if filter_status == 'low' %}selected{% endif %}>Cần bổ sung</option>
-                                    <option value="expiring" {% if filter_status == 'expiring' %}selected{% endif %}>Sắp hết hạn</option>
-                                    <option value="expired" {% if filter_status == 'expired' %}selected{% endif %}>Hết hạn</option>
-                                </select>
-                            </label>
-                            <label>
-                                <span>Nhà cung cấp</span>
-                                <select name="supplier">
-                                    <option value="">Tất cả</option>
-                                    {% for supplier in suppliers %}
-                                        <option value="{{ supplier.name|lower }}" {% if filter_supplier == supplier.name|lower %}selected{% endif %}>{{ supplier.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </label>
-                            <label>
-                                <span>Vị trí</span>
-                                <select name="location">
-                                    <option value="">Tất cả</option>
-                                    {% for location in locations %}
-                                        <option value="{{ location.name|lower }}" {% if filter_location == location.name|lower %}selected{% endif %}>{{ location.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </label>
-                            <button class="soft-btn" type="submit">Lọc</button>
-                            <a class="soft-btn" href="/assets/dashboard-page/">Xóa lọc</a>
-                        </div>
-                    </form>
-
-                    <div class="table-shell">
-                        <table class="inventory-table">
-                            <thead>
-                                <tr>
-                                    <th>Vắc xin</th>
-                                    <th>Số lô</th>
-                                    <th>Nhà cung cấp</th>
-                                    <th>Vị trí</th>
-                                    <th>Tồn kho</th>
-                                    <th>Hạn sử dụng</th>
-                                    <th>Trạng thái</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for vaccine in vaccines %}
-                                    <tr>
-                                        <td><strong>{{ vaccine.name }}</strong><div class="muted-line">{{ vaccine.manufacturer }}</div></td>
-                                        <td>{{ vaccine.batch_number }}</td>
-                                        <td>{{ vaccine.supplier.name|default:"Chưa gán" }}</td>
-                                        <td>{{ vaccine.location.name|default:"Chưa gán" }}</td>
-                                        <td>{{ vaccine.quantity }} / tối thiểu {{ vaccine.minimum_stock }}</td>
-                                        <td>{{ vaccine.expiration_date|date:"d/m/Y" }}</td>
-                                        <td>
-                                            {% if vaccine.is_expired %}
-                                                <span class="status-pill status-pill--danger">Hết hạn</span>
-                                            {% elif vaccine.quantity <= vaccine.minimum_stock %}
-                                                <span class="status-pill status-pill--warning">Cần bổ sung</span>
-                                            {% else %}
-                                                <span class="status-pill status-pill--ok">Ổn định</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                {% empty %}
-                                    <tr><td colspan="7">Không có lô vắc xin phù hợp.</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <aside class="panel panel--side panel--hidden" id="business-forms" hidden>
-                    <div class="panel-head"><div><h2>Biểu mẫu nghiệp vụ</h2><p>Thay cho modal và fetch phía trình duyệt.</p></div></div>
-
+                <div class="forms-grid">
                     <form method="post" class="support-card" id="form-create-supplier">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="create_supplier">
@@ -214,7 +114,7 @@
                         <button class="primary-btn" type="submit">Tạo vị trí</button>
                     </form>
 
-                    <form method="post" class="support-card" id="form-create-vaccine">
+                    <form method="post" class="support-card support-card--wide" id="form-create-vaccine">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="create_vaccine">
                         <h3>Tạo lô vắc xin</h3>
@@ -382,7 +282,7 @@
                         </label>
                         <button class="primary-btn" type="submit">Lưu điều chỉnh</button>
                     </form>
-                </aside>
+                </div>
             </section>
         </main>
     </div>

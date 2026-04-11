@@ -227,6 +227,10 @@ def medical_dashboard(request):
                     try:
                         with transaction.atomic():
                             serializer.save()
+                            vaccine_obj = serializer.instance.vaccine
+                            if vaccine_obj and vaccine_obj.quantity > 0:
+                                vaccine_obj.quantity -= 1
+                                vaccine_obj.save(update_fields=["quantity"])
                             booking.status = Booking.STATUS_IN_OBSERVATION
                             booking.save(update_fields=["status", "updated_at"])
                         page_success = "Đã lưu thông tin tiêm."
@@ -268,25 +272,27 @@ def medical_dashboard(request):
                 "status": Booking.STATUS_CHECKED_IN,
             }
             booking_serializer = BookingSerializer(data=booking_payload, context={"session_user": user})
-            if booking_serializer.is_valid():
-                booking = booking_serializer.save(
-                    user=_find_active_citizen_by_email(request.POST.get("email")),
-                    booking_source=Booking.BOOKING_SOURCE_WALKIN,
-                )
-                pre_payload = {
-                    "has_fever": bool(request.POST.get("walkin_has_fever")),
-                    "has_allergy_history": bool(request.POST.get("walkin_has_allergy_history")),
-                    "has_chronic_condition": bool(request.POST.get("walkin_has_chronic_condition")),
-                    "recent_symptoms": request.POST.get("walkin_recent_symptoms", "").strip(),
-                    "current_medications": request.POST.get("walkin_current_medications", "").strip(),
-                    "note": request.POST.get("walkin_note", "").strip(),
-                }
-                pre_serializer = PreScreeningDeclarationSerializer(data=pre_payload)
-                if pre_serializer.is_valid():
+            pre_payload = {
+                "has_fever": bool(request.POST.get("walkin_has_fever")),
+                "has_allergy_history": bool(request.POST.get("walkin_has_allergy_history")),
+                "has_chronic_condition": bool(request.POST.get("walkin_has_chronic_condition")),
+                "recent_symptoms": request.POST.get("walkin_recent_symptoms", "").strip(),
+                "current_medications": request.POST.get("walkin_current_medications", "").strip(),
+                "note": request.POST.get("walkin_note", "").strip(),
+            }
+            pre_serializer = PreScreeningDeclarationSerializer(data=pre_payload)
+            if booking_serializer.is_valid() and pre_serializer.is_valid():
+                with transaction.atomic():
+                    booking = booking_serializer.save(
+                        user=_find_active_citizen_by_email(request.POST.get("email")),
+                        booking_source=Booking.BOOKING_SOURCE_WALKIN,
+                    )
                     pre_serializer.save(booking=booking)
                 page_success = "Đã tiếp nhận khách vãng lai."
-            else:
+            elif not booking_serializer.is_valid():
                 page_error = _flatten_serializer_errors(booking_serializer) or "Không thể tạo walk-in."
+            else:
+                page_error = _flatten_serializer_errors(pre_serializer) or "Không thể lưu khai báo walk-in."
 
     vaccines = list(
         Vaccine.objects.filter(

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard y khoa và tiêm chủng</title>
     <link rel="stylesheet" href="{% static 'users/css/staff_dashboard.css' %}?v=20260403-1">
-    <link rel="stylesheet" href="{% static 'medical/css/medical.css' %}?v=20260403-1">
+    <link rel="stylesheet" href="{% static 'medical/css/medical.css' %}?v=20260411-1">
 </head>
 <body class="medical-page">
     <main class="shell medical-shell">
@@ -166,29 +166,60 @@
                             <p>Tạo booking và khai báo sơ bộ tại chỗ.</p>
                         </div>
                     </div>
-                    <form method="post" id="form-walkin">
+                    <form method="post" id="form-walkin" class="medical-form walkin-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="walkin">
-                        <label><strong>Họ và tên</strong><input type="text" name="full_name" required></label>
-                        <label><strong>Số điện thoại</strong><input type="text" name="phone" required></label>
-                        <label><strong>Email</strong><input type="email" name="email"></label>
-                        <label>
-                            <strong>Vắc xin</strong>
+                        <label class="medical-field">
+                            <span>Họ và tên</span>
+                            <input type="text" name="full_name" required>
+                        </label>
+                        <label class="medical-field">
+                            <span>Số điện thoại</span>
+                            <input type="text" name="phone" required>
+                        </label>
+                        <label class="medical-field">
+                            <span>Email</span>
+                            <input type="email" name="email">
+                        </label>
+                        <label class="medical-field">
+                            <span>Vắc xin</span>
                             <select name="vaccine_name" required>
                                 {% for vaccine in vaccines %}
                                     <option value="{{ vaccine.name }}">{{ vaccine.name }} (còn {{ vaccine.quantity }} liều)</option>
                                 {% endfor %}
                             </select>
                         </label>
-                        <label><strong>Ngày tiêm</strong><input type="date" name="vaccine_date" value="{{ today|date:'Y-m-d' }}" required></label>
-                        <label><strong>Mũi số</strong><input type="number" name="dose_number" min="1" value="1" required></label>
-                        <label><input type="checkbox" name="walkin_has_fever"> Đang sốt</label>
-                        <label><input type="checkbox" name="walkin_has_allergy_history"> Có tiền sử dị ứng</label>
-                        <label><input type="checkbox" name="walkin_has_chronic_condition"> Có bệnh nền</label>
-                        <textarea name="walkin_recent_symptoms" rows="2" placeholder="Triệu chứng gần đây"></textarea>
-                        <textarea name="walkin_current_medications" rows="2" placeholder="Thuốc đang dùng"></textarea>
-                        <textarea name="walkin_note" rows="2" placeholder="Ghi chú"></textarea>
-                        <button type="submit">Tiếp nhận walk-in</button>
+                        <label class="medical-field">
+                            <span>Ngày tiêm</span>
+                            <input type="date" name="vaccine_date" value="{{ today|date:'Y-m-d' }}" required>
+                        </label>
+                        <label class="medical-field">
+                            <span>Mũi số</span>
+                            <input type="number" name="dose_number" min="1" value="1" required>
+                        </label>
+                        <div class="medical-field medical-field-full">
+                            <span>Tình trạng ban đầu</span>
+                            <div class="checkbox-grid">
+                                <label class="checkbox-item"><input type="checkbox" name="walkin_has_fever"> Đang sốt</label>
+                                <label class="checkbox-item"><input type="checkbox" name="walkin_has_allergy_history"> Có tiền sử dị ứng</label>
+                                <label class="checkbox-item"><input type="checkbox" name="walkin_has_chronic_condition"> Có bệnh nền</label>
+                            </div>
+                        </div>
+                        <label class="medical-field">
+                            <span>Triệu chứng gần đây</span>
+                            <textarea name="walkin_recent_symptoms" rows="3" placeholder="Triệu chứng gần đây"></textarea>
+                        </label>
+                        <label class="medical-field">
+                            <span>Thuốc đang dùng</span>
+                            <textarea name="walkin_current_medications" rows="3" placeholder="Thuốc đang dùng"></textarea>
+                        </label>
+                        <label class="medical-field medical-field-full">
+                            <span>Ghi chú</span>
+                            <textarea name="walkin_note" rows="3" placeholder="Ghi chú"></textarea>
+                        </label>
+                        <div class="medical-form-actions medical-field-full">
+                            <button class="action-btn" type="submit">Tiếp nhận walk-in</button>
+                        </div>
                     </form>
                 </article>
             {% endif %}

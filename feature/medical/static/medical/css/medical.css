@@ -252,6 +252,93 @@
     max-width: 46ch;
 }
 
+.medical-page .medical-form {
+    display: grid;
+    gap: 14px;
+}
+
+.medical-page .walkin-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+}
+
+.medical-page .medical-field {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+}
+
+.medical-page .medical-field span {
+    font-weight: 700;
+    color: #0f2a43;
+}
+
+.medical-page .medical-field-full {
+    grid-column: 1 / -1;
+}
+
+.medical-page .medical-form input[type="text"],
+.medical-page .medical-form input[type="email"],
+.medical-page .medical-form input[type="date"],
+.medical-page .medical-form input[type="number"],
+.medical-page .medical-form select,
+.medical-page .medical-form textarea {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 14px;
+    border: 1px solid rgba(148, 163, 184, 0.5);
+    border-radius: 10px;
+    background: #fff;
+    color: #0f172a;
+    font: inherit;
+}
+
+.medical-page .medical-form textarea {
+    min-height: 92px;
+    resize: vertical;
+}
+
+.medical-page .medical-form input:focus,
+.medical-page .medical-form select:focus,
+.medical-page .medical-form textarea:focus {
+    outline: none;
+    border-color: #2a6f97;
+    box-shadow: 0 0 0 3px rgba(42, 111, 151, 0.12);
+}
+
+.medical-page .checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.medical-page .checkbox-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-weight: 600;
+    color: #334155;
+}
+
+.medical-page .checkbox-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: #2a6f97;
+}
+
+.medical-page .medical-form-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.medical-page .walkin-form .action-btn {
+    min-height: 42px;
+    padding: 0 18px;
+}
+
 @media (max-width: 1080px) {
     .medical-page .schedule-layout,
     .medical-page .stats,
@@ -268,6 +355,11 @@
     .medical-page .stats,
     .medical-page .schedule-layout,
     .medical-page .content {
+        grid-template-columns: 1fr;
+    }
+
+    .medical-page .walkin-form,
+    .medical-page .checkbox-grid {
         grid-template-columns: 1fr;
     }
 

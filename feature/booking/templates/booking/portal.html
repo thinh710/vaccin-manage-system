@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đặt lịch vắc xin | Vaccin Manage System</title>
-    <link rel="stylesheet" href="{% static 'booking/css/portal.css' %}?v=20260328-1">
+    <link rel="stylesheet" href="{% static 'booking/css/portal.css' %}?v=20260411-1">
 </head>
 <body class="booking-page">
     <main class="booking-shell">
@@ -156,27 +156,29 @@
                                     <td>Mũi {{ booking.dose_number }}</td>
                                     <td>{{ booking.status }}</td>
                                     <td>{{ booking.note|default:"Không có" }}</td>
-                                    <td>
-                                        <a class="secondary-btn" href="/booking/portal/?edit={{ booking.id }}">Sửa</a>
-                                        {% if booking.status != 'cancelled' and booking.status != 'completed' %}
-                                            <form method="post" action="/booking/portal/" style="display:inline;">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="action" value="cancel">
-                                                <input type="hidden" name="booking_id" value="{{ booking.id }}">
-                                                <button class="secondary-btn" type="submit">Hủy</button>
-                                            </form>
-                                        {% endif %}
+                                    <td class="booking-actions-cell">
+                                        <div class="booking-actions">
+                                            <a class="secondary-btn" href="/booking/portal/?edit={{ booking.id }}">Sửa</a>
+                                            {% if booking.status != 'cancelled' and booking.status != 'completed' %}
+                                                <form method="post" action="/booking/portal/" class="booking-inline-form">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="cancel">
+                                                    <input type="hidden" name="booking_id" value="{{ booking.id }}">
+                                                    <button class="secondary-btn" type="submit">Hủy</button>
+                                                </form>
+                                            {% endif %}
+                                            {% if user.role == 'citizen' %}
+                                                <a class="secondary-btn" href="/users/screening/?booking={{ booking.id }}">Khai báo</a>
+                                            {% endif %}
+                                        </div>
                                         {% if booking.status == 'delayed' %}
-                                            <form method="post" action="/booking/portal/" style="display:inline;">
+                                            <form method="post" action="/booking/portal/" class="booking-reschedule-form">
                                                 {% csrf_token %}
                                                 <input type="hidden" name="action" value="reschedule">
                                                 <input type="hidden" name="booking_id" value="{{ booking.id }}">
                                                 <input type="date" name="vaccine_date" min="{{ today|date:'Y-m-d' }}" required>
                                                 <button class="secondary-btn" type="submit">Đặt lại lịch</button>
                                             </form>
-                                        {% endif %}
-                                        {% if user.role == 'citizen' %}
-                                            <a class="secondary-btn" href="/users/screening/?booking={{ booking.id }}">Khai báo</a>
                                         {% endif %}
                                     </td>
                                 </tr>

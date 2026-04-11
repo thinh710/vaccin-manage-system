@@ -206,9 +206,10 @@ def inventory_dashboard_page(request):
         elif action == "import_stock":
             serializer = StockImportSerializer(data=request.POST)
             if serializer.is_valid():
-                stock_import = serializer.save(created_by=user)
-                stock_import.vaccine.quantity += stock_import.quantity
-                stock_import.vaccine.save(update_fields=["quantity"])
+                with transaction.atomic():
+                    stock_import = serializer.save(created_by=user)
+                    stock_import.vaccine.quantity += stock_import.quantity
+                    stock_import.vaccine.save(update_fields=["quantity"])
                 page_success = "Đã ghi nhận phiếu nhập."
             else:
                 page_error = _flatten_serializer_errors(serializer) or "Không thể nhập kho."
@@ -216,27 +217,38 @@ def inventory_dashboard_page(request):
         elif action == "export_stock":
             serializer = StockExportSerializer(data=request.POST)
             if serializer.is_valid():
-                with transaction.atomic():
-                    stock_export = serializer.save(created_by=user)
-                    vaccine = stock_export.vaccine
-                    vaccine.quantity -= stock_export.quantity
-                    vaccine.save(update_fields=["quantity"])
-                page_success = "Đã ghi nhận phiếu xuất."
+                vaccine = serializer.validated_data["vaccine"]
+                export_quantity = serializer.validated_data["quantity"]
+                if vaccine.quantity < export_quantity:
+                    page_error = f"Tồn kho không đủ. Hiện có: {vaccine.quantity}, yêu cầu xuất: {export_quantity}."
+                else:
+                    with transaction.atomic():
+                        stock_export = serializer.save(created_by=user)
+                        vaccine = stock_export.vaccine
+                        vaccine.quantity -= stock_export.quantity
+                        vaccine.save(update_fields=["quantity"])
+                    page_success = "Đã ghi nhận phiếu xuất."
             else:
                 page_error = _flatten_serializer_errors(serializer) or "Không thể xuất kho."
 
         elif action == "adjust_stock":
             serializer = StockAdjustmentSerializer(data=request.POST)
             if serializer.is_valid():
-                with transaction.atomic():
-                    adjustment = serializer.save(created_by=user)
-                    vaccine = adjustment.vaccine
-                    if adjustment.adjustment_type == "increase":
-                        vaccine.quantity += adjustment.quantity
-                    else:
-                        vaccine.quantity -= adjustment.quantity
-                    vaccine.save(update_fields=["quantity"])
-                page_success = "Đã ghi nhận điều chỉnh kho."
+                vaccine = serializer.validated_data["vaccine"]
+                adjustment_type = serializer.validated_data["adjustment_type"]
+                adjustment_quantity = serializer.validated_data["quantity"]
+                if adjustment_type == "decrease" and vaccine.quantity < adjustment_quantity:
+                    page_error = f"Tồn kho không đủ để giảm. Hiện có: {vaccine.quantity}."
+                else:
+                    with transaction.atomic():
+                        adjustment = serializer.save(created_by=user)
+                        vaccine = adjustment.vaccine
+                        if adjustment.adjustment_type == "increase":
+                            vaccine.quantity += adjustment.quantity
+                        else:
+                            vaccine.quantity -= adjustment.quantity
+                        vaccine.save(update_fields=["quantity"])
+                    page_success = "Đã ghi nhận điều chỉnh kho."
             else:
                 page_error = _flatten_serializer_errors(serializer) or "Không thể điều chỉnh kho."
 
@@ -272,6 +284,129 @@ def inventory_dashboard_page(request):
         "filter_location": request.GET.get("location", ""),
     }
     return render(request, "assets/dashboard.html", context)
+
+
+def inventory_forms_page(request):
+    user, redirect_response = _get_session_user(request)
+    if redirect_response:
+        return redirect_response
+
+    if not _can_manage_inventory(user):
+        return redirect("/users/dashboard/")
+
+    today = timezone.localdate()
+    vaccines = list(
+        Vaccine.objects.select_related("supplier", "location")
+        .all()
+        .order_by("expiration_date", "-created_at")
+    )
+    suppliers = list(Supplier.objects.all().order_by("name"))
+    locations = list(StorageLocation.objects.all().order_by("name"))
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        page_error = ""
+        page_success = ""
+
+        if action == "create_supplier":
+            serializer = SupplierSerializer(data=request.POST)
+            if serializer.is_valid():
+                serializer.save()
+                page_success = "Đã tạo nhà cung cấp."
+            else:
+                page_error = _flatten_serializer_errors(serializer) or "Không thể tạo nhà cung cấp."
+
+        elif action == "create_location":
+            serializer = StorageLocationSerializer(data=request.POST)
+            if serializer.is_valid():
+                serializer.save()
+                page_success = "Đã tạo vị trí bảo quản."
+            else:
+                page_error = _flatten_serializer_errors(serializer) or "Không thể tạo vị trí bảo quản."
+
+        elif action == "create_vaccine":
+            serializer = VaccineSerializer(data=request.POST)
+            if serializer.is_valid():
+                serializer.save()
+                page_success = "Đã tạo lô vắc xin."
+            else:
+                page_error = _flatten_serializer_errors(serializer) or "Không thể tạo lô vắc xin."
+
+        elif action == "import_stock":
+            serializer = StockImportSerializer(data=request.POST)
+            if serializer.is_valid():
+                with transaction.atomic():
+                    stock_import = serializer.save(created_by=user)
+                    stock_import.vaccine.quantity += stock_import.quantity
+                    stock_import.vaccine.save(update_fields=["quantity"])
+                page_success = "Đã ghi nhận phiếu nhập."
+            else:
+                page_error = _flatten_serializer_errors(serializer) or "Không thể nhập kho."
+
+        elif action == "export_stock":
+            serializer = StockExportSerializer(data=request.POST)
+            if serializer.is_valid():
+                vaccine = serializer.validated_data["vaccine"]
+                export_quantity = serializer.validated_data["quantity"]
+                if vaccine.quantity < export_quantity:
+                    page_error = f"Tồn kho không đủ. Hiện có: {vaccine.quantity}, yêu cầu xuất: {export_quantity}."
+                else:
+                    with transaction.atomic():
+                        stock_export = serializer.save(created_by=user)
+                        vaccine = stock_export.vaccine
+                        vaccine.quantity -= stock_export.quantity
+                        vaccine.save(update_fields=["quantity"])
+                    page_success = "Đã ghi nhận phiếu xuất."
+            else:
+                page_error = _flatten_serializer_errors(serializer) or "Không thể xuất kho."
+
+        elif action == "adjust_stock":
+            serializer = StockAdjustmentSerializer(data=request.POST)
+            if serializer.is_valid():
+                vaccine = serializer.validated_data["vaccine"]
+                adjustment_type = serializer.validated_data["adjustment_type"]
+                adjustment_quantity = serializer.validated_data["quantity"]
+                if adjustment_type == "decrease" and vaccine.quantity < adjustment_quantity:
+                    page_error = f"Tồn kho không đủ để giảm. Hiện có: {vaccine.quantity}."
+                else:
+                    with transaction.atomic():
+                        adjustment = serializer.save(created_by=user)
+                        vaccine = adjustment.vaccine
+                        if adjustment.adjustment_type == "increase":
+                            vaccine.quantity += adjustment.quantity
+                        else:
+                            vaccine.quantity -= adjustment.quantity
+                        vaccine.save(update_fields=["quantity"])
+                    page_success = "Đã ghi nhận điều chỉnh kho."
+            else:
+                page_error = _flatten_serializer_errors(serializer) or "Không thể điều chỉnh kho."
+
+        vaccines = list(
+            Vaccine.objects.select_related("supplier", "location")
+            .all()
+            .order_by("expiration_date", "-created_at")
+        )
+        suppliers = list(Supplier.objects.all().order_by("name"))
+        locations = list(StorageLocation.objects.all().order_by("name"))
+
+    context = {
+        "user": user,
+        "today": today,
+        "page_error": locals().get("page_error", ""),
+        "page_success": locals().get("page_success", ""),
+        "summary": {
+            "total_vaccines": len(vaccines),
+            "total_stock": sum(vaccine.quantity for vaccine in vaccines),
+            "low_stock_count": sum(
+                1 for vaccine in vaccines if vaccine.quantity <= vaccine.minimum_stock
+            ),
+            "expired_count": sum(1 for vaccine in vaccines if vaccine.expiration_date < today),
+        },
+        "vaccines": vaccines,
+        "suppliers": suppliers,
+        "locations": locations,
+    }
+    return render(request, "assets/forms.html", context)
 
 
 def inventory_overview_page(request):
