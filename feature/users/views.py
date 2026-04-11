@@ -312,6 +312,7 @@ def dashboard(request: HttpRequest):
             "user": user,
             "today": today,
             "todays_bookings_count": len(todays_bookings),
+            "pending_count": sum(1 for booking in todays_bookings if booking.status == Booking.STATUS_PENDING),
             "screened_count": len(screening_results),
             "fit_count": sum(1 for result in screening_results if result.is_eligible),
             "not_fit_count": sum(1 for result in screening_results if not result.is_eligible),

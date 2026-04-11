@@ -6,6 +6,14 @@ from feature.authentication.models import User
 
 
 class RegistrationTests(APITestCase):
+    def test_register_page_is_citizen_only_ui(self):
+        response = self.client.get(reverse("register-page"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotContains(response, 'name="role_display"', html=False)
+        self.assertNotContains(response, 'register-role-inline', html=False)
+        self.assertNotContains(response, 'id="role"', html=False)
+
     def test_public_registration_always_creates_citizen_role(self):
         response = self.client.post(
             reverse("register"),

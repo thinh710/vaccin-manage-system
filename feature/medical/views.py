@@ -4,7 +4,7 @@ from datetime import date
 from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.utils import timezone
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -24,6 +24,38 @@ from .serializers import (
 
 def _flatten_serializer_errors(serializer):
     return " ".join(str(message) for messages in serializer.errors.values() for message in messages)
+
+
+def _serialize_declaration(declaration):
+    if not declaration:
+        return None
+    return {
+        "id": declaration.id,
+        "booking": declaration.booking_id,
+        "has_fever": declaration.has_fever,
+        "has_allergy_history": declaration.has_allergy_history,
+        "has_chronic_condition": declaration.has_chronic_condition,
+        "recent_symptoms": declaration.recent_symptoms or "",
+        "current_medications": declaration.current_medications or "",
+        "note": declaration.note or "",
+        "created_at": declaration.created_at.isoformat(),
+        "updated_at": declaration.updated_at.isoformat(),
+    }
+
+
+def _serialize_screening_result(screening_result):
+    if not screening_result:
+        return None
+    return {
+        "id": screening_result.id,
+        "booking": screening_result.booking_id,
+        "temperature": screening_result.temperature,
+        "blood_pressure": screening_result.blood_pressure,
+        "decision": screening_result.decision,
+        "is_eligible": screening_result.is_eligible,
+        "doctor_note": screening_result.doctor_note or "",
+        "created_at": screening_result.created_at.isoformat(),
+    }
 
 
 def _get_session_user(request):
@@ -255,6 +287,7 @@ def medical_dashboard(request):
                 page_success = "Đã tiếp nhận khách vãng lai."
             else:
                 page_error = _flatten_serializer_errors(booking_serializer) or "Không thể tạo walk-in."
+
     vaccines = list(
         Vaccine.objects.filter(
             quantity__gt=0,
@@ -293,7 +326,6 @@ def _get_api_session_user(request):
 
 
 def _require_staff_user(request):
-    """Dùng cho bước check-in, inject, monitor — Staff/Admin vận hành."""
     user = _get_api_session_user(request)
     if not user:
         return None, Response({"detail": "Bạn chưa đăng nhập."}, status=status.HTTP_401_UNAUTHORIZED)
@@ -303,7 +335,6 @@ def _require_staff_user(request):
 
 
 def _require_medical_read_user(request):
-    """Dùng cho các màn hình/list API mà staff, doctor, admin đều cần xem."""
     user = _get_api_session_user(request)
     if not user:
         return None, Response({"detail": "Bạn chưa đăng nhập."}, status=status.HTTP_401_UNAUTHORIZED)
@@ -313,15 +344,11 @@ def _require_medical_read_user(request):
 
 
 def _require_doctor_user(request):
-    """Dùng cho bước khám sàng lọc — chỉ Doctor/Admin."""
     user = _get_api_session_user(request)
     if not user:
         return None, Response({"detail": "Bạn chưa đăng nhập."}, status=status.HTTP_401_UNAUTHORIZED)
     if user.role not in [User.ROLE_ADMIN, User.ROLE_DOCTOR]:
-        return None, Response(
-            {"detail": "Chỉ bác sĩ mới được thực hiện khám sàng lọc."},
-            status=status.HTTP_403_FORBIDDEN,
-        )
+        return None, Response({"detail": "Chỉ bác sĩ mới được thực hiện khám sàng lọc."}, status=status.HTTP_403_FORBIDDEN)
     return user, None
 
 
@@ -379,22 +406,20 @@ def pre_screening_declaration_detail(request, booking_id):
     declaration = PreScreeningDeclaration.objects.filter(booking=booking).first()
 
     if request.method == "GET":
-        if not declaration:
-            return Response({"booking": booking.id, "declaration": None})
-        return Response(PreScreeningDeclarationSerializer(declaration).data)
-
-    # POST / PATCH — citizen hoặc staff đều được (staff điền hộ khi walk-in)
-    if user.role not in [User.ROLE_CITIZEN, User.ROLE_STAFF, User.ROLE_ADMIN]:
+        screening_result = ScreeningResult.objects.filter(booking=booking).first()
         return Response(
-            {"detail": "Bạn không có quyền gửi khai báo sàng lọc."},
-            status=status.HTTP_403_FORBIDDEN,
+            {
+                "booking": booking.id,
+                "declaration": _serialize_declaration(declaration),
+                "screening_result": _serialize_screening_result(screening_result),
+            }
         )
+
+    if user.role not in [User.ROLE_CITIZEN, User.ROLE_STAFF, User.ROLE_ADMIN]:
+        return Response({"detail": "Bạn không có quyền gửi khai báo sàng lọc."}, status=status.HTTP_403_FORBIDDEN)
 
     if booking.status in [Booking.STATUS_CANCELLED, Booking.STATUS_COMPLETED]:
-        return Response(
-            {"detail": "Booking này không còn mở để khai báo sàng lọc."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"detail": "Booking này không còn mở để khai báo sàng lọc."}, status=status.HTTP_400_BAD_REQUEST)
 
     if declaration:
         serializer = PreScreeningDeclarationSerializer(declaration, data=request.data, partial=True)
@@ -423,26 +448,24 @@ def check_in_booking(request, booking_id):
         return Response({"detail": "Không thể check-in booking này."}, status=status.HTTP_400_BAD_REQUEST)
 
     if booking.status != Booking.STATUS_CONFIRMED:
-        return Response(
-            {"detail": "Cần xác nhận lịch trước khi check-in."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"detail": "Cần xác nhận lịch trước khi check-in."}, status=status.HTTP_400_BAD_REQUEST)
 
     booking.status = Booking.STATUS_CHECKED_IN
     booking.save(update_fields=["status", "updated_at"])
 
     has_declaration = PreScreeningDeclaration.objects.filter(booking=booking).exists()
-    return Response({
-        "status": "checked_in",
-        "booking_id": booking.id,
-        "has_pre_screening": has_declaration,
-        "warning": None if has_declaration else "Chưa có khai báo y tế. Y tá cần điền hộ.",
-    })
+    return Response(
+        {
+            "status": "checked_in",
+            "booking_id": booking.id,
+            "has_pre_screening": has_declaration,
+            "warning": None if has_declaration else "Chưa có khai báo y tế. Y tá cần điền hộ.",
+        }
+    )
 
 
 @api_view(["POST"])
 def submit_screening_result(request):
-    """Bước 4 — chỉ Doctor/Admin thực hiện khám sàng lọc."""
     _, error_response = _require_doctor_user(request)
     if error_response:
         return error_response
@@ -454,10 +477,7 @@ def submit_screening_result(request):
         return Response({"detail": "Không tìm thấy booking."}, status=status.HTTP_404_NOT_FOUND)
 
     if booking.status != Booking.STATUS_CHECKED_IN:
-        return Response(
-            {"detail": "Chỉ được khám sàng lọc khi booking đã check-in."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"detail": "Chỉ được khám sàng lọc khi booking đã check-in."}, status=status.HTTP_400_BAD_REQUEST)
 
     if not PreScreeningDeclaration.objects.filter(booking=booking).exists():
         return Response(
@@ -481,7 +501,6 @@ def submit_screening_result(request):
     if serializer.is_valid():
         serializer.save()
 
-        # 3 nhánh quyết định dựa vào field 'decision'
         if decision == "eligible":
             booking.status = Booking.STATUS_READY_TO_INJECT
         elif decision == "delayed":
@@ -490,7 +509,6 @@ def submit_screening_result(request):
             booking.status = Booking.STATUS_CANCELLED
 
         booking.save(update_fields=["status", "updated_at"])
-
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -498,7 +516,6 @@ def submit_screening_result(request):
 
 @api_view(["POST"])
 def submit_vaccination_log(request):
-    """Bước 5 — Staff/Admin xác nhận tiêm. Booking phải ở ready_to_inject."""
     _, error_response = _require_staff_user(request)
     if error_response:
         return error_response
@@ -510,10 +527,7 @@ def submit_vaccination_log(request):
         return Response({"detail": "Không tìm thấy booking."}, status=status.HTTP_404_NOT_FOUND)
 
     if booking.status != Booking.STATUS_READY_TO_INJECT:
-        return Response(
-            {"detail": "Booking chưa được bác sĩ chỉ định tiêm."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"detail": "Booking chưa được bác sĩ chỉ định tiêm."}, status=status.HTTP_400_BAD_REQUEST)
 
     data = request.data.copy()
     vaccine_obj = None
@@ -532,12 +546,7 @@ def submit_vaccination_log(request):
             )
             if not vaccine_obj:
                 return Response(
-                    {
-                        "detail": (
-                            "Không tìm thấy lô vắc xin phù hợp với số lô đã nhập, "
-                            "hoặc lô này đã hết hàng / hết hạn."
-                        )
-                    },
+                    {"detail": "Không tìm thấy lô vắc xin phù hợp với số lô đã nhập, hoặc lô này đã hết hàng / hết hạn."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -554,12 +563,7 @@ def submit_vaccination_log(request):
 
         if not vaccine_obj:
             return Response(
-                {
-                    "detail": (
-                        "Không tìm thấy vắc xin phù hợp trong kho để xác nhận tiêm. "
-                        "Hãy kiểm tra lại số lô hoặc tồn kho hiện có."
-                    )
-                },
+                {"detail": "Không tìm thấy vắc xin phù hợp trong kho để xác nhận tiêm. Hãy kiểm tra lại số lô hoặc tồn kho hiện có."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -580,37 +584,26 @@ def submit_vaccination_log(request):
             with transaction.atomic():
                 serializer.save()
 
-                # Trừ tồn kho — phải trong cùng transaction với booking status
                 vaccine_obj = serializer.instance.vaccine if serializer.instance.vaccine else None
                 if vaccine_obj and vaccine_obj.quantity > 0:
                     vaccine_obj.quantity -= 1
                     vaccine_obj.save(update_fields=["quantity"])
 
-                # Chuyển sang trạng thái theo dõi sau tiêm
                 booking.status = Booking.STATUS_IN_OBSERVATION
                 booking.save(update_fields=["status", "updated_at"])
         except IntegrityError:
             return Response(
-                {
-                    "detail": (
-                        "Không thể lưu xác nhận tiêm vì dữ liệu hồ sơ tiêm cũ chưa tương thích hoàn toàn. "
-                        "Hãy chạy migration mới rồi thử lại."
-                    )
-                },
+                {"detail": "Không thể lưu xác nhận tiêm vì dữ liệu hồ sơ tiêm cũ chưa tương thích hoàn toàn. Hãy chạy migration mới rồi thử lại."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response(
-            serializer.data,
-            status=status.HTTP_200_OK if was_existing_log else status.HTTP_201_CREATED,
-        )
+        return Response(serializer.data, status=status.HTTP_200_OK if was_existing_log else status.HTTP_201_CREATED)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(["POST"])
 def submit_post_injection_tracking(request):
-    """Bước 6 — Staff/Admin ghi nhận theo dõi sau tiêm. Booking phải ở in_observation."""
     _, error_response = _require_staff_user(request)
     if error_response:
         return error_response
@@ -623,10 +616,7 @@ def submit_post_injection_tracking(request):
 
     booking = vaccination_log.booking
     if booking.status != Booking.STATUS_IN_OBSERVATION:
-        return Response(
-            {"detail": "Bệnh nhân chưa ở trạng thái theo dõi sau tiêm."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"detail": "Bệnh nhân chưa ở trạng thái theo dõi sau tiêm."}, status=status.HTTP_400_BAD_REQUEST)
 
     data = request.data.copy()
     data["vaccination_log"] = vaccination_log.id
@@ -634,8 +624,6 @@ def submit_post_injection_tracking(request):
     serializer = PostInjectionTrackingSerializer(data=data)
     if serializer.is_valid():
         serializer.save()
-
-        # Hoàn tất — chuyển sang Completed
         booking.status = Booking.STATUS_COMPLETED
         booking.save(update_fields=["status", "updated_at"])
 
@@ -649,7 +637,6 @@ def submit_post_injection_tracking(request):
 
 @api_view(["POST"])
 def walkin_checkin(request):
-    """Walk-in: Staff tạo booking mới và check-in ngay tại quầy."""
     user, err = _require_staff_user(request)
     if err:
         return err
@@ -667,19 +654,11 @@ def walkin_checkin(request):
         }
 
         booking_owner = _find_active_citizen_by_email(request.data.get("email"))
-
-        booking_serializer = BookingSerializer(
-            data=booking_data,
-            context={"session_user": user},
-        )
+        booking_serializer = BookingSerializer(data=booking_data, context={"session_user": user})
         if not booking_serializer.is_valid():
             return Response(booking_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        booking = booking_serializer.save(
-            user=booking_owner,
-            booking_source=Booking.BOOKING_SOURCE_WALKIN,
-        )
+        booking = booking_serializer.save(user=booking_owner, booking_source=Booking.BOOKING_SOURCE_WALKIN)
 
-        # Tạo PreScreeningDeclaration nếu có
         pre_data = request.data.get("pre_screening")
         if pre_data:
             pre_serializer = PreScreeningDeclarationSerializer(data=pre_data)
@@ -687,15 +666,11 @@ def walkin_checkin(request):
                 return Response(pre_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             pre_serializer.save(booking=booking)
 
-    return Response(
-        BookingSerializer(booking, context={"session_user": user}).data,
-        status=status.HTTP_201_CREATED,
-    )
+    return Response(BookingSerializer(booking, context={"session_user": user}).data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["POST"])
 def reschedule_booking(request, booking_id):
-    """Đặt lại lịch cho booking bị hoãn (Delayed). Staff hoặc chính citizen đó."""
     user = _get_api_session_user(request)
     if not user:
         return Response({"detail": "Bạn chưa đăng nhập."}, status=status.HTTP_401_UNAUTHORIZED)
@@ -705,17 +680,14 @@ def reschedule_booking(request, booking_id):
     except Booking.DoesNotExist:
         return Response({"detail": "Không tìm thấy booking."}, status=status.HTTP_404_NOT_FOUND)
 
-    # Citizen chỉ reschedule booking của mình
-    if user.role == User.ROLE_CITIZEN:
-        if not _can_access_booking(user, source):
-            return Response({"detail": "Bạn không có quyền đặt lại lịch này."}, status=status.HTTP_403_FORBIDDEN)
+    if user.role == User.ROLE_CITIZEN and not _can_access_booking(user, source):
+        return Response({"detail": "Bạn không có quyền đặt lại lịch này."}, status=status.HTTP_403_FORBIDDEN)
 
-    # Chỉ cho phép reschedule khi đang Delayed
     if source.status != Booking.STATUS_DELAYED:
-        return Response(
-            {"detail": "Chỉ có thể đặt lại lịch cho các ca bị hoãn (Delayed)."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"detail": "Chỉ có thể đặt lại lịch cho các ca bị hoãn (Delayed)."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if source.rescheduled_bookings.exists():
+        return Response({"detail": "Booking này đã có lịch thay thế, không thể đặt lại thêm lần nữa."}, status=status.HTTP_400_BAD_REQUEST)
 
     new_date_str = request.data.get("vaccine_date")
     if not new_date_str:
@@ -750,7 +722,6 @@ def reschedule_booking(request, booking_id):
             rescheduled_from=source,
         )
 
-        # Clone PreScreeningDeclaration nếu có
         old_pre = PreScreeningDeclaration.objects.filter(booking=source).first()
         if old_pre:
             PreScreeningDeclaration.objects.create(
@@ -763,7 +734,4 @@ def reschedule_booking(request, booking_id):
                 note=old_pre.note,
             )
 
-    return Response(
-        BookingSerializer(new_booking, context={"session_user": user}).data,
-        status=status.HTTP_201_CREATED,
-    )
+    return Response(BookingSerializer(new_booking, context={"session_user": user}).data, status=status.HTTP_201_CREATED)
