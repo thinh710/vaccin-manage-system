@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -19,8 +19,12 @@
                 </p>
 
                 <div class="hero-actions">
-                    <a class="primary-link" href="/assets/dashboard-page/">Vào dashboard kho</a>
-                    <a class="ghost-link" href="/users/dashboard/">Quay lại dashboard</a>
+                    {% if user.role == 'admin' %}
+                        <a class="primary-link" href="/assets/dashboard-page/">Vào trung tâm quản lý kho</a>
+                    {% else %}
+                        <span class="primary-link is-disabled" aria-disabled="true">Tài khoản này chỉ xem được tổng quan kho</span>
+                    {% endif %}
+                    <a class="ghost-link" href="/users/dashboard/">Quay lại trang tổng quan</a>
                 </div>
             </div>
 
@@ -59,10 +63,17 @@
         </section>
 
         <section class="feature-grid">
+            {% if user.role != 'admin' %}
+                <article class="feature-card">
+                    <div class="feature-icon">00</div>
+                    <h3>Quyền hiện tại</h3>
+                    <p>Tài khoản của bạn chỉ có quyền xem tổng quan kho. Khu quản lý kho đầy đủ dành cho quản trị viên.</p>
+                </article>
+            {% endif %}
             <article class="feature-card">
                 <div class="feature-icon">01</div>
                 <h3>Thêm và cập nhật vắc xin</h3>
-                <p>Tạo lô mới, cập nhật nhà cung cấp, hạn sử dụng và vị trí bảo quản ngay trong dashboard kho.</p>
+                <p>Tạo lô mới, cập nhật nhà cung cấp, hạn sử dụng và vị trí bảo quản ngay trong trung tâm quản lý kho.</p>
             </article>
             <article class="feature-card">
                 <div class="feature-icon">02</div>
@@ -78,3 +89,5 @@
     </main>
 </body>
 </html>
+
+

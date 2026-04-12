@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard y khoa và tiêm chủng</title>
+    <title>Khu y khoa và tiêm chủng</title>
     <link rel="stylesheet" href="{% static 'users/css/staff_dashboard.css' %}?v=20260403-1">
-    <link rel="stylesheet" href="{% static 'medical/css/medical.css' %}?v=20260411-1">
+    <link rel="stylesheet" href="{% static 'medical/css/medical.css' %}?v=20260412-1">
 </head>
 <body class="medical-page">
     <main class="shell medical-shell">
@@ -14,8 +14,8 @@
             <div class="hero-top">
                 <div>
                     <div class="eyebrow">Trạm y khoa</div>
-                    <h1>Dashboard y khoa không dùng JavaScript</h1>
-                    <p>Tất cả thao tác xác nhận, check-in, sàng lọc, tiêm và theo dõi được thực hiện bằng form POST.</p>
+                    <h1>Khu y khoa và tiêm chủng</h1>
+                    <p>Theo dõi tiếp nhận, sàng lọc, tiêm và theo dõi sau tiêm trên cùng một màn hình.</p>
                 </div>
                 <div class="hero-meta">
                     <strong>{{ user.full_name }}</strong>
@@ -36,193 +36,288 @@
             <div class="empty-state" style="display:block;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">{{ page_success }}</div>
         {% endif %}
 
-        <section class="grid content">
+        <section class="grid content medical-layout">
             <article class="card section">
-                <div class="section-head">
+                <div class="section-head section-head--split">
                     <div>
                         <h2>Danh sách bệnh nhân hôm nay</h2>
-                        <p>Luồng xử lý thuần Django/Python.</p>
+                        <p>Chọn bệnh nhân để thực hiện khám, tiêm hoặc theo dõi phản ứng.</p>
                     </div>
+                    {% if user.role != 'doctor' %}
+                        <a class="action-link" href="#form-walkin">+ Tiếp nhận Walk-in</a>
+                    {% endif %}
                 </div>
+
                 <div id="patient-list">
                     {% for booking in today_bookings_list %}
-                        <div class="patient-row">
-                            <div class="screening-main">
-                                <strong>{{ booking.full_name }} • {{ booking.vaccine_name }}</strong>
-                                <div>Mũi: {{ booking.dose_number }} • ĐT: {{ booking.phone }}</div>
-                                <div style="margin-top:6px;"><span class="badge">{{ booking.status }}</span></div>
-
-                                {% if booking.pre_screening %}
-                                    <div class="pre-screening-snippet">
-                                        Khai báo: sốt {{ booking.pre_screening.has_fever|yesno:"có,không" }},
-                                        dị ứng {{ booking.pre_screening.has_allergy_history|yesno:"có,không" }},
-                                        bệnh nền {{ booking.pre_screening.has_chronic_condition|yesno:"có,không" }}.
-                                    </div>
-                                {% endif %}
-
-                                <div class="action-buttons" style="display:block;">
-                                    {% if booking.status == 'pending' or booking.status == 'delayed' %}
-                                        <form method="post" style="display:inline-block;">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="action" value="confirm_booking">
-                                            <input type="hidden" name="booking_id" value="{{ booking.id }}">
-                                            <button class="action-btn" type="submit">Xác nhận lịch</button>
-                                        </form>
-                                    {% endif %}
-
-                                    {% if booking.status == 'confirmed' and user.role != 'doctor' %}
-                                        <form method="post" style="display:inline-block;">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="action" value="check_in">
-                                            <input type="hidden" name="booking_id" value="{{ booking.id }}">
-                                            <button class="action-btn" type="submit">Check-in</button>
-                                        </form>
-                                    {% endif %}
-
-                                    {% if booking.status == 'checked_in' and user.role != 'staff' %}
-                                        <details style="margin-top:10px;">
-                                            <summary>Nhập kết quả sàng lọc</summary>
-                                            <form method="post">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="action" value="screening">
-                                                <input type="hidden" name="booking_id" value="{{ booking.id }}">
-                                                <input name="temperature" type="number" step="0.1" placeholder="Nhiệt độ" required>
-                                                <input name="blood_pressure" type="text" placeholder="Huyết áp" required>
-                                                <select name="decision" required>
-                                                    <option value="eligible">Đủ điều kiện</option>
-                                                    <option value="delayed">Tạm hoãn</option>
-                                                    <option value="cancelled">Chống chỉ định</option>
-                                                </select>
-                                                <textarea name="doctor_note" rows="2" placeholder="Ghi chú bác sĩ"></textarea>
-                                                <button class="action-btn" type="submit">Lưu sàng lọc</button>
-                                            </form>
-                                        </details>
-                                    {% endif %}
-
-                                    {% if booking.status == 'ready_to_inject' and user.role != 'doctor' %}
-                                        <details style="margin-top:10px;">
-                                            <summary>Xác nhận tiêm</summary>
-                                            <form method="post">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="action" value="inject">
-                                                <input type="hidden" name="booking_id" value="{{ booking.id }}">
-                                                <input name="batch_number" type="text" placeholder="Số lô">
-                                                <input name="injected_by" type="text" value="{{ user.full_name }}" placeholder="Người tiêm" required>
-                                                <input name="dose_number" type="number" value="{{ booking.dose_number }}" min="1" required>
-                                                <button class="action-btn" type="submit">Lưu thông tin tiêm</button>
-                                            </form>
-                                        </details>
-                                    {% endif %}
-
-                                    {% if booking.status == 'in_observation' and user.role != 'doctor' %}
-                                        <details style="margin-top:10px;">
-                                            <summary>Theo dõi sau tiêm</summary>
-                                            <form method="post">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="action" value="monitor">
-                                                <input type="hidden" name="booking_id" value="{{ booking.id }}">
-                                                <select name="reaction_status">
-                                                    <option value="Normal">Bình thường</option>
-                                                    <option value="Mild">Nhẹ</option>
-                                                    <option value="Severe">Nặng</option>
-                                                </select>
-                                                <textarea name="notes" rows="2" placeholder="Ghi chú"></textarea>
-                                                <button class="action-btn" type="submit">Hoàn tất theo dõi</button>
-                                            </form>
-                                        </details>
-                                    {% endif %}
-
-                                    {% if user.role != 'doctor' %}
-                                        <details style="margin-top:10px;">
-                                            <summary>Bổ sung khai báo y tế</summary>
-                                            <form method="post">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="action" value="save_prescreen">
-                                                <input type="hidden" name="booking_id" value="{{ booking.id }}">
-                                                <label><input type="checkbox" name="has_fever" {% if booking.pre_screening and booking.pre_screening.has_fever %}checked{% endif %}> Sốt</label>
-                                                <label><input type="checkbox" name="has_allergy_history" {% if booking.pre_screening and booking.pre_screening.has_allergy_history %}checked{% endif %}> Dị ứng</label>
-                                                <label><input type="checkbox" name="has_chronic_condition" {% if booking.pre_screening and booking.pre_screening.has_chronic_condition %}checked{% endif %}> Bệnh nền</label>
-                                                <textarea name="recent_symptoms" rows="2" placeholder="Triệu chứng">{% if booking.pre_screening %}{{ booking.pre_screening.recent_symptoms }}{% endif %}</textarea>
-                                                <textarea name="current_medications" rows="2" placeholder="Thuốc đang dùng">{% if booking.pre_screening %}{{ booking.pre_screening.current_medications }}{% endif %}</textarea>
-                                                <textarea name="note" rows="2" placeholder="Ghi chú">{% if booking.pre_screening %}{{ booking.pre_screening.note }}{% endif %}</textarea>
-                                                <button class="action-btn" type="submit">Lưu khai báo</button>
-                                            </form>
-                                        </details>
-                                    {% endif %}
+                        <article class="patient-row{% if selected_booking and selected_booking.id == booking.id %} patient-row--active{% endif %}">
+                            <div class="patient-row-top">
+                                <div>
+                                    <strong>{{ booking.full_name }} • {{ booking.vaccine_name }}</strong>
+                                    <div>Mũi: {{ booking.dose_number }} • ĐT: {{ booking.phone }}</div>
                                 </div>
+                                <span class="badge {{ booking.status }}">
+                                    {% if booking.status == 'pending' %}Chờ xác nhận
+                                    {% elif booking.status == 'confirmed' %}Đã xác nhận
+                                    {% elif booking.status == 'checked_in' %}Đã check-in
+                                    {% elif booking.status == 'ready_to_inject' %}Chờ tiêm
+                                    {% elif booking.status == 'in_observation' %}Đang theo dõi
+                                    {% elif booking.status == 'completed' %}Đã hoàn thành
+                                    {% elif booking.status == 'delayed' %}Tạm hoãn
+                                    {% else %}{{ booking.status }}{% endif %}
+                                </span>
                             </div>
-                        </div>
+
+                            <div class="pre-screening-snippet">
+                                {% if booking.pre_screening %}
+                                    Khai báo trước tiêm:
+                                    sốt {% if booking.pre_screening.has_fever %}có{% else %}không{% endif %},
+                                    dị ứng {% if booking.pre_screening.has_allergy_history %}có{% else %}không{% endif %},
+                                    bệnh nền {% if booking.pre_screening.has_chronic_condition %}có{% else %}không{% endif %}.
+                                {% else %}
+                                    Chưa có khai báo trước tiêm. Cần cập nhật thông tin trước khi bác sĩ sàng lọc.
+                                {% endif %}
+                            </div>
+
+                            {% if booking.status == 'delayed' %}
+                                <div class="row-note row-note--warning">Ca này đang tạm hoãn. Công dân có thể đặt lại lịch từ cổng đặt lịch.</div>
+                            {% elif booking.status == 'ready_to_inject' %}
+                                <div class="row-note">Bác sĩ đã duyệt. Y tá có thể mở form tiêm chủng.</div>
+                            {% elif booking.status == 'checked_in' %}
+                                <div class="row-note">Bệnh nhân đã check-in. Chọn hồ sơ để thao tác ở khu vực bên phải.</div>
+                            {% elif booking.status == 'in_observation' %}
+                                <div class="row-note row-note--observation">Đã tiêm xong. Đang theo dõi phản ứng sau tiêm tại khu vực theo dõi.</div>
+                            {% endif %}
+
+                            <div class="patient-row-actions">
+                                <a class="action-btn action-btn--select" href="?booking={{ booking.id }}">Mở hồ sơ thao tác</a>
+                            </div>
+                        </article>
                     {% empty %}
                         <div class="empty-state">Hôm nay chưa có bệnh nhân.</div>
                     {% endfor %}
                 </div>
             </article>
 
-            {% if user.role != 'doctor' %}
-                <article class="card section">
-                    <div class="section-head">
-                        <div>
-                            <h2>Tiếp nhận walk-in</h2>
-                            <p>Tạo booking và khai báo sơ bộ tại chỗ.</p>
-                        </div>
+            <article class="card section" id="action-panel">
+                <div class="section-head">
+                    <div>
+                        <h2>Khu vực thao tác</h2>
+                        {% if selected_booking and selected_booking.status == 'in_observation' %}
+                            <p>Theo dõi phản ứng cho: {{ selected_booking.full_name }}</p>
+                        {% elif selected_booking %}
+                            <p>Đang thao tác với: {{ selected_booking.full_name }}</p>
+                        {% else %}
+                            <p>Chọn một hồ sơ ở cột bên trái để thao tác.</p>
+                        {% endif %}
                     </div>
-                    <form method="post" id="form-walkin" class="medical-form walkin-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="walkin">
-                        <label class="medical-field">
-                            <span>Họ và tên</span>
-                            <input type="text" name="full_name" required>
-                        </label>
-                        <label class="medical-field">
-                            <span>Số điện thoại</span>
-                            <input type="text" name="phone" required>
-                        </label>
-                        <label class="medical-field">
-                            <span>Email</span>
-                            <input type="email" name="email">
-                        </label>
-                        <label class="medical-field">
-                            <span>Vắc xin</span>
-                            <select name="vaccine_name" required>
-                                {% for vaccine in vaccines %}
-                                    <option value="{{ vaccine.name }}">{{ vaccine.name }} (còn {{ vaccine.quantity }} liều)</option>
-                                {% endfor %}
-                            </select>
-                        </label>
-                        <label class="medical-field">
-                            <span>Ngày tiêm</span>
-                            <input type="date" name="vaccine_date" value="{{ today|date:'Y-m-d' }}" required>
-                        </label>
-                        <label class="medical-field">
-                            <span>Mũi số</span>
-                            <input type="number" name="dose_number" min="1" value="1" required>
-                        </label>
-                        <div class="medical-field medical-field-full">
-                            <span>Tình trạng ban đầu</span>
-                            <div class="checkbox-grid">
-                                <label class="checkbox-item"><input type="checkbox" name="walkin_has_fever"> Đang sốt</label>
-                                <label class="checkbox-item"><input type="checkbox" name="walkin_has_allergy_history"> Có tiền sử dị ứng</label>
-                                <label class="checkbox-item"><input type="checkbox" name="walkin_has_chronic_condition"> Có bệnh nền</label>
+                </div>
+
+                {% if selected_booking %}
+                    {% if selected_booking.pre_screening %}
+                        <div class="pre-screening-card">
+                            <strong>Khai báo trước tiêm</strong>
+                            <div class="declaration-grid">
+                                <span>Sốt: {% if selected_booking.pre_screening.has_fever %}Có{% else %}Không{% endif %}</span>
+                                <span>Dị ứng: {% if selected_booking.pre_screening.has_allergy_history %}Có{% else %}Không{% endif %}</span>
+                                <span>Bệnh nền: {% if selected_booking.pre_screening.has_chronic_condition %}Có{% else %}Không{% endif %}</span>
+                            </div>
+                            {% if selected_booking.pre_screening.note %}
+                                <div>Ghi chú thêm: {{ selected_booking.pre_screening.note }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    {% if user.role != 'doctor' and selected_booking.status == 'pending' or user.role != 'doctor' and selected_booking.status == 'delayed' %}
+                        <form method="post" class="single-action-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="confirm_booking">
+                            <input type="hidden" name="booking_id" value="{{ selected_booking.id }}">
+                            <button class="action-btn" type="submit">Xác nhận lịch</button>
+                        </form>
+                    {% endif %}
+
+                    {% if user.role != 'doctor' and selected_booking.status == 'confirmed' %}
+                        <form method="post" class="single-action-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="check_in">
+                            <input type="hidden" name="booking_id" value="{{ selected_booking.id }}">
+                            <button class="action-btn" type="submit">Tiếp nhận bệnh nhân</button>
+                        </form>
+                    {% endif %}
+
+                    {% if user.role != 'doctor' and selected_booking.status == 'checked_in' %}
+                        <details class="declaration-panel" {% if not selected_booking.pre_screening %}open{% endif %}>
+                            <summary class="declaration-toggle">Khai báo bổ sung</summary>
+                            <form method="post" class="declaration-card declaration-card--expanded">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="save_prescreen">
+                                <input type="hidden" name="booking_id" value="{{ selected_booking.id }}">
+                                <div class="declaration-card-eyebrow">Cần bổ sung ngay</div>
+                                <strong>Y tá điền khai báo y tế cho khách</strong>
+                                <p>Điền bổ sung thông tin trước khi chuyển bác sĩ sàng lọc.</p>
+                                <label><input type="checkbox" name="has_fever" {% if selected_booking.pre_screening and selected_booking.pre_screening.has_fever %}checked{% endif %}> Đang sốt hoặc có dấu hiệu nhiễm trùng</label>
+                                <label><input type="checkbox" name="has_allergy_history" {% if selected_booking.pre_screening and selected_booking.pre_screening.has_allergy_history %}checked{% endif %}> Có tiền sử dị ứng thuốc hoặc phản ứng sau tiêm</label>
+                                <label><input type="checkbox" name="has_chronic_condition" {% if selected_booking.pre_screening and selected_booking.pre_screening.has_chronic_condition %}checked{% endif %}> Có bệnh nền hoặc đang điều trị bệnh mạn tính</label>
+                                <textarea name="recent_symptoms" rows="3" placeholder="Triệu chứng gần đây">{% if selected_booking.pre_screening %}{{ selected_booking.pre_screening.recent_symptoms }}{% endif %}</textarea>
+                                <textarea name="current_medications" rows="3" placeholder="Thuốc đang sử dụng">{% if selected_booking.pre_screening %}{{ selected_booking.pre_screening.current_medications }}{% endif %}</textarea>
+                                <textarea name="note" rows="3" placeholder="Ghi chú thêm">{% if selected_booking.pre_screening %}{{ selected_booking.pre_screening.note }}{% endif %}</textarea>
+                                <button class="action-btn action-btn--primary" type="submit">Lưu khai báo bổ sung</button>
+                            </form>
+                        </details>
+                    {% endif %}
+
+                    {% if selected_booking.status == 'checked_in' and user.role != 'staff' %}
+                        <form method="post" id="form-screening" class="medical-form panel-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="screening">
+                            <input type="hidden" name="booking_id" value="{{ selected_booking.id }}">
+                            <label>
+                                <span>Nhiệt độ (°C):</span>
+                                <input name="temperature" type="number" step="0.1" value="{% if selected_booking.screening_result %}{{ selected_booking.screening_result.temperature }}{% endif %}" required>
+                            </label>
+                            <label>
+                                <span>Huyết áp (mmHg):</span>
+                                <input name="blood_pressure" type="text" value="{% if selected_booking.screening_result %}{{ selected_booking.screening_result.blood_pressure }}{% endif %}" required>
+                            </label>
+                            <label>
+                                <span>Kết luận:</span>
+                                <select name="decision" required>
+                                    <option value="eligible" {% if selected_booking.screening_result and selected_booking.screening_result.decision == 'eligible' %}selected{% endif %}>Đủ điều kiện tiêm</option>
+                                    <option value="delayed" {% if selected_booking.screening_result and selected_booking.screening_result.decision == 'delayed' %}selected{% endif %}>Tạm hoãn</option>
+                                    <option value="cancelled" {% if selected_booking.screening_result and selected_booking.screening_result.decision == 'cancelled' %}selected{% endif %}>Không đủ điều kiện</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Ghi chú của bác sĩ:</span>
+                                <textarea name="doctor_note" rows="4" placeholder="Nhập đánh giá lâm sàng">{% if selected_booking.screening_result %}{{ selected_booking.screening_result.doctor_note }}{% endif %}</textarea>
+                            </label>
+                            <div class="panel-actions">
+                                <button class="action-btn" type="submit">Lưu kết quả khám</button>
+                                <a class="action-btn action-btn--ghost" href="/medical/dashboard/">Hủy</a>
+                            </div>
+                        </form>
+                    {% elif user.role != 'doctor' and selected_booking.status == 'ready_to_inject' %}
+                        <form method="post" id="form-injection" class="medical-form panel-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="inject">
+                            <input type="hidden" name="booking_id" value="{{ selected_booking.id }}">
+                            <label>
+                                <span>Số lô:</span>
+                                <input name="batch_number" type="text" value="{% if selected_booking.vaccination_log %}{{ selected_booking.vaccination_log.batch_number }}{% endif %}" placeholder="Nhập số lô">
+                            </label>
+                            <label>
+                                <span>Người tiêm:</span>
+                                <input name="injected_by" type="text" value="{% if selected_booking.vaccination_log %}{{ selected_booking.vaccination_log.injected_by }}{% else %}{{ user.full_name }}{% endif %}" required>
+                            </label>
+                            <label>
+                                <span>Mũi số:</span>
+                                <input name="dose_number" type="number" value="{{ selected_booking.dose_number }}" min="1" required>
+                            </label>
+                            <div class="panel-actions">
+                                <button class="action-btn" type="submit">Lưu thông tin tiêm</button>
+                                <a class="action-btn action-btn--ghost" href="/medical/dashboard/">Hủy</a>
+                            </div>
+                        </form>
+                    {% elif user.role != 'doctor' and selected_booking.status == 'in_observation' %}
+                        <form method="post" id="form-monitoring" class="medical-form panel-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="monitor">
+                            <input type="hidden" name="booking_id" value="{{ selected_booking.id }}">
+                            <div class="monitoring-summary">
+                                <strong>Phản ứng sau tiêm</strong>
+                                <p>Bệnh nhân đã hoàn tất mũi tiêm. Y tá theo dõi phản ứng hiện tại và ghi nhận trước khi kết thúc ca.</p>
+                            </div>
+                            <label>
+                                <span>Phản ứng sau tiêm:</span>
+                                <select name="reaction_status">
+                                    <option value="Normal">Bình thường</option>
+                                    <option value="Mild">Nhẹ</option>
+                                    <option value="Severe">Nặng</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Ghi chú:</span>
+                                <textarea name="notes" rows="4" placeholder="Nhập thêm chi tiết theo dõi..."></textarea>
+                            </label>
+                            <div class="panel-actions">
+                                <button class="action-btn" type="submit">Lưu theo dõi</button>
+                                <a class="action-btn action-btn--ghost" href="/medical/dashboard/">Hủy</a>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="empty-state action-state">Hồ sơ này hiện chưa có biểu mẫu phù hợp ở khu vực thao tác.</div>
+                    {% endif %}
+                {% else %}
+                    <div class="empty-state action-state">Chưa có hồ sơ nào để hiển thị.</div>
+                {% endif %}
+
+                {% if user.role != 'doctor' %}
+                    <div class="walkin-panel">
+                        <div class="section-head">
+                            <div>
+                                <h2>Tiếp nhận Walk-in</h2>
+                                <p>Tạo ca đến trực tiếp và đưa vào quy trình ngay trong ngày.</p>
                             </div>
                         </div>
-                        <label class="medical-field">
-                            <span>Triệu chứng gần đây</span>
-                            <textarea name="walkin_recent_symptoms" rows="3" placeholder="Triệu chứng gần đây"></textarea>
-                        </label>
-                        <label class="medical-field">
-                            <span>Thuốc đang dùng</span>
-                            <textarea name="walkin_current_medications" rows="3" placeholder="Thuốc đang dùng"></textarea>
-                        </label>
-                        <label class="medical-field medical-field-full">
-                            <span>Ghi chú</span>
-                            <textarea name="walkin_note" rows="3" placeholder="Ghi chú"></textarea>
-                        </label>
-                        <div class="medical-form-actions medical-field-full">
-                            <button class="action-btn" type="submit">Tiếp nhận walk-in</button>
-                        </div>
-                    </form>
-                </article>
-            {% endif %}
+                        <form method="post" id="form-walkin" class="medical-form walkin-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="walkin">
+                            <label class="medical-field">
+                                <span>Họ và tên</span>
+                                <input type="text" name="full_name" required>
+                            </label>
+                            <label class="medical-field">
+                                <span>Số điện thoại</span>
+                                <input type="text" name="phone" required>
+                            </label>
+                            <label class="medical-field">
+                                <span>Email</span>
+                                <input type="email" name="email">
+                            </label>
+                            <label class="medical-field">
+                                <span>Vắc xin</span>
+                                <select name="vaccine_name" required>
+                                    {% for vaccine in vaccines %}
+                                        <option value="{{ vaccine.name }}">{{ vaccine.name }} (còn {{ vaccine.quantity }} liều)</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="medical-field">
+                                <span>Ngày tiêm</span>
+                                <input type="date" name="vaccine_date" value="{{ today|date:'Y-m-d' }}" required>
+                            </label>
+                            <label class="medical-field">
+                                <span>Mũi số</span>
+                                <input type="number" name="dose_number" min="1" value="1" required>
+                            </label>
+                            <div class="medical-field medical-field-full">
+                                <span>Tình trạng ban đầu</span>
+                                <div class="checkbox-grid">
+                                    <label class="checkbox-item"><input type="checkbox" name="walkin_has_fever"> Đang sốt</label>
+                                    <label class="checkbox-item"><input type="checkbox" name="walkin_has_allergy_history"> Có tiền sử dị ứng</label>
+                                    <label class="checkbox-item"><input type="checkbox" name="walkin_has_chronic_condition"> Có bệnh nền</label>
+                                </div>
+                            </div>
+                            <label class="medical-field">
+                                <span>Triệu chứng gần đây</span>
+                                <textarea name="walkin_recent_symptoms" rows="3" placeholder="Triệu chứng gần đây"></textarea>
+                            </label>
+                            <label class="medical-field">
+                                <span>Thuốc đang dùng</span>
+                                <textarea name="walkin_current_medications" rows="3" placeholder="Thuốc đang dùng"></textarea>
+                            </label>
+                            <label class="medical-field medical-field-full">
+                                <span>Ghi chú</span>
+                                <textarea name="walkin_note" rows="3" placeholder="Ghi chú"></textarea>
+                            </label>
+                            <div class="medical-form-actions medical-field-full">
+                                <button class="action-btn" type="submit">Tiếp nhận Walk-in</button>
+                            </div>
+                        </form>
+                    </div>
+                {% endif %}
+            </article>
         </section>
     </main>
 </body>

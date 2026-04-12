@@ -1,9 +1,9 @@
-import calendar
+﻿import calendar
 import json
 from pathlib import Path
 
 from django.db import IntegrityError
-from django.db.models import Count, Q
+from django.db.models import Case, Count, IntegerField, Q, When
 from django.http import HttpRequest
 from django.shortcuts import redirect, render
 from django.templatetags.static import static
@@ -54,7 +54,17 @@ def _build_schedule_context(today):
                 Booking.STATUS_DELAYED,
             ]
         )
-        .order_by("vaccine_date", "id")[:4]
+        .annotate(
+            status_priority=Case(
+                When(status=Booking.STATUS_PENDING, then=0),
+                When(status=Booking.STATUS_DELAYED, then=1),
+                When(status=Booking.STATUS_CONFIRMED, then=2),
+                When(status=Booking.STATUS_CHECKED_IN, then=3),
+                default=9,
+                output_field=IntegerField(),
+            )
+        )
+        .order_by("status_priority", "vaccine_date", "id")[:6]
     )
 
     return {
@@ -128,7 +138,7 @@ def _build_citizen_page_context(user, page_key):
             "eyebrow": "Hệ thống tiêm chủng",
             "title": "Theo dõi toàn bộ luồng tiêm chủng trên hệ thống",
             "description": (
-                "Trang tổng quan giúp người dùng hiểu quy trình từ booking, check-in, sàng lọc, "
+                "Trang tổng quan giúp người dùng hiểu quy trình từ đặt lịch, tiếp nhận, sàng lọc, "
                 "tiêm và theo dõi sau tiêm. Đây là điểm vào để công dân nắm rõ các bước cần có khi đi tiêm."
             ),
             "primary_action_label": "Mở cổng đặt lịch",
@@ -138,7 +148,7 @@ def _build_citizen_page_context(user, page_key):
             "highlights": [
                 {
                     "title": "Bước 1: Đặt lịch",
-                    "body": "Người dùng tạo booking, chọn vắc xin và ngày tiêm trong portal.",
+                    "body": "Người dùng tạo lịch hẹn, chọn vắc xin và ngày tiêm trong cổng đặt lịch.",
                 },
                 {
                     "title": "Bước 2: Sàng lọc",
@@ -155,11 +165,11 @@ def _build_citizen_page_context(user, page_key):
             "title": "Kiến thức cơ bản để đi tiêm an tâm hơn",
             "description": (
                 "Tổng hợp những lưu ý trước tiêm, sau tiêm và các nguyên tắc theo dõi sức khỏe. "
-                "Trang này đóng vai trò như một knowledge hub cơ bản để hoàn chỉnh điều hướng trong dashboard."
+                "Trang này đóng vai trò như một khu thông tin cơ bản để hoàn chỉnh điều hướng trong trang tổng quan."
             ),
             "primary_action_label": "Đặt lịch tư vấn",
             "primary_action_href": "/booking/portal/",
-            "secondary_action_label": "Về dashboard",
+            "secondary_action_label": "Về trang tổng quan",
             "secondary_action_href": "/users/dashboard/",
             "highlights": [
                 {
@@ -172,7 +182,7 @@ def _build_citizen_page_context(user, page_key):
                 },
                 {
                     "title": "Nhớ lịch nhắc lại",
-                    "body": "Theo dõi booking và mốc tiêm nhắc lại để đảm bảo hiệu quả bảo vệ.",
+                    "body": "Theo dõi lịch đã đặt và mốc tiêm nhắc lại để đảm bảo hiệu quả bảo vệ.",
                 },
             ],
         },
@@ -189,7 +199,45 @@ def dashboard(request: HttpRequest):
     if redirect_response:
         return redirect_response
 
-    if user.role == User.ROLE_ADMIN:
+    if request.method == "POST":
+        action = request.POST.get("action", "").strip()
+        booking_id = request.POST.get("booking_id", "").strip()
+
+        if action == "confirm_booking" and user.role in [User.ROLE_ADMIN, User.ROLE_STAFF, User.ROLE_DOCTOR]:
+            booking = Booking.objects.filter(pk=booking_id).first()
+            if booking and booking.status in [Booking.STATUS_PENDING, Booking.STATUS_DELAYED]:
+                booking.status = Booking.STATUS_CONFIRMED
+                booking.save(update_fields=["status", "updated_at"])
+            return redirect("/users/dashboard/")
+
+        if action == "check_in" and user.role == User.ROLE_STAFF:
+            booking = Booking.objects.filter(pk=booking_id).first()
+            if booking and booking.status == Booking.STATUS_CONFIRMED:
+                booking.status = Booking.STATUS_CHECKED_IN
+                booking.save(update_fields=["status", "updated_at"])
+            return redirect("/users/dashboard/")
+
+        if action == "save_prescreen" and user.role == User.ROLE_STAFF:
+            booking = Booking.objects.filter(pk=booking_id).first()
+            if booking:
+                declaration = PreScreeningDeclaration.objects.filter(booking=booking).first()
+                payload = {
+                    "has_fever": bool(request.POST.get("has_fever")),
+                    "has_allergy_history": bool(request.POST.get("has_allergy_history")),
+                    "has_chronic_condition": bool(request.POST.get("has_chronic_condition")),
+                    "recent_symptoms": request.POST.get("recent_symptoms", "").strip(),
+                    "current_medications": request.POST.get("current_medications", "").strip(),
+                    "note": request.POST.get("note", "").strip(),
+                }
+                if declaration:
+                    for field, value in payload.items():
+                        setattr(declaration, field, value)
+                    declaration.save()
+                else:
+                    PreScreeningDeclaration.objects.create(booking=booking, **payload)
+            return redirect("/users/dashboard/")
+
+    if user.role in [User.ROLE_ADMIN, User.ROLE_DOCTOR]:
         today = timezone.localdate()
         bookings = Booking.objects.all()
         upcoming_bookings = (
@@ -335,9 +383,6 @@ def dashboard(request: HttpRequest):
         context.update(_build_schedule_context(today))
         return render(request, "users/staff_dashboard.html", context)
 
-    if user.role == User.ROLE_DOCTOR:
-        return redirect("/medical/dashboard/")
-
     if user.role != User.ROLE_CITIZEN:
         return redirect("/auth/login-page/")
 
@@ -439,13 +484,40 @@ def screening_portal(request: HttpRequest):
     status_labels = {
         Booking.STATUS_PENDING: "Chờ xác nhận",
         Booking.STATUS_CONFIRMED: "Đã xác nhận",
-        Booking.STATUS_CHECKED_IN: "Đã check-in",
+        Booking.STATUS_CHECKED_IN: "Đã tiếp nhận",
         Booking.STATUS_READY_TO_INJECT: "Chờ tiêm",
         Booking.STATUS_IN_OBSERVATION: "Đang theo dõi",
         Booking.STATUS_COMPLETED: "Đã hoàn thành",
         Booking.STATUS_DELAYED: "Tạm hoãn",
         Booking.STATUS_CANCELLED: "Đã hủy",
     }
+
+    if request.method == "POST":
+        selected_booking = Booking.objects.filter(pk=request.POST.get("booking_id")).filter(
+            Q(user=user) | Q(email__iexact=user.email)
+        ).first()
+        if selected_booking and selected_booking.status not in [
+            Booking.STATUS_CANCELLED,
+            Booking.STATUS_COMPLETED,
+            Booking.STATUS_READY_TO_INJECT,
+        ]:
+            declaration = declarations.get(selected_booking.id)
+            payload = {
+                "has_fever": bool(request.POST.get("has_fever")),
+                "has_allergy_history": bool(request.POST.get("has_allergy_history")),
+                "has_chronic_condition": bool(request.POST.get("has_chronic_condition")),
+                "recent_symptoms": request.POST.get("recent_symptoms", "").strip(),
+                "current_medications": request.POST.get("current_medications", "").strip(),
+                "note": request.POST.get("note", "").strip(),
+            }
+            if declaration:
+                for field, value in payload.items():
+                    setattr(declaration, field, value)
+                declaration.save()
+            else:
+                declaration = PreScreeningDeclaration.objects.create(booking=selected_booking, **payload)
+            declarations[selected_booking.id] = declaration
+            return redirect(f"/users/screening/?booking={selected_booking.id}&saved=1")
 
     screening_bookings = []
     for booking in bookings:
@@ -490,6 +562,11 @@ def screening_portal(request: HttpRequest):
         )
 
     declarable_screening_count = sum(1 for item in screening_bookings if item["can_declare"])
+    selected_booking_id = request.GET.get("booking", "")
+    selected_booking = next(
+        (item for item in screening_bookings if str(item["id"]) == str(selected_booking_id)),
+        screening_bookings[0] if screening_bookings else None,
+    )
 
     return render(
         request,
@@ -498,8 +575,10 @@ def screening_portal(request: HttpRequest):
             "user": user,
             "screening_bookings_count": len(screening_bookings),
             "declarable_screening_count": declarable_screening_count,
-            "screening_bookings_data": screening_bookings,
-            "selected_booking_id": request.GET.get("booking", ""),
+            "screening_bookings": screening_bookings,
+            "selected_booking": selected_booking,
+            "selected_booking_id": selected_booking["id"] if selected_booking else "",
+            "saved_successfully": request.GET.get("saved") == "1",
         },
     )
 
@@ -526,3 +605,5 @@ def vaccination_knowledge(request: HttpRequest):
         return redirect_response
 
     return render(request, "users/citizen_info.html", _build_citizen_page_context(user, "knowledge"))
+
+

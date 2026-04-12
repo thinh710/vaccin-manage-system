@@ -12,18 +12,21 @@
         <section class="booking-hero">
             <div>
                 <div class="booking-eyebrow">Trung tâm đặt lịch</div>
-                <h1>Cổng booking không dùng JavaScript</h1>
-                <p>Mọi thao tác tạo, sửa, hủy và đặt lại lịch đều được xử lý bằng form Django thuần.</p>
+                <h1>Cổng đặt lịch tiêm vắc xin</h1>
+                <p>Quản lý tạo, sửa, hủy và đặt lại lịch tiêm trên cùng một giao diện.</p>
             </div>
             <div class="booking-hero-actions">
-                <a class="ghost-link" href="/users/dashboard/">Về dashboard</a>
+                <a class="ghost-link" href="/users/dashboard/">Về trang tổng quan</a>
                 <a class="ghost-link" href="/users/screening/">Khai báo sàng lọc</a>
-                <div class="hero-badge">{{ user.full_name }} - {{ user.role }}</div>
+                <div class="hero-badge">
+                    {{ user.full_name }} -
+                    {% if user.role == 'admin' %}quản trị viên{% elif user.role == 'staff' %}nhân viên{% elif user.role == 'doctor' %}bác sĩ{% elif user.role == 'citizen' %}công dân{% else %}{{ user.role }}{% endif %}
+                </div>
             </div>
         </section>
 
         <section class="booking-stats">
-            <article class="stat-card"><span>Tổng booking</span><strong>{{ booking_stats.total }}</strong></article>
+            <article class="stat-card"><span>Tổng lịch đã đặt</span><strong>{{ booking_stats.total }}</strong></article>
             <article class="stat-card"><span>Chờ xác nhận</span><strong>{{ booking_stats.pending }}</strong></article>
             <article class="stat-card"><span>Đã xác nhận</span><strong>{{ booking_stats.confirmed }}</strong></article>
             <article class="stat-card"><span>Đã hoàn thành</span><strong>{{ booking_stats.completed }}</strong></article>
@@ -40,8 +43,8 @@
             <article class="panel panel-form">
                 <div class="panel-head">
                     <div>
-                        <h2>{% if edit_booking %}Cập nhật booking{% else %}Tạo booking mới{% endif %}</h2>
-                        <p>Phiên bản này dùng submit toàn trang thay cho mã JavaScript.</p>
+                        <h2>{% if edit_booking %}Cập nhật lịch đã đặt{% else %}Tạo lịch hẹn mới{% endif %}</h2>
+                        <p>Điền thông tin lịch tiêm mới hoặc cập nhật lịch tiêm hiện có.</p>
                     </div>
                     <div class="mini-badge">Hôm nay {{ today|date:"d/m/Y" }}</div>
                 </div>
@@ -87,10 +90,10 @@
                         <label class="field">
                             <span>Trạng thái</span>
                             <select name="status">
-                                <option value="pending" {% if edit_booking and edit_booking.status == 'pending' %}selected{% endif %}>pending</option>
-                                <option value="confirmed" {% if edit_booking and edit_booking.status == 'confirmed' %}selected{% endif %}>confirmed</option>
-                                <option value="cancelled" {% if edit_booking and edit_booking.status == 'cancelled' %}selected{% endif %}>cancelled</option>
-                                <option value="delayed" {% if edit_booking and edit_booking.status == 'delayed' %}selected{% endif %}>delayed</option>
+                                <option value="pending" {% if edit_booking and edit_booking.status == 'pending' %}selected{% endif %}>Chờ xác nhận</option>
+                                <option value="confirmed" {% if edit_booking and edit_booking.status == 'confirmed' %}selected{% endif %}>Đã xác nhận</option>
+                                <option value="cancelled" {% if edit_booking and edit_booking.status == 'cancelled' %}selected{% endif %}>Đã hủy</option>
+                                <option value="delayed" {% if edit_booking and edit_booking.status == 'delayed' %}selected{% endif %}>Tạm hoãn</option>
                             </select>
                         </label>
                     {% endif %}
@@ -99,7 +102,7 @@
                         <textarea name="note" rows="4">{% if edit_booking %}{{ edit_booking.note }}{% endif %}</textarea>
                     </label>
                     <div class="form-actions">
-                        <button class="primary-btn" type="submit">{% if edit_booking %}Lưu thay đổi{% else %}Tạo booking{% endif %}</button>
+                        <button class="primary-btn" type="submit">{% if edit_booking %}Lưu thay đổi{% else %}Tạo lịch hẹn{% endif %}</button>
                         {% if edit_booking %}
                             <a class="secondary-btn" href="/booking/portal/">Hủy chỉnh sửa</a>
                         {% endif %}
@@ -110,8 +113,8 @@
             <article class="panel panel-table">
                 <div class="panel-head">
                     <div>
-                        <h2>Danh sách booking</h2>
-                        <p>Lọc dữ liệu bằng query string và thao tác bằng form POST.</p>
+                        <h2>Danh sách lịch đã đặt</h2>
+                        <p>Lọc dữ liệu bằng tham số trên đường dẫn và thao tác bằng biểu mẫu gửi lên máy chủ.</p>
                     </div>
                     <div class="mini-badge">Sắp tới: {{ booking_stats.upcoming }}</div>
                 </div>
@@ -120,14 +123,14 @@
                     <input name="q" type="text" value="{{ filter_keyword }}" placeholder="Tìm theo tên, số điện thoại, vắc xin">
                     <select name="status">
                         <option value="">Tất cả trạng thái</option>
-                        <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>pending</option>
-                        <option value="confirmed" {% if filter_status == 'confirmed' %}selected{% endif %}>confirmed</option>
-                        <option value="checked_in" {% if filter_status == 'checked_in' %}selected{% endif %}>checked_in</option>
-                        <option value="ready_to_inject" {% if filter_status == 'ready_to_inject' %}selected{% endif %}>ready_to_inject</option>
-                        <option value="in_observation" {% if filter_status == 'in_observation' %}selected{% endif %}>in_observation</option>
-                        <option value="completed" {% if filter_status == 'completed' %}selected{% endif %}>completed</option>
-                        <option value="delayed" {% if filter_status == 'delayed' %}selected{% endif %}>delayed</option>
-                        <option value="cancelled" {% if filter_status == 'cancelled' %}selected{% endif %}>cancelled</option>
+                        <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>Chờ xác nhận</option>
+                        <option value="confirmed" {% if filter_status == 'confirmed' %}selected{% endif %}>Đã xác nhận</option>
+                        <option value="checked_in" {% if filter_status == 'checked_in' %}selected{% endif %}>Đã tiếp nhận</option>
+                        <option value="ready_to_inject" {% if filter_status == 'ready_to_inject' %}selected{% endif %}>Sẵn sàng tiêm</option>
+                        <option value="in_observation" {% if filter_status == 'in_observation' %}selected{% endif %}>Đang theo dõi</option>
+                        <option value="completed" {% if filter_status == 'completed' %}selected{% endif %}>Đã hoàn thành</option>
+                        <option value="delayed" {% if filter_status == 'delayed' %}selected{% endif %}>Tạm hoãn</option>
+                        <option value="cancelled" {% if filter_status == 'cancelled' %}selected{% endif %}>Đã hủy</option>
                     </select>
                     <input name="date" type="date" value="{{ filter_date }}">
                     <button class="secondary-btn" type="submit">Lọc</button>
@@ -154,7 +157,17 @@
                                     <td>{{ booking.vaccine_name }}</td>
                                     <td>{{ booking.vaccine_date|date:"d/m/Y" }}</td>
                                     <td>Mũi {{ booking.dose_number }}</td>
-                                    <td>{{ booking.status }}</td>
+                                    <td>
+                                        {% if booking.status == 'pending' %}Chờ xác nhận
+                                        {% elif booking.status == 'confirmed' %}Đã xác nhận
+                                        {% elif booking.status == 'checked_in' %}Đã tiếp nhận
+                                        {% elif booking.status == 'ready_to_inject' %}Sẵn sàng tiêm
+                                        {% elif booking.status == 'in_observation' %}Đang theo dõi
+                                        {% elif booking.status == 'completed' %}Đã hoàn thành
+                                        {% elif booking.status == 'delayed' %}Tạm hoãn
+                                        {% elif booking.status == 'cancelled' %}Đã hủy
+                                        {% else %}{{ booking.status }}{% endif %}
+                                    </td>
                                     <td>{{ booking.note|default:"Không có" }}</td>
                                     <td class="booking-actions-cell">
                                         <div class="booking-actions">
@@ -184,7 +197,7 @@
                                 </tr>
                             {% empty %}
                                 <tr>
-                                    <td colspan="7">Chưa có booking phù hợp.</td>
+                                    <td colspan="7">Chưa có lịch hẹn phù hợp.</td>
                                 </tr>
                             {% endfor %}
                         </tbody>

@@ -14,7 +14,6 @@
             --sky: #0369a1;
             --success: #15803d;
             --warning: #b45309;
-            --danger: #be123c;
             --soft: #f8fafc;
         }
 
@@ -167,13 +166,13 @@
         }
 
         .booking-card {
+            display: block;
             width: 100%;
             text-align: left;
             border: 1px solid var(--line);
             background: #fff;
             border-radius: 18px;
             padding: 16px;
-            cursor: pointer;
             transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
         }
 
@@ -221,11 +220,7 @@
             color: #6d28d9;
         }
 
-        .status-pill.in_observation {
-            background: rgba(180, 83, 9, 0.12);
-            color: var(--warning);
-        }
-
+        .status-pill.in_observation,
         .status-pill.delayed {
             background: rgba(180, 83, 9, 0.12);
             color: var(--warning);
@@ -282,24 +277,18 @@
             font-weight: 700;
         }
 
-        input[type="text"],
         textarea {
             width: 100%;
-            min-height: 44px;
+            min-height: 110px;
             padding: 11px 13px;
             border: 1px solid #cbd5e1;
             border-radius: 14px;
             font: inherit;
             background: #fff;
             color: var(--ink);
-        }
-
-        textarea {
-            min-height: 110px;
             resize: vertical;
         }
 
-        input:focus,
         textarea:focus {
             outline: none;
             border-color: #0891b2;
@@ -392,8 +381,8 @@
                 <h1>Khai báo trước tiêm và theo dõi kết quả sàng lọc</h1>
                 <p>Người dùng có thể chủ động khai báo tình trạng sức khỏe trước buổi tiêm và xem lại kết quả sàng lọc sau khi nhân viên y tế cập nhật.</p>
                 <div class="actions">
-                    <a class="btn btn-primary" href="/booking/portal/">Mở booking</a>
-                    <a class="btn btn-secondary" href="/users/dashboard/">Về dashboard</a>
+                    <a class="btn btn-primary" href="/booking/portal/">Mở cổng đặt lịch tiêm vắc xin</a>
+                    <a class="btn btn-secondary" href="/users/dashboard/">Về trang tổng quan</a>
                 </div>
             </div>
             <div class="hero-side">
@@ -411,323 +400,157 @@
                         <p>Chọn lịch tiêm để khai báo trước tiêm hoặc xem kết quả sàng lọc.</p>
                     </div>
                 </div>
-                <div id="booking-list" class="booking-list"></div>
+                <div class="booking-list">
+                    {% for booking in screening_bookings %}
+                        <a class="booking-card{% if selected_booking and selected_booking.id == booking.id %} is-active{% endif %}" href="/users/screening/?booking={{ booking.id }}">
+                            <strong>{{ booking.vaccine_name }}</strong>
+                            <small>Ngày tiêm: {{ booking.vaccine_date }}</small>
+                            <span>Mũi {{ booking.dose_number }} • {{ booking.status_label }}</span>
+                            <span>
+                                {% if booking.screening_result %}
+                                    {% if booking.screening_result.decision == 'eligible' %}Đã khám - đủ điều kiện tiêm
+                                    {% elif booking.screening_result.decision == 'delayed' %}Đã khám - tạm hoãn tiêm
+                                    {% elif booking.screening_result.decision == 'cancelled' %}Đã khám - chống chỉ định
+                                    {% else %}Đã có kết quả sàng lọc{% endif %}
+                                {% elif booking.declaration %}
+                                    Đã gửi khai báo trước tiêm
+                                {% else %}
+                                    Chưa khai báo
+                                {% endif %}
+                            </span>
+                        </a>
+                    {% empty %}
+                        <div class="empty-card">
+                            <h3>Chưa có lịch hẹn</h3>
+                            <p>Bạn chưa có lịch tiêm nào để khai báo sàng lọc.</p>
+                        </div>
+                    {% endfor %}
+                </div>
             </aside>
 
             <section class="detail-grid">
-                <article class="panel" id="detail-panel" hidden>
-                    <div class="detail-head">
-                        <div>
-                            <h2 id="detail-title">Thông tin khai báo sàng lọc</h2>
-                            <p id="detail-description">Cập nhật thông tin sức khỏe trước ngày tiêm.</p>
+                {% if selected_booking %}
+                    <article class="panel">
+                        <div class="detail-head">
+                            <div>
+                                <h2>Thông tin khai báo sàng lọc</h2>
+                                <p>Cập nhật thông tin sức khỏe trước ngày tiêm.</p>
+                            </div>
+                            <span class="status-pill {{ selected_booking.status }}">{{ selected_booking.status_label }}</span>
                         </div>
-                        <span class="status-pill" id="detail-status"></span>
-                    </div>
 
-                    <div class="summary-grid">
-                        <div class="summary-item">
-                            <span>Ngày tiêm</span>
-                            <strong id="summary-date"></strong>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <span>Ngày tiêm</span>
+                                <strong>{{ selected_booking.vaccine_date }}</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>Loại vắc xin</span>
+                                <strong>{{ selected_booking.vaccine_name }}</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>Mũi thứ</span>
+                                <strong>Mũi {{ selected_booking.dose_number }}</strong>
+                            </div>
+                            <div class="summary-item">
+                                <span>Trạng thái khai báo</span>
+                                <strong>
+                                    {% if selected_booking.screening_result %}
+                                        {% if selected_booking.screening_result.decision == 'eligible' %}Đã khám - đủ điều kiện tiêm
+                                        {% elif selected_booking.screening_result.decision == 'delayed' %}Đã khám - tạm hoãn tiêm
+                                        {% elif selected_booking.screening_result.decision == 'cancelled' %}Đã khám - chống chỉ định
+                                        {% else %}Đã có kết quả sàng lọc{% endif %}
+                                    {% elif selected_booking.declaration %}
+                                        Đã gửi khai báo trước tiêm
+                                    {% else %}
+                                        Chưa khai báo
+                                    {% endif %}
+                                </strong>
+                            </div>
                         </div>
-                        <div class="summary-item">
-                            <span>Loại vắc xin</span>
-                            <strong id="summary-vaccine"></strong>
-                        </div>
-                        <div class="summary-item">
-                            <span>Mũi thứ</span>
-                            <strong id="summary-dose"></strong>
-                        </div>
-                        <div class="summary-item">
-                            <span>Trạng thái khai báo</span>
-                            <strong id="summary-declaration"></strong>
-                        </div>
-                    </div>
 
-                    <div id="save-notice" class="notice" hidden></div>
+                        {% if saved_successfully %}
+                            <div class="notice is-success">Đã lưu khai báo sàng lọc thành công.</div>
+                        {% endif %}
+                        {% if not selected_booking.can_declare %}
+                            <div class="notice is-warning">Lịch hẹn này không còn mở để khai báo thêm. Bạn vẫn có thể xem kết quả đã được cập nhật.</div>
+                        {% endif %}
 
-                    <form id="declaration-form">
-                        <div class="form-grid">
-                            <label class="checkbox-field">
-                                <input id="has-fever" type="checkbox">
-                                <span>Tôi đang sốt hoặc có dấu hiệu nhiễm trùng</span>
-                            </label>
-                            <label class="checkbox-field">
-                                <input id="has-allergy-history" type="checkbox">
-                                <span>Tôi có tiền sử dị ứng thuốc hoặc phản ứng sau tiêm</span>
-                            </label>
-                            <label class="checkbox-field field-full">
-                                <input id="has-chronic-condition" type="checkbox">
-                                <span>Tôi có bệnh nền hoặc đang điều trị bệnh mạn tính</span>
-                            </label>
-                            <label class="field-full">
-                                <span>Triệu chứng gần đây</span>
-                                <textarea id="recent-symptoms" placeholder="Ví dụ: ho, sốt, đau họng, mệt mỏi..."></textarea>
-                            </label>
-                            <label class="field-full">
-                                <span>Thuốc đang sử dụng</span>
-                                <textarea id="current-medications" placeholder="Ví dụ: thuốc huyết áp, thuốc dị ứng, kháng sinh..."></textarea>
-                            </label>
-                            <label class="field-full">
-                                <span>Ghi chú thêm cho nhân viên y tế</span>
-                                <textarea id="declaration-note" placeholder="Thông tin khác cần lưu ý trước buổi tiêm..."></textarea>
-                            </label>
-                        </div>
-                        <div class="actions">
-                            <button class="btn btn-primary" type="submit" id="save-btn">Lưu khai báo</button>
-                            <button class="btn btn-secondary" type="button" id="reset-btn">Làm lại</button>
-                        </div>
-                    </form>
-                </article>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="booking_id" value="{{ selected_booking.id }}">
+                            <div class="form-grid">
+                                <label class="checkbox-field">
+                                    <input name="has_fever" type="checkbox" {% if selected_booking.declaration and selected_booking.declaration.has_fever %}checked{% endif %} {% if not selected_booking.can_declare %}disabled{% endif %}>
+                                    <span>Tôi đang sốt hoặc có dấu hiệu nhiễm trùng</span>
+                                </label>
+                                <label class="checkbox-field">
+                                    <input name="has_allergy_history" type="checkbox" {% if selected_booking.declaration and selected_booking.declaration.has_allergy_history %}checked{% endif %} {% if not selected_booking.can_declare %}disabled{% endif %}>
+                                    <span>Tôi có tiền sử dị ứng thuốc hoặc phản ứng sau tiêm</span>
+                                </label>
+                                <label class="checkbox-field field-full">
+                                    <input name="has_chronic_condition" type="checkbox" {% if selected_booking.declaration and selected_booking.declaration.has_chronic_condition %}checked{% endif %} {% if not selected_booking.can_declare %}disabled{% endif %}>
+                                    <span>Tôi có bệnh nền hoặc đang điều trị bệnh mạn tính</span>
+                                </label>
+                                <label class="field-full">
+                                    <span>Triệu chứng gần đây</span>
+                                    <textarea name="recent_symptoms" {% if not selected_booking.can_declare %}disabled{% endif %}>{% if selected_booking.declaration %}{{ selected_booking.declaration.recent_symptoms }}{% endif %}</textarea>
+                                </label>
+                                <label class="field-full">
+                                    <span>Thuốc đang sử dụng</span>
+                                    <textarea name="current_medications" {% if not selected_booking.can_declare %}disabled{% endif %}>{% if selected_booking.declaration %}{{ selected_booking.declaration.current_medications }}{% endif %}</textarea>
+                                </label>
+                                <label class="field-full">
+                                    <span>Ghi chú thêm cho nhân viên y tế</span>
+                                    <textarea name="note" {% if not selected_booking.can_declare %}disabled{% endif %}>{% if selected_booking.declaration %}{{ selected_booking.declaration.note }}{% endif %}</textarea>
+                                </label>
+                            </div>
+                            <div class="actions">
+                                {% if selected_booking.can_declare %}
+                                    <button class="btn btn-primary" type="submit">Lưu khai báo</button>
+                                {% endif %}
+                                <a class="btn btn-secondary" href="/users/screening/?booking={{ selected_booking.id }}">Làm lại</a>
+                            </div>
+                        </form>
+                    </article>
 
-                <article class="result-card" id="result-panel" hidden>
-                    <h3>Kết quả sàng lọc từ nhân viên y tế</h3>
-                    <p id="result-summary"></p>
-                    <div class="result-meta">
-                        <div>
-                            <strong>Nhiệt độ</strong>
-                            <span id="result-temperature"></span>
-                        </div>
-                        <div>
-                            <strong>Huyết áp</strong>
-                            <span id="result-blood-pressure"></span>
-                        </div>
-                    </div>
-                    <div class="result-note" id="result-note"></div>
-                </article>
-
-                <article class="empty-card" id="empty-panel">
-                    <h3>Chưa chọn booking</h3>
-                    <p>Hãy chọn một lịch tiêm bên trái để khai báo sàng lọc hoặc xem kết quả từ nhân viên y tế.</p>
-                </article>
+                    {% if selected_booking.screening_result %}
+                        <article class="result-card">
+                            <h3>Kết quả sàng lọc từ nhân viên y tế</h3>
+                            <p>
+                                {% if selected_booking.screening_result.decision == 'eligible' %}
+                                    Nhân viên y tế đánh giá bạn đủ điều kiện tiếp tục quy trình tiêm.
+                                {% elif selected_booking.screening_result.decision == 'delayed' %}
+                                    Nhân viên y tế đánh giá cần tạm hoãn tiêm, vui lòng liên hệ để đặt lịch mới.
+                                {% elif selected_booking.screening_result.decision == 'cancelled' %}
+                                    Nhân viên y tế xác nhận có chống chỉ định tiêm.
+                                {% elif selected_booking.screening_result.is_eligible %}
+                                    Nhân viên y tế đánh giá bạn đủ điều kiện tiếp tục quy trình tiêm.
+                                {% else %}
+                                    Nhân viên y tế đánh giá cần theo dõi thêm hoặc tạm hoãn tiêm.
+                                {% endif %}
+                            </p>
+                            <div class="result-meta">
+                                <div>
+                                    <strong>Nhiệt độ</strong>
+                                    <span>{{ selected_booking.screening_result.temperature }}°C</span>
+                                </div>
+                                <div>
+                                    <strong>Huyết áp</strong>
+                                    <span>{{ selected_booking.screening_result.blood_pressure }}</span>
+                                </div>
+                            </div>
+                            <div class="result-note">{{ selected_booking.screening_result.doctor_note|default:"Chưa có ghi chú thêm từ nhân viên y tế." }}</div>
+                        </article>
+                    {% endif %}
+                {% else %}
+                    <article class="empty-card">
+                        <h3>Chưa chọn lịch hẹn</h3>
+                        <p>Hãy chọn một lịch tiêm bên trái để khai báo sàng lọc hoặc xem kết quả từ nhân viên y tế.</p>
+                    </article>
+                {% endif %}
             </section>
         </section>
     </main>
-
-    {{ screening_bookings_data|json_script:"screening-bookings-data" }}
-    <script>
-        const screeningBookingsNode = document.getElementById('screening-bookings-data');
-        let screeningBookings = [];
-        try {
-            const parsedData = JSON.parse(screeningBookingsNode?.textContent || '[]');
-            screeningBookings = Array.isArray(parsedData)
-                ? parsedData
-                : JSON.parse(parsedData || '[]');
-        } catch (error) {
-            screeningBookings = [];
-        }
-        const selectedBookingId = '{{ selected_booking_id }}';
-        let currentBooking = null;
-
-        function getCSRFToken() {
-            const name = 'csrftoken=';
-            const cookies = document.cookie ? document.cookie.split(';') : [];
-            for (const cookie of cookies) {
-                const trimmed = cookie.trim();
-                if (trimmed.startsWith(name)) {
-                    return decodeURIComponent(trimmed.slice(name.length));
-                }
-            }
-            return '';
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return '';
-            return new Date(dateString + 'T00:00:00').toLocaleDateString('vi-VN');
-        }
-
-        function getDeclarationLabel(booking) {
-            if (booking.screening_result) {
-                const decision = booking.screening_result.decision;
-                if (decision === 'eligible') return 'Đã khám — đủ điều kiện tiêm';
-                if (decision === 'delayed') return 'Đã khám — tạm hoãn tiêm';
-                if (decision === 'cancelled') return 'Đã khám — chống chỉ định';
-                // fallback cho kết quả cũ (is_eligible boolean)
-                return booking.screening_result.is_eligible
-                    ? 'Đã có kết quả đủ điều kiện'
-                    : 'Đã có kết quả cần theo dõi thêm';
-            }
-            if (booking.declaration) {
-                return 'Đã gửi khai báo trước tiêm';
-            }
-            return 'Chưa khai báo';
-        }
-
-        function renderBookingList() {
-            const list = document.getElementById('booking-list');
-            list.innerHTML = '';
-
-            if (!screeningBookings.length) {
-                list.innerHTML = '<div class="empty-card"><h3>Chưa có booking</h3><p>Bạn chưa có lịch tiêm nào để khai báo sàng lọc.</p></div>';
-                return;
-            }
-
-            screeningBookings.forEach((booking) => {
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'booking-card' + (currentBooking && currentBooking.id === booking.id ? ' is-active' : '');
-                button.innerHTML = `
-                    <strong>${booking.vaccine_name}</strong>
-                    <small>Ngày tiêm: ${formatDate(booking.vaccine_date)}</small>
-                    <span>Mũi ${booking.dose_number} • ${booking.status_label}</span>
-                    <span>${getDeclarationLabel(booking)}</span>
-                `;
-                button.addEventListener('click', () => selectBooking(booking.id));
-                list.appendChild(button);
-            });
-        }
-
-        function setNotice(message, type) {
-            const notice = document.getElementById('save-notice');
-            notice.hidden = false;
-            notice.className = 'notice' + (type ? ` ${type}` : '');
-            notice.textContent = message;
-        }
-
-        function fillFormFromDeclaration(declaration) {
-            document.getElementById('has-fever').checked = Boolean(declaration?.has_fever);
-            document.getElementById('has-allergy-history').checked = Boolean(declaration?.has_allergy_history);
-            document.getElementById('has-chronic-condition').checked = Boolean(declaration?.has_chronic_condition);
-            document.getElementById('recent-symptoms').value = declaration?.recent_symptoms || '';
-            document.getElementById('current-medications').value = declaration?.current_medications || '';
-            document.getElementById('declaration-note').value = declaration?.note || '';
-        }
-
-        function renderDetails() {
-            const detailPanel = document.getElementById('detail-panel');
-            const resultPanel = document.getElementById('result-panel');
-            const emptyPanel = document.getElementById('empty-panel');
-            const notice = document.getElementById('save-notice');
-
-            if (!currentBooking) {
-                detailPanel.hidden = true;
-                resultPanel.hidden = true;
-                emptyPanel.hidden = false;
-                return;
-            }
-
-            emptyPanel.hidden = true;
-            detailPanel.hidden = false;
-            notice.hidden = true;
-
-            document.getElementById('detail-title').textContent = `Khai báo sàng lọc cho ${currentBooking.vaccine_name}`;
-            document.getElementById('detail-description').textContent = 'Thông tin này sẽ giúp nhân viên y tế chuẩn bị tốt hơn cho buổi sàng lọc trước tiêm.';
-            document.getElementById('detail-status').textContent = currentBooking.status_label;
-            document.getElementById('detail-status').className = `status-pill ${currentBooking.status}`;
-            document.getElementById('summary-date').textContent = formatDate(currentBooking.vaccine_date);
-            document.getElementById('summary-vaccine').textContent = currentBooking.vaccine_name;
-            document.getElementById('summary-dose').textContent = `Mũi ${currentBooking.dose_number}`;
-            document.getElementById('summary-declaration').textContent = getDeclarationLabel(currentBooking);
-
-            fillFormFromDeclaration(currentBooking.declaration);
-
-            const formInputs = document.querySelectorAll('#declaration-form input, #declaration-form textarea, #declaration-form button');
-            formInputs.forEach((element) => {
-                if (element.id === 'reset-btn') return;
-                element.disabled = !currentBooking.can_declare;
-            });
-            document.getElementById('reset-btn').disabled = !currentBooking.can_declare;
-
-            if (!currentBooking.can_declare) {
-                setNotice('Booking này không còn mở để khai báo thêm. Bạn vẫn có thể xem kết quả đã được cập nhật.', 'is-warning');
-            }
-
-            if (currentBooking.screening_result) {
-                resultPanel.hidden = false;
-                const decision = currentBooking.screening_result.decision;
-                let resultText;
-                if (decision === 'eligible') {
-                    resultText = 'Nhân viên y tế đánh giá bạn đủ điều kiện tiếp tục quy trình tiêm.';
-                } else if (decision === 'delayed') {
-                    resultText = 'Nhân viên y tế đánh giá cần tạm hoãn tiêm — vui lòng liên hệ để đặt lịch mới.';
-                } else if (decision === 'cancelled') {
-                    resultText = 'Nhân viên y tế xác nhận có chống chỉ định tiêm.';
-                } else {
-                    // fallback legacy
-                    resultText = currentBooking.screening_result.is_eligible
-                        ? 'Nhân viên y tế đánh giá bạn đủ điều kiện tiếp tục quy trình tiêm.'
-                        : 'Nhân viên y tế đánh giá cần theo dõi thêm hoặc tạm hoãn tiêm.';
-                }
-                document.getElementById('result-summary').textContent = resultText;
-                document.getElementById('result-temperature').textContent = `${currentBooking.screening_result.temperature}°C`;
-                document.getElementById('result-blood-pressure').textContent = currentBooking.screening_result.blood_pressure;
-                document.getElementById('result-note').textContent = currentBooking.screening_result.doctor_note || 'Chưa có ghi chú thêm từ nhân viên y tế.';
-            } else {
-                resultPanel.hidden = true;
-            }
-        }
-
-        function selectBooking(bookingId) {
-            currentBooking = screeningBookings.find((item) => String(item.id) === String(bookingId)) || null;
-            renderBookingList();
-            renderDetails();
-        }
-
-        document.getElementById('declaration-form').addEventListener('submit', async (event) => {
-            event.preventDefault();
-            if (!currentBooking || !currentBooking.can_declare) return;
-
-            const payload = {
-                has_fever: document.getElementById('has-fever').checked,
-                has_allergy_history: document.getElementById('has-allergy-history').checked,
-                has_chronic_condition: document.getElementById('has-chronic-condition').checked,
-                recent_symptoms: document.getElementById('recent-symptoms').value.trim(),
-                current_medications: document.getElementById('current-medications').value.trim(),
-                note: document.getElementById('declaration-note').value.trim()
-            };
-
-            const saveButton = document.getElementById('save-btn');
-            const initialLabel = saveButton.textContent;
-            saveButton.disabled = true;
-            saveButton.textContent = 'Đang lưu...';
-
-            try {
-                const response = await fetch(`/api/medical/pre-screening/${currentBooking.id}/`, {
-                    method: currentBooking.declaration ? 'PATCH' : 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCSRFToken()
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json().catch(() => ({}));
-                if (!response.ok) {
-                    throw new Error(data.detail || 'Không thể lưu khai báo sàng lọc.');
-                }
-
-                currentBooking.declaration = {
-                    has_fever: data.has_fever,
-                    has_allergy_history: data.has_allergy_history,
-                    has_chronic_condition: data.has_chronic_condition,
-                    recent_symptoms: data.recent_symptoms || '',
-                    current_medications: data.current_medications || '',
-                    note: data.note || '',
-                    updated_at: data.updated_at || ''
-                };
-                renderBookingList();
-                renderDetails();
-                setNotice('Đã lưu khai báo sàng lọc thành công.', 'is-success');
-            } catch (error) {
-                setNotice(error.message || 'Không thể lưu khai báo sàng lọc.', 'is-warning');
-            } finally {
-                saveButton.disabled = false;
-                saveButton.textContent = initialLabel;
-            }
-        });
-
-        document.getElementById('reset-btn').addEventListener('click', () => {
-            if (!currentBooking) return;
-            fillFormFromDeclaration(currentBooking.declaration);
-            document.getElementById('save-notice').hidden = true;
-        });
-
-        if (screeningBookings.length) {
-            const initialId = selectedBookingId || screeningBookings[0].id;
-            selectBooking(initialId);
-        } else {
-            renderBookingList();
-        }
-    </script>
 </body>
 </html>

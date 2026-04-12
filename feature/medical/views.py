@@ -2,6 +2,7 @@ import calendar
 from datetime import date
 
 from django.db import IntegrityError, transaction
+from django.db.models import Case, IntegerField, When
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from rest_framework import status
@@ -111,7 +112,17 @@ def _build_schedule_context(today):
                 Booking.STATUS_DELAYED,
             ]
         )
-        .order_by("vaccine_date", "id")[:4]
+        .annotate(
+            status_priority=Case(
+                When(status=Booking.STATUS_PENDING, then=0),
+                When(status=Booking.STATUS_DELAYED, then=1),
+                When(status=Booking.STATUS_CONFIRMED, then=2),
+                When(status=Booking.STATUS_CHECKED_IN, then=3),
+                default=9,
+                output_field=IntegerField(),
+            )
+        )
+        .order_by("status_priority", "vaccine_date", "id")[:6]
     )
 
     return {
@@ -134,12 +145,14 @@ def medical_dashboard(request):
     today = date.today()
     page_error = ""
     page_success = ""
+    selected_booking_id = request.GET.get("booking")
 
     if request.method == "POST":
         action = request.POST.get("action")
         booking_id = request.POST.get("booking_id")
+        selected_booking_id = booking_id or selected_booking_id
 
-        if action == "confirm_booking" and user.role in [User.ROLE_ADMIN, User.ROLE_STAFF, User.ROLE_DOCTOR]:
+        if action == "confirm_booking" and user.role in [User.ROLE_ADMIN, User.ROLE_STAFF]:
             booking = Booking.objects.filter(pk=booking_id).first()
             if booking and booking.status in [Booking.STATUS_PENDING, Booking.STATUS_DELAYED]:
                 booking.status = Booking.STATUS_CONFIRMED
@@ -307,6 +320,22 @@ def medical_dashboard(request):
         .order_by("id")
     )
 
+    selected_booking = None
+    if selected_booking_id:
+        selected_booking = next(
+            (booking for booking in today_bookings_list if str(booking.id) == str(selected_booking_id)),
+            None,
+        )
+
+    if selected_booking is None:
+        if user.role == User.ROLE_DOCTOR:
+            selected_booking = next(
+                (booking for booking in today_bookings_list if booking.status == Booking.STATUS_CHECKED_IN),
+                None,
+            )
+        else:
+            selected_booking = next(iter(today_bookings_list), None)
+
     context = {
         "user": user,
         "today": today,
@@ -314,6 +343,11 @@ def medical_dashboard(request):
         "page_error": page_error,
         "page_success": page_success,
         "today_bookings_list": today_bookings_list,
+        "selected_booking": selected_booking,
+        "checked_in_count": sum(1 for booking in today_bookings_list if booking.status == Booking.STATUS_CHECKED_IN),
+        "ready_to_inject_count": sum(1 for booking in today_bookings_list if booking.status == Booking.STATUS_READY_TO_INJECT),
+        "in_observation_count": sum(1 for booking in today_bookings_list if booking.status == Booking.STATUS_IN_OBSERVATION),
+        "completed_count": sum(1 for booking in today_bookings_list if booking.status == Booking.STATUS_COMPLETED),
     }
     context.update(_build_schedule_context(today))
     return render(request, "medical/medical.html", context)

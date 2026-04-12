@@ -13,6 +13,13 @@ from django.utils import timezone
 
 from feature.assets.models import StockImport, StorageLocation, Supplier, Vaccine
 from feature.authentication.models import User as AppUser
+from feature.booking.models import Booking
+from feature.medical.models import (
+    PostInjectionTracking,
+    PreScreeningDeclaration,
+    ScreeningResult,
+    VaccinationLog,
+)
 
 
 DJANGO_ADMIN_USERNAME = "admin"
@@ -21,6 +28,7 @@ DJANGO_ADMIN_PASSWORD = "AdminDemo@123"
 
 APP_DEMO_PASSWORD = "Demo@123"
 SEED_NOTE_PREFIX = "[VN demo seed]"
+BOOKING_NOTE_PREFIX = "[VN demo booking]"
 
 
 @dataclass(frozen=True)
@@ -156,14 +164,19 @@ class Command(BaseCommand):
             self._seed_django_admin_user()
             suppliers = self._seed_suppliers()
             locations = self._seed_locations()
-            self._seed_vaccines_and_imports(
+            seeded_vaccines = self._seed_vaccines_and_imports(
                 admin_user=app_users["admin"],
                 suppliers=suppliers,
                 locations=locations,
             )
+            self._seed_demo_bookings(app_users=app_users, vaccines=seeded_vaccines)
 
         self._print_credentials()
-        self.stdout.write(self.style.SUCCESS("Demo reset complete. The environment now contains 30 seeded vaccines."))
+        self.stdout.write(
+            self.style.SUCCESS(
+                "Demo reset complete. The environment now contains seeded users, vaccines, bookings, and medical flows."
+            )
+        )
 
     def _backup_database_if_supported(self):
         database = settings.DATABASES["default"]
@@ -214,7 +227,7 @@ class Command(BaseCommand):
     def _seed_app_users(self):
         demo_users = {
             "admin": {
-                "full_name": "Demo Admin",
+                "full_name": "Quản trị viên Demo",
                 "email": "admin.demo@vaccin.local",
                 "role": AppUser.ROLE_ADMIN,
                 "status": AppUser.STATUS_ACTIVE,
@@ -222,7 +235,7 @@ class Command(BaseCommand):
                 "gender": "other",
             },
             "staff": {
-                "full_name": "Demo Staff",
+                "full_name": "Y tá Demo",
                 "email": "staff.demo@vaccin.local",
                 "role": AppUser.ROLE_STAFF,
                 "status": AppUser.STATUS_ACTIVE,
@@ -230,7 +243,7 @@ class Command(BaseCommand):
                 "gender": "female",
             },
             "doctor": {
-                "full_name": "Demo Doctor",
+                "full_name": "Bác sĩ Demo",
                 "email": "doctor.demo@vaccin.local",
                 "role": AppUser.ROLE_DOCTOR,
                 "status": AppUser.STATUS_ACTIVE,
@@ -238,11 +251,27 @@ class Command(BaseCommand):
                 "gender": "male",
             },
             "citizen": {
-                "full_name": "Demo Citizen",
+                "full_name": "Công dân Demo",
                 "email": "citizen.demo@vaccin.local",
                 "role": AppUser.ROLE_CITIZEN,
                 "status": AppUser.STATUS_ACTIVE,
                 "phone_number": "0901000004",
+                "gender": "female",
+            },
+            "citizen_two": {
+                "full_name": "Nguyễn Minh Anh",
+                "email": "citizen2.demo@vaccin.local",
+                "role": AppUser.ROLE_CITIZEN,
+                "status": AppUser.STATUS_ACTIVE,
+                "phone_number": "0901000005",
+                "gender": "male",
+            },
+            "citizen_three": {
+                "full_name": "Trần Bảo Ngọc",
+                "email": "citizen3.demo@vaccin.local",
+                "role": AppUser.ROLE_CITIZEN,
+                "status": AppUser.STATUS_ACTIVE,
+                "phone_number": "0901000006",
                 "gender": "female",
             },
         }
@@ -298,6 +327,7 @@ class Command(BaseCommand):
         StockImport.objects.filter(note__startswith=SEED_NOTE_PREFIX).delete()
 
         today = timezone.localdate()
+        seeded_vaccines = []
         for index, demo_vaccine in enumerate(DEMO_VACCINES, start=1):
             minimum_stock = 12 + ((index - 1) % 4) * 6
             quantity = 45 + ((index * 17) % 140)
@@ -336,6 +366,265 @@ class Command(BaseCommand):
                 created_by=admin_user,
             )
 
+            seeded_vaccines.append(vaccine)
+
+        return seeded_vaccines
+
+    def _seed_demo_bookings(self, *, app_users, vaccines):
+        Booking.objects.filter(note__startswith=BOOKING_NOTE_PREFIX).delete()
+
+        vaccine_map = {item.name: item for item in vaccines}
+        today = timezone.localdate()
+        scenarios = [
+            {
+                "full_name": app_users["citizen"].full_name,
+                "phone": app_users["citizen"].phone_number,
+                "email": app_users["citizen"].email,
+                "user": app_users["citizen"],
+                "vaccine_name": "Gardasil 9",
+                "vaccine_date": today + timedelta(days=2),
+                "dose_number": 1,
+                "status": Booking.STATUS_PENDING,
+                "booking_source": Booking.BOOKING_SOURCE_ONLINE,
+                "note": f"{BOOKING_NOTE_PREFIX} Chờ xác nhận mũi HPV",
+            },
+            {
+                "full_name": app_users["citizen_two"].full_name,
+                "phone": app_users["citizen_two"].phone_number,
+                "email": app_users["citizen_two"].email,
+                "user": app_users["citizen_two"],
+                "vaccine_name": "Qdenga",
+                "vaccine_date": today,
+                "dose_number": 1,
+                "status": Booking.STATUS_CONFIRMED,
+                "booking_source": Booking.BOOKING_SOURCE_ONLINE,
+                "note": f"{BOOKING_NOTE_PREFIX} Đã xác nhận chờ tiếp nhận",
+            },
+            {
+                "full_name": app_users["citizen_three"].full_name,
+                "phone": app_users["citizen_three"].phone_number,
+                "email": app_users["citizen_three"].email,
+                "user": app_users["citizen_three"],
+                "vaccine_name": "Prevenar 13",
+                "vaccine_date": today,
+                "dose_number": 2,
+                "status": Booking.STATUS_CHECKED_IN,
+                "booking_source": Booking.BOOKING_SOURCE_ONLINE,
+                "note": f"{BOOKING_NOTE_PREFIX} Đã tiếp nhận chờ sàng lọc",
+                "declaration": {
+                    "has_fever": False,
+                    "has_allergy_history": True,
+                    "has_chronic_condition": False,
+                    "recent_symptoms": "Viêm mũi nhẹ tuần trước",
+                    "current_medications": "Vitamin C",
+                    "note": "Đã nghỉ khỏe 3 ngày trước buổi tiêm",
+                },
+            },
+            {
+                "full_name": app_users["citizen"].full_name,
+                "phone": app_users["citizen"].phone_number,
+                "email": app_users["citizen"].email,
+                "user": app_users["citizen"],
+                "vaccine_name": "Menactra",
+                "vaccine_date": today,
+                "dose_number": 1,
+                "status": Booking.STATUS_READY_TO_INJECT,
+                "booking_source": Booking.BOOKING_SOURCE_ONLINE,
+                "note": f"{BOOKING_NOTE_PREFIX} Đủ điều kiện chờ tiêm",
+                "declaration": {
+                    "has_fever": False,
+                    "has_allergy_history": False,
+                    "has_chronic_condition": False,
+                    "recent_symptoms": "",
+                    "current_medications": "",
+                    "note": "Khách khai báo ổn định",
+                },
+                "screening": {
+                    "temperature": 36.6,
+                    "blood_pressure": "118/76",
+                    "decision": ScreeningResult.DECISION_ELIGIBLE,
+                    "doctor_note": "Đủ điều kiện tiêm trong ngày",
+                },
+            },
+            {
+                "full_name": app_users["citizen_two"].full_name,
+                "phone": app_users["citizen_two"].phone_number,
+                "email": app_users["citizen_two"].email,
+                "user": app_users["citizen_two"],
+                "vaccine_name": "Hexaxim",
+                "vaccine_date": today,
+                "dose_number": 3,
+                "status": Booking.STATUS_IN_OBSERVATION,
+                "booking_source": Booking.BOOKING_SOURCE_WALKIN,
+                "note": f"{BOOKING_NOTE_PREFIX} Đã tiêm đang theo dõi",
+                "declaration": {
+                    "has_fever": False,
+                    "has_allergy_history": False,
+                    "has_chronic_condition": False,
+                    "recent_symptoms": "",
+                    "current_medications": "",
+                    "note": "Tiếp nhận tại quầy",
+                },
+                "screening": {
+                    "temperature": 36.7,
+                    "blood_pressure": "120/80",
+                    "decision": ScreeningResult.DECISION_ELIGIBLE,
+                    "doctor_note": "Sức khỏe ổn định",
+                },
+                "vaccination": {
+                    "batch_number": "VN-DEMO-002",
+                    "injected_by": app_users["staff"].full_name,
+                },
+            },
+            {
+                "full_name": app_users["citizen_three"].full_name,
+                "phone": app_users["citizen_three"].phone_number,
+                "email": app_users["citizen_three"].email,
+                "user": app_users["citizen_three"],
+                "vaccine_name": "Verorab",
+                "vaccine_date": today - timedelta(days=1),
+                "dose_number": 4,
+                "status": Booking.STATUS_COMPLETED,
+                "booking_source": Booking.BOOKING_SOURCE_ONLINE,
+                "note": f"{BOOKING_NOTE_PREFIX} Đã hoàn thành đủ quy trình",
+                "declaration": {
+                    "has_fever": False,
+                    "has_allergy_history": False,
+                    "has_chronic_condition": True,
+                    "recent_symptoms": "",
+                    "current_medications": "Thuốc dạ dày",
+                    "note": "Theo dõi kỹ sau tiêm",
+                },
+                "screening": {
+                    "temperature": 36.5,
+                    "blood_pressure": "122/78",
+                    "decision": ScreeningResult.DECISION_ELIGIBLE,
+                    "doctor_note": "Tiêm được, theo dõi 30 phút",
+                },
+                "vaccination": {
+                    "batch_number": "VN-DEMO-028",
+                    "injected_by": app_users["staff"].full_name,
+                },
+                "tracking": {
+                    "reaction_status": PostInjectionTracking.REACTION_NORMAL,
+                    "notes": "Không ghi nhận phản ứng bất thường",
+                },
+            },
+            {
+                "full_name": "Lê Gia Hân",
+                "phone": "0901999001",
+                "email": "walkin1.demo@vaccin.local",
+                "user": None,
+                "vaccine_name": "Bexsero",
+                "vaccine_date": today + timedelta(days=1),
+                "dose_number": 1,
+                "status": Booking.STATUS_DELAYED,
+                "booking_source": Booking.BOOKING_SOURCE_WALKIN,
+                "note": f"{BOOKING_NOTE_PREFIX} Tạm hoãn do đang sốt",
+                "declaration": {
+                    "has_fever": True,
+                    "has_allergy_history": False,
+                    "has_chronic_condition": False,
+                    "recent_symptoms": "Sốt 38 độ tối qua",
+                    "current_medications": "Paracetamol",
+                    "note": "Hẹn kiểm tra lại sau 3 ngày",
+                },
+                "screening": {
+                    "temperature": 38.0,
+                    "blood_pressure": "115/75",
+                    "decision": ScreeningResult.DECISION_DELAYED,
+                    "doctor_note": "Tạm hoãn do sốt",
+                },
+            },
+            {
+                "full_name": "Phạm Quốc Đạt",
+                "phone": "0901999002",
+                "email": "walkin2.demo@vaccin.local",
+                "user": None,
+                "vaccine_name": "Imojev",
+                "vaccine_date": today + timedelta(days=4),
+                "dose_number": 1,
+                "status": Booking.STATUS_CANCELLED,
+                "booking_source": Booking.BOOKING_SOURCE_WALKIN,
+                "note": f"{BOOKING_NOTE_PREFIX} Hủy do chống chỉ định",
+                "declaration": {
+                    "has_fever": False,
+                    "has_allergy_history": True,
+                    "has_chronic_condition": True,
+                    "recent_symptoms": "",
+                    "current_medications": "Thuốc tim mạch",
+                    "note": "Tiền sử phản ứng nặng sau tiêm",
+                },
+                "screening": {
+                    "temperature": 36.8,
+                    "blood_pressure": "140/90",
+                    "decision": ScreeningResult.DECISION_CANCELLED,
+                    "doctor_note": "Chống chỉ định tiêm tại thời điểm hiện tại",
+                },
+            },
+            {
+                "full_name": "Đỗ Hải Yến",
+                "phone": "0901999003",
+                "email": "walkin3.demo@vaccin.local",
+                "user": None,
+                "vaccine_name": "Priorix",
+                "vaccine_date": today + timedelta(days=7),
+                "dose_number": 1,
+                "status": Booking.STATUS_PENDING,
+                "booking_source": Booking.BOOKING_SOURCE_WALKIN,
+                "note": f"{BOOKING_NOTE_PREFIX} Khách mới tạo tại quầy",
+            },
+            {
+                "full_name": "Nguyễn Tấn Phát",
+                "phone": "0901999004",
+                "email": "walkin4.demo@vaccin.local",
+                "user": None,
+                "vaccine_name": "Adacel",
+                "vaccine_date": today + timedelta(days=10),
+                "dose_number": 2,
+                "status": Booking.STATUS_CONFIRMED,
+                "booking_source": Booking.BOOKING_SOURCE_ONLINE,
+                "note": f"{BOOKING_NOTE_PREFIX} Đã xác nhận cho mũi nhắc",
+            },
+        ]
+
+        for scenario in scenarios:
+            booking = Booking.objects.create(
+                user=scenario["user"],
+                full_name=scenario["full_name"],
+                phone=scenario["phone"],
+                email=scenario["email"],
+                vaccine_name=scenario["vaccine_name"],
+                vaccine_date=scenario["vaccine_date"],
+                dose_number=scenario["dose_number"],
+                status=scenario["status"],
+                booking_source=scenario["booking_source"],
+                note=scenario["note"],
+            )
+
+            declaration_data = scenario.get("declaration")
+            if declaration_data:
+                PreScreeningDeclaration.objects.create(booking=booking, **declaration_data)
+
+            screening_data = scenario.get("screening")
+            if screening_data:
+                ScreeningResult.objects.create(booking=booking, **screening_data)
+
+            vaccination_data = scenario.get("vaccination")
+            if vaccination_data:
+                vaccine = vaccine_map.get(scenario["vaccine_name"])
+                VaccinationLog.objects.create(
+                    booking=booking,
+                    vaccine=vaccine,
+                    dose_number=scenario["dose_number"],
+                    **vaccination_data,
+                )
+
+            tracking_data = scenario.get("tracking")
+            if tracking_data:
+                vaccination_log = booking.vaccination_log
+                PostInjectionTracking.objects.create(vaccination_log=vaccination_log, **tracking_data)
+
     def _print_credentials(self):
         self.stdout.write("")
         self.stdout.write("Seeded credentials:")
@@ -344,3 +633,5 @@ class Command(BaseCommand):
         self.stdout.write(f"  App staff: staff.demo@vaccin.local / {APP_DEMO_PASSWORD}")
         self.stdout.write(f"  App doctor: doctor.demo@vaccin.local / {APP_DEMO_PASSWORD}")
         self.stdout.write(f"  App citizen: citizen.demo@vaccin.local / {APP_DEMO_PASSWORD}")
+        self.stdout.write(f"  App citizen 2: citizen2.demo@vaccin.local / {APP_DEMO_PASSWORD}")
+        self.stdout.write(f"  App citizen 3: citizen3.demo@vaccin.local / {APP_DEMO_PASSWORD}")

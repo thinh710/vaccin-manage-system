@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -13,7 +13,7 @@
             <div class="panel-head">
                 <span class="eyebrow">Tạo tài khoản công dân</span>
                 <h2>Đăng ký</h2>
-                <p>Phiên bản không JavaScript dùng form POST tiêu chuẩn của Django.</p>
+                <p>Điền thông tin để tạo tài khoản công dân mới.</p>
             </div>
 
             {% if error_message %}
@@ -57,15 +57,17 @@
         </div>
 
         <div class="auth-panel auth-panel--brand compact">
-            <div class="brand-badge">SERVER</div>
-            <h1 style="font-size:2.2rem;font-weight:800;margin-bottom:10px;">Đăng ký thuần Django</h1>
+            <div class="brand-badge">HỆ THỐNG</div>
+            <h1 style="font-size:2.2rem;font-weight:800;margin-bottom:10px;">Tạo tài khoản công dân</h1>
             <p style="font-size:1.12rem;margin-bottom:18px;max-width:420px;">
-                Toàn bộ thao tác được xử lý phía Python, không cần mã JavaScript riêng cho màn hình này.
+                Thông tin đăng ký được xử lý trực tiếp trên hệ thống để bạn tạo tài khoản nhanh chóng.
             </p>
             <div class="brand-note" style="font-size:1.04rem;">
-                Sau khi đăng ký thành công, hệ thống sẽ đăng nhập và chuyển bạn vào dashboard.
+                Sau khi đăng ký thành công, hệ thống sẽ đăng nhập và chuyển bạn vào trang tổng quan.
             </div>
         </div>
     </div>
 </body>
 </html>
+
+

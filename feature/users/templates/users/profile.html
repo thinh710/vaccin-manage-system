@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -32,7 +32,7 @@
                 <div class="profile-panel">
                     <div class="profile-panel-head">
                         <h1>Thông tin cá nhân</h1>
-                        <p>Trang này đã bỏ hoàn toàn JavaScript. Nếu muốn cập nhật avatar, nhập trực tiếp URL hoặc chuỗi data URL.</p>
+                        <p>Cập nhật thông tin cá nhân và ảnh đại diện của bạn tại đây.</p>
                     </div>
 
                     <div class="profile-panel-body">
@@ -90,13 +90,13 @@
                                     <textarea id="medical_history" name="medical_history" rows="4">{% if medical_history != 'Chưa cập nhật' %}{{ medical_history }}{% endif %}</textarea>
                                 </div>
                                 <div class="profile-field profile-field--full">
-                                    <label for="avatar_data">Avatar URL / Data URL</label>
+                                    <label for="avatar_data">Đường dẫn ảnh đại diện</label>
                                     <textarea id="avatar_data" name="avatar_data" rows="4">{{ user.avatar_data }}</textarea>
                                 </div>
                             </div>
 
                             <div class="profile-actions">
-                                <a class="profile-button profile-button--ghost" href="/users/dashboard/">Quay lại dashboard</a>
+                                <a class="profile-button profile-button--ghost" href="/users/dashboard/">Quay lại trang tổng quan</a>
                                 <button class="profile-button profile-button--primary" type="submit">Lưu thay đổi</button>
                             </div>
                         </form>
@@ -113,7 +113,7 @@
                             <input type="hidden" name="medical_history" value="{{ user.medical_history }}">
                             <input type="hidden" name="avatar_data" value="">
                             <input type="hidden" name="remove_avatar" value="1">
-                            <button class="profile-button profile-button--ghost" type="submit">Xóa avatar</button>
+                            <button class="profile-button profile-button--ghost" type="submit">Xóa ảnh đại diện</button>
                         </form>
                     </div>
                 </div>
@@ -122,3 +122,5 @@
     </main>
 </body>
 </html>
+
+

@@ -130,6 +130,13 @@ a {
     transform: translateY(-2px);
 }
 
+.primary-link.is-disabled {
+    cursor: not-allowed;
+    background: linear-gradient(135deg, #9ca3af, #6b7280);
+    box-shadow: none;
+    pointer-events: none;
+}
+
 .hero-panel {
     display: grid;
     gap: 12px;

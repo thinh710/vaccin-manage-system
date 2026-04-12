@@ -42,14 +42,16 @@ class InventoryPermissionTests(APITestCase):
         session["user_id"] = user.id
         session.save()
 
-    def test_doctor_can_read_vaccines_but_not_inventory_transactions(self):
+    def test_doctor_can_manage_inventory_transactions(self):
         self._login_as(self.doctor)
 
         vaccine_response = self.client.get(reverse("vaccine-list"))
         export_response = self.client.get(reverse("stock-export-list"))
+        dashboard_response = self.client.get(reverse("inventory-dashboard-page"))
 
         self.assertEqual(vaccine_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(export_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(export_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(dashboard_response.status_code, status.HTTP_200_OK)
 
 
 class ResetDemoDataVNCommandTests(TransactionTestCase):
@@ -66,7 +68,7 @@ class ResetDemoDataVNCommandTests(TransactionTestCase):
     def test_command_seeds_expected_demo_records(self):
         call_command("reset_demo_data_vn", skip_backup=True, verbosity=0)
 
-        self.assertEqual(AppUser.objects.count(), 4)
+        self.assertEqual(AppUser.objects.count(), 6)
         self.assertEqual(Supplier.objects.count(), 5)
         self.assertEqual(StorageLocation.objects.count(), 4)
         self.assertEqual(Vaccine.objects.count(), 30)
@@ -105,7 +107,7 @@ class ResetDemoDataVNCommandTests(TransactionTestCase):
             {"email": "admin.demo@vaccin.local", "password": APP_DEMO_PASSWORD},
         )
 
-        self.assertEqual(app_admin_login.status_code, status.HTTP_200_OK)
-        self.assertEqual(app_admin_login.json()["user"]["role"], AppUser.ROLE_ADMIN)
+        self.assertEqual(app_admin_login.status_code, 302)
+        self.assertEqual(app_admin_login.headers["Location"], "/users/dashboard/")
         self.assertTrue(self.client.login(username=DJANGO_ADMIN_USERNAME, password=DJANGO_ADMIN_PASSWORD))
         self.assertEqual(self.client.get("/admin/").status_code, status.HTTP_200_OK)

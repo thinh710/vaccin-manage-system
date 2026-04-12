@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản lý kho vắc xin | Vaccin Manage System</title>
-    <link rel="stylesheet" href="/static/assets/css/dashboard.css?v=20260411-6">
+    <link rel="stylesheet" href="/static/assets/css/dashboard.css?v=20260412-7">
 </head>
 <body>
     <div class="inventory-app">
@@ -13,7 +13,7 @@
                 <div class="brand-mark">VMS</div>
                 <div>
                     <strong>Kho vắc xin</strong>
-                    <span>Server-rendered workspace</span>
+                    <span>Khu làm việc của hệ thống</span>
                 </div>
             </div>
 
@@ -31,7 +31,7 @@
                 <a class="side-link" href="/assets/suppliers-page/">Nhà cung cấp</a>
                 <a class="side-link" href="/assets/locations-page/">Vị trí bảo quản</a>
                 <a class="side-link" href="/assets/overview/">Báo cáo tổng hợp</a>
-                <a class="side-link" href="/users/dashboard/">Về dashboard</a>
+                <a class="side-link" href="/users/dashboard/">Về trang tổng quan</a>
                 <a class="side-link" href="/assets/forms-page/">Bi&#7875;u m&#7851;u nghi&#7879;p v&#7909;</a>
             </nav>
 
@@ -59,11 +59,13 @@
             <header class="topbar">
                 <div>
                     <p class="eyebrow">Hệ thống quản lý kho</p>
-                    <h1>Dashboard kho không dùng JavaScript</h1>
-                    <p class="topbar-copy">Lọc danh sách bằng GET và thực hiện nghiệp vụ bằng form POST thuần Django.</p>
+                    <h1>Trung tâm quản lý kho vắc xin</h1>
+                    <p class="topbar-copy">Lọc danh sách và xử lý nghiệp vụ kho ngay trên cùng một màn hình.</p>
                 </div>
                 <div class="topbar-actions">
                     <a class="toolbar-btn toolbar-btn--blue" href="/assets/dashboard-page/">Làm mới</a>
+                    <a class="toolbar-btn toolbar-btn--teal" href="/assets/overview/">Tổng quan kho</a>
+                    <a class="toolbar-btn toolbar-btn--green" href="/assets/forms-page/#form-create-vaccine">Thêm vắc xin mới</a>
                     <form method="post" action="/auth/logout/">
                         {% csrf_token %}
                         <button class="toolbar-btn toolbar-btn--danger" type="submit">Đăng xuất</button>
@@ -174,7 +176,7 @@
                 </section>
 
                 <aside class="panel panel--side panel--hidden" id="business-forms" hidden>
-                    <div class="panel-head"><div><h2>Biểu mẫu nghiệp vụ</h2><p>Thay cho modal và fetch phía trình duyệt.</p></div></div>
+                    <div class="panel-head"><div><h2>Biểu mẫu công việc</h2><p>Tập hợp các biểu mẫu xử lý nghiệp vụ kho.</p></div></div>
 
                     <form method="post" class="support-card" id="form-create-supplier">
                         {% csrf_token %}
@@ -388,3 +390,5 @@
     </div>
 </body>
 </html>
+
+

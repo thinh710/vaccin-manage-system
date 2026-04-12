@@ -394,6 +394,86 @@ h1 {
     margin-bottom: 8px;
 }
 
+.declaration-panel {
+    width: 100%;
+}
+
+.declaration-panel-row {
+    margin-top: 10px;
+    width: 100%;
+}
+
+.declaration-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+}
+
+.declaration-toggle::-webkit-details-marker {
+    display: none;
+}
+
+.declaration-card--expanded {
+    display: grid;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 20px;
+    border-radius: 18px;
+    background: #fffdfa;
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    box-shadow: 0 12px 24px rgba(191, 123, 22, 0.08);
+}
+
+.declaration-card--expanded p {
+    margin: -2px 0 4px;
+    color: var(--muted);
+}
+
+.declaration-card-eyebrow {
+    color: #c2410c;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.declaration-card--expanded label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #fff8e6;
+    border: 1px solid rgba(251, 191, 36, 0.5);
+    font-weight: 700;
+}
+
+.declaration-card--expanded label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+.declaration-card--expanded textarea {
+    width: 100%;
+    min-height: 88px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--text);
+    resize: vertical;
+}
+
 .declaration-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

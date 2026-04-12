@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard quản trị | Vaccin Manage System</title>
+    <title>Trung tâm điều hành | Vaccin Manage System</title>
     <link rel="stylesheet" href="/static/users/css/admin_dashboard.css?v=20260328-1">
 </head>
 <body>
@@ -12,17 +12,28 @@
             <div class="hero-top">
                 <div>
                     <div class="eyebrow">Trung tâm điều hành</div>
-                    <h1>Dashboard bác sĩ và quản lý lịch tiêm</h1>
-                    <p>Theo dõi lịch tiêm bệnh nhân, cảnh báo booking quan trọng và điều phối tồn kho vắc xin trên cùng một màn hình.</p>
+                    <h1>Trung tâm điều hành lịch tiêm</h1>
+                    <p>Theo dõi lịch tiêm, các lịch hẹn cần xử lý và điều phối tồn kho vắc xin trên cùng một màn hình.</p>
                 </div>
                 <div class="hero-meta">
                     <strong>{{ user.full_name }}</strong>
                     <span>{{ user.email }}</span>
                     <div style="margin-top: 14px;">Ngày làm việc: {{ today|date:"d/m/Y" }}</div>
-                    <div style="margin-top: 8px;">Vai trò: Bác sĩ quản trị hệ thống</div>
-                    <a class="inventory-link" href="/booking/portal/" style="margin-top: 16px;">Mở cổng booking</a>
+                <div style="margin-top: 8px;">
+                    Vai trò:
+                    {% if user.role == 'doctor' %}
+                        Bác sĩ hệ thống
+                        {% else %}
+                            Quản trị viên hệ thống
+                        {% endif %}
+                </div>
+                    <a class="inventory-link" href="/medical/dashboard/" style="margin-top: 16px;">Mở khu y khoa</a>
+                    <a class="inventory-link" href="/booking/portal/" style="margin-top: 16px;">Mở cổng đặt lịch tiêm vắc xin</a>
                     <a class="inventory-link" href="/assets/" style="margin-top: 16px;">Mở giao diện quản lý kho</a>
-                    <button class="inventory-link" id="logoutBtn" type="button" style="margin-top: 12px;">Đăng xuất</button>
+                    <form method="post" action="/auth/logout/" style="margin-top: 12px;">
+                        {% csrf_token %}
+                        <button class="inventory-link" type="submit">Đăng xuất</button>
+                    </form>
                 </div>
             </div>
         </section>
@@ -36,7 +47,7 @@
             <article class="card stat-card">
                 <small>Lịch sắp tới</small>
                 <strong>{{ upcoming_bookings_count }}</strong>
-                <span>Số booking còn hiệu lực từ hôm nay trở đi.</span>
+                <span>Số lịch hẹn còn hiệu lực từ hôm nay trở đi.</span>
             </article>
             <article class="card stat-card">
                 <small>Chờ xác nhận</small>
@@ -74,7 +85,7 @@
                 </div>
                 <div class="calendar-note">
                     <span class="calendar-dot"></span>
-                    <span>Ngày có lịch tiêm hoặc booking cần xử lý</span>
+                    <span>Ngày có lịch tiêm hoặc lịch hẹn cần xử lý</span>
                 </div>
             </article>
 
@@ -84,7 +95,7 @@
                         <h2>Lịch tiêm bệnh nhân</h2>
                         <p>Các ca tiêm sắp tới cần bác sĩ theo dõi.</p>
                     </div>
-                    <div class="badge">Tổng booking: {{ total_bookings }}</div>
+                    <div class="badge">Tổng lịch hẹn: {{ total_bookings }}</div>
                 </div>
                 <div class="schedule-list">
                     {% for booking in vaccination_schedule %}
@@ -111,21 +122,41 @@
                         <div class="mini-schedule-item mini-schedule-item--actionable">
                             <div class="mini-schedule-meta">
                                 <strong>{{ booking.full_name }}</strong>
-                                <span>{{ booking.vaccine_date|date:"d/m/Y" }} - Trạng thái: {{ booking.status }}</span>
+                                <span>{{ booking.vaccine_date|date:"d/m/Y" }} - Trạng thái:
+                                    {% if booking.status == 'pending' %}Chờ xác nhận
+                                    {% elif booking.status == 'confirmed' %}Đã xác nhận
+                                    {% elif booking.status == 'checked_in' %}Đã tiếp nhận
+                                    {% elif booking.status == 'ready_to_inject' %}Chờ tiêm
+                                    {% elif booking.status == 'in_observation' %}Đang theo dõi
+                                    {% elif booking.status == 'completed' %}Đã hoàn thành
+                                    {% elif booking.status == 'delayed' %}Tạm hoãn
+                                    {% elif booking.status == 'cancelled' %}Đã hủy
+                                    {% else %}{{ booking.status }}{% endif %}
+                                </span>
                             </div>
                             <div class="mini-schedule-actions">
                                 {% if booking.status == 'pending' or booking.status == 'delayed' %}
-                                    <button class="approve-btn" type="button" data-action="confirm-booking" data-booking-id="{{ booking.id }}">
-                                        Xác nhận lịch
-                                    </button>
+                                    <form method="post" action="/users/dashboard/">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="confirm_booking">
+                                        <input type="hidden" name="booking_id" value="{{ booking.id }}">
+                                        <button class="approve-btn" type="submit">Xác nhận lịch</button>
+                                    </form>
                                 {% elif booking.status == 'confirmed' %}
                                     <span class="inline-status inline-status--success">Đã xác nhận</span>
                                 {% elif booking.status == 'checked_in' %}
-                                    <span class="inline-status">Đã check-in</span>
+                                    <a class="approve-btn" href="/medical/dashboard/?booking={{ booking.id }}">Mở sàng lọc</a>
                                 {% elif booking.status == 'screened' %}
                                     <span class="inline-status">Đã sàng lọc</span>
                                 {% else %}
-                                    <span class="inline-status">{{ booking.status }}</span>
+                                    <span class="inline-status">
+                                        {% if booking.status == 'ready_to_inject' %}Chờ tiêm
+                                        {% elif booking.status == 'in_observation' %}Đang theo dõi
+                                        {% elif booking.status == 'completed' %}Đã hoàn thành
+                                        {% elif booking.status == 'cancelled' %}Đã hủy
+                                        {% elif booking.status == 'delayed' %}Tạm hoãn
+                                        {% else %}{{ booking.status }}{% endif %}
+                                    </span>
                                 {% endif %}
                             </div>
                         </div>
@@ -141,9 +172,9 @@
                 <div class="section-head">
                     <div>
                         <h2>Lịch tiêm gần nhất</h2>
-                        <p>Danh sách booking ưu tiên để điều phối nhân sự và bố trí phòng tiêm.</p>
+                        <p>Danh sách lịch hẹn ưu tiên để điều phối nhân sự và bố trí phòng tiêm.</p>
                     </div>
-                    <div class="badge">Tổng booking: {{ total_bookings }} - Đã hủy: {{ cancelled_count }}</div>
+                    <div class="badge">Tổng lịch hẹn: {{ total_bookings }} - Đã hủy: {{ cancelled_count }}</div>
                 </div>
 
                 {% if recent_upcoming_bookings %}
@@ -158,12 +189,22 @@
                                     <strong>{{ booking.full_name }} - Mũi {{ booking.dose_number }}</strong>
                                     <div>{{ booking.vaccine_name }} - {{ booking.phone }}{% if booking.email %} - {{ booking.email }}{% endif %}</div>
                                 </div>
-                                <div class="status {{ booking.status }}">{{ booking.status }}</div>
+                                <div class="status {{ booking.status }}">
+                                    {% if booking.status == 'pending' %}Chờ xác nhận
+                                    {% elif booking.status == 'confirmed' %}Đã xác nhận
+                                    {% elif booking.status == 'checked_in' %}Đã tiếp nhận
+                                    {% elif booking.status == 'ready_to_inject' %}Chờ tiêm
+                                    {% elif booking.status == 'in_observation' %}Đang theo dõi
+                                    {% elif booking.status == 'completed' %}Đã hoàn thành
+                                    {% elif booking.status == 'delayed' %}Tạm hoãn
+                                    {% elif booking.status == 'cancelled' %}Đã hủy
+                                    {% else %}{{ booking.status }}{% endif %}
+                                </div>
                             </div>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="empty-state">Chưa có lịch tiêm sắp tới. Có thể bắt đầu tiếp nhận booking mới.</div>
+                    <div class="empty-state">Chưa có lịch tiêm sắp tới. Có thể bắt đầu tiếp nhận lịch hẹn mới.</div>
                 {% endif %}
             </article>
 
@@ -182,7 +223,7 @@
                             <tr>
                                 <th>Vắc xin</th>
                                 <th>Tồn ước tính</th>
-                                <th>Tổng booking</th>
+                                <th>Tổng lịch hẹn</th>
                                 <th>Mũi sắp dùng</th>
                             </tr>
                         </thead>
@@ -208,78 +249,7 @@
         </section>
     </main>
 
-    <script>
-        function getCookie(name) {
-            const cookies = document.cookie ? document.cookie.split(';') : [];
-            for (const cookie of cookies) {
-                const trimmedCookie = cookie.trim();
-                if (trimmedCookie.startsWith(name + '=')) {
-                    return decodeURIComponent(trimmedCookie.slice(name.length + 1));
-                }
-            }
-            return '';
-        }
-
-        async function confirmBooking(button) {
-            const bookingId = button.dataset.bookingId;
-            if (!bookingId) {
-                return;
-            }
-
-            const initialLabel = button.textContent;
-            button.disabled = true;
-            button.textContent = 'Đang xác nhận...';
-
-            try {
-                const response = await fetch(`/booking/${bookingId}/`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({ status: 'confirmed' })
-                });
-
-                const data = await response.json().catch(() => ({}));
-                if (!response.ok) {
-                    throw new Error(data.detail || 'Không thể xác nhận lịch tiêm lúc này.');
-                }
-
-                window.location.reload();
-            } catch (error) {
-                alert(error.message || 'Không thể xác nhận lịch tiêm lúc này.');
-                button.disabled = false;
-                button.textContent = initialLabel;
-            }
-        }
-
-        document.querySelectorAll('[data-action="confirm-booking"]').forEach(function (button) {
-            button.addEventListener('click', function () {
-                confirmBooking(button);
-            });
-        });
-
-        document.getElementById('logoutBtn')?.addEventListener('click', async function () {
-            try {
-                const response = await fetch('/auth/logout/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    credentials: 'same-origin'
-                });
-
-                if (!response.ok) {
-                    throw new Error('Logout failed');
-                }
-
-                window.location.href = '/auth/login-page/';
-            } catch (error) {
-                alert('Không thể đăng xuất lúc này. Vui lòng thử lại.');
-            }
-        });
-    </script>
 </body>
 </html>
+
+

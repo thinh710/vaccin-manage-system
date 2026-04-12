@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard | Vaccin Manage System</title>
+    <title>Trang tổng quan | Vaccin Manage System</title>
     <link rel="stylesheet" href="/static/authentication/css/auth.css?v=20260327-1" />
     <link rel="stylesheet" href="/static/users/css/dashboard.css?v=20260327-4" />
     <style>
@@ -82,22 +82,25 @@
                         <div class="dashboard-user-details">
                             <div><strong>Tên:</strong> {{ user.full_name }}</div>
                             <div><strong>Email:</strong> {{ user.email }}</div>
-                            <div><strong>Vai trò:</strong> {{ user.role }}</div>
-                            <div><strong>Trạng thái:</strong> {{ user.status }}</div>
+                            <div><strong>Vai trò:</strong> {% if user.role == 'admin' %}quản trị viên{% elif user.role == 'staff' %}nhân viên{% elif user.role == 'doctor' %}bác sĩ{% elif user.role == 'citizen' %}công dân{% else %}{{ user.role }}{% endif %}</div>
+                            <div><strong>Trạng thái:</strong> {% if user.status == 'active' %}đang hoạt động{% elif user.status == 'inactive' %}tạm ngưng{% elif user.status == 'banned' %}bị khóa{% else %}{{ user.status }}{% endif %}</div>
                         </div>
                     </div>
                     <div class="dashboard-user-actions">
                         <a class="dashboard-user-action" href="/users/profile/">Hồ sơ</a>
-                        <a class="dashboard-user-action" href="/booking/portal/">Lịch hẹn</a>
+                        <a class="dashboard-user-action" href="/booking/portal/">Lịch đã đặt</a>
                         <a class="dashboard-user-action" href="/users/screening/">Khai báo sàng lọc</a>
                         <a class="dashboard-user-action" href="/users/system/">Tiêm chủng</a>
                     </div>
-                    <button id="logoutBtn" class="dashboard-user-action is-logout" type="button">Đăng xuất</button>
+                    <form method="post" action="/auth/logout/">
+                        {% csrf_token %}
+                        <button class="dashboard-user-action is-logout" type="submit">Đăng xuất</button>
+                    </form>
                     <div class="dashboard-user-note">
                         <h3>Thông báo</h3>
                         <ul>
                             <li>Quản lý hồ sơ và lịch hẹn nhanh hơn.</li>
-                            <li>Theo dõi lịch sử tiêm trong một chỗ.</li>
+                            <li>Theo dõi lịch sử tiêm trong cùng một nơi.</li>
                         </ul>
                     </div>
                 </div>
@@ -108,7 +111,7 @@
     <div class="dashboard-nav">
         <div class="dashboard-nav-inner">
             <a class="dashboard-nav-item is-active" href="#">Vắc xin phòng bệnh</a>
-            <a class="dashboard-nav-item" href="/booking/portal/">Lịch hẹn</a>
+            <a class="dashboard-nav-item" href="/booking/portal/">Lịch đã đặt</a>
             <a class="dashboard-nav-item" href="/users/screening/">Khai báo sàng lọc</a>
             <a class="dashboard-nav-item" href="/users/packages/">Gói vắc xin</a>
             <a class="dashboard-nav-item" href="/users/system/">Hệ thống tiêm chủng</a>
@@ -246,7 +249,7 @@
                 ],
                 cards: [
                     { country: 'Gói cơ bản', discount: '-120.000đ', image: '/static/users/img/seasonal-vaccines/combo-banner.jpg', title: 'Vắc xin 6 trong 1', desc: 'Giảm số mũi tiêm, bảo vệ nhiều bệnh cho trẻ nhỏ', price: '1.015.000đ', oldPrice: '1.135.000đ' },
-                    { country: 'Lịch tiêm', discount: '', image: '/static/users/img/seasonal-vaccines/combo-banner.jpg', title: 'Đặt lịch cho bé', desc: 'Theo dõi lịch mũi cơ bản và nhắc lại ngay tại dashboard', price: 'Đặt hẹn', oldPrice: '' }
+                    { country: 'Lịch tiêm', discount: '', image: '/static/users/img/seasonal-vaccines/combo-banner.jpg', title: 'Đặt lịch cho bé', desc: 'Theo dõi lịch mũi cơ bản và nhắc lại ngay tại trang tổng quan', price: 'Đặt hẹn', oldPrice: '' }
                 ]
             }
         };
@@ -262,19 +265,6 @@
             return '';
         }
 
-        document.getElementById('logoutBtn')?.addEventListener('click', async function () {
-            try {
-                const response = await fetch('/auth/logout/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                    credentials: 'same-origin'
-                });
-                if (!response.ok) throw new Error('Logout failed');
-                window.location.href = '/auth/login-page/';
-            } catch (error) {
-                alert('Không thể đăng xuất lúc này. Vui lòng thử lại.');
-            }
-        });
 
         (function rotateDashboardHero() {
             const hero = document.querySelector('.dashboard-hero');
@@ -355,3 +345,5 @@
     </script>
 </body>
 </html>
+
+

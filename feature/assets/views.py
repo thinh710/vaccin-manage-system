@@ -89,8 +89,13 @@ def _get_session_user(request):
 
 
 def _can_manage_inventory(user):
-    """Chỉ Admin mới có quyền truy cập module quản lý kho."""
-    return user.role == User.ROLE_ADMIN
+    """Admin và bác sĩ đều có quyền truy cập module quản lý kho."""
+    return user.role in [User.ROLE_ADMIN, User.ROLE_DOCTOR]
+
+
+def _can_view_inventory(user):
+    """Admin, bác sĩ và nhân viên có thể xem trang tổng quan kho."""
+    return user.role in [User.ROLE_ADMIN, User.ROLE_DOCTOR, User.ROLE_STAFF]
 
 
 def inventory_dashboard_page(request):
@@ -414,7 +419,7 @@ def inventory_overview_page(request):
     if redirect_response:
         return redirect_response
 
-    if not _can_manage_inventory(user):
+    if not _can_view_inventory(user):
         return redirect("/users/dashboard/")
 
     today = timezone.localdate()

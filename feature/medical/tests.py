@@ -140,7 +140,7 @@ class MedicalApiTests(APITestCase):
         self.assertTrue(VaccinationLog.objects.filter(booking=booking).exists())
         self.assertTrue(PostInjectionTracking.objects.filter(vaccination_log__booking=booking).exists())
 
-    def test_doctor_can_confirm_but_cannot_check_in(self):
+    def test_doctor_cannot_confirm_or_check_in(self):
         doctor = User.objects.create(
             full_name="Doctor Confirm Only",
             email="doctor-confirm@example.com",
@@ -165,13 +165,13 @@ class MedicalApiTests(APITestCase):
             {"status": Booking.STATUS_CONFIRMED},
             format="json",
         )
-        self.assertEqual(confirm_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(confirm_response.status_code, status.HTTP_403_FORBIDDEN)
 
         checkin_response = self.client.patch(reverse("medical-check-in", args=[booking.id]))
         self.assertEqual(checkin_response.status_code, status.HTTP_403_FORBIDDEN)
 
         booking.refresh_from_db()
-        self.assertEqual(booking.status, Booking.STATUS_CONFIRMED)
+        self.assertEqual(booking.status, Booking.STATUS_PENDING)
 
     def test_doctor_can_view_today_bookings_list(self):
         doctor = User.objects.create(

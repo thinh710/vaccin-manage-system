@@ -257,8 +257,18 @@ a {
     display: flex;
     flex-wrap: wrap;
     justify-content: end;
+    align-items: center;
     gap: 8px;
     max-width: 640px;
+}
+
+.topbar-actions form {
+    margin: 0;
+    display: flex;
+}
+
+.topbar-actions > * {
+    margin: 0;
 }
 
 .toolbar-btn,
@@ -279,6 +289,11 @@ a {
 }
 
 .toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    appearance: none;
+    -webkit-appearance: none;
     min-height: 36px;
     padding: 0 14px;
     border: 0;
@@ -287,6 +302,8 @@ a {
     cursor: pointer;
     font-weight: 700;
     font-size: 0.92rem;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .toolbar-btn--blue { background: var(--blue-500); }
@@ -417,6 +434,7 @@ a {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
+    align-items: end;
 }
 
 .filter-group label {
@@ -431,6 +449,11 @@ a {
 }
 
 .soft-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    appearance: none;
+    -webkit-appearance: none;
     min-height: 34px;
     padding: 0 12px;
     border-radius: 4px;
@@ -438,6 +461,13 @@ a {
     background: var(--surface-soft);
     color: var(--text);
     cursor: pointer;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.filter-group > .soft-btn {
+    align-self: end;
+    min-height: 38px;
 }
 
 .table-shell {

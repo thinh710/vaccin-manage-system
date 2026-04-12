@@ -372,7 +372,7 @@ def booking_detail(request, booking_id):
                 )
 
             if next_status == Booking.STATUS_CONFIRMED:
-                if user.role not in [User.ROLE_ADMIN, User.ROLE_STAFF, User.ROLE_DOCTOR]:
+                if user.role not in [User.ROLE_ADMIN, User.ROLE_STAFF]:
                     return Response(
                         {"detail": "Chỉ nhân viên hoặc quản trị viên mới được xác nhận lịch tiêm."},
                         status=status.HTTP_403_FORBIDDEN,

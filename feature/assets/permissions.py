@@ -4,7 +4,7 @@ from feature.authentication.models import User
 
 
 class IsAdminOnly(BasePermission):
-    """Tat ca thao tac tren resource nay chi danh cho Admin."""
+    """Tat ca thao tac tren resource nay danh cho Admin va Bac si."""
 
     def has_permission(self, request, view):
         user_id = request.session.get("user_id")
@@ -16,11 +16,11 @@ class IsAdminOnly(BasePermission):
         except User.DoesNotExist:
             return False
 
-        return user.role == User.ROLE_ADMIN
+        return user.role in (User.ROLE_ADMIN, User.ROLE_DOCTOR)
 
 
 class CanReadVaccineStock(BasePermission):
-    """Admin toan quyen; staff/doctor chi duoc xem ton kho vaccine."""
+    """Admin va bac si toan quyen; staff chi duoc xem ton kho vaccine."""
 
     def has_permission(self, request, view):
         user_id = request.session.get("user_id")
@@ -35,7 +35,7 @@ class CanReadVaccineStock(BasePermission):
         if request.method in SAFE_METHODS:
             return user.role in (User.ROLE_ADMIN, User.ROLE_STAFF, User.ROLE_DOCTOR)
 
-        return user.role == User.ROLE_ADMIN
+        return user.role in (User.ROLE_ADMIN, User.ROLE_DOCTOR)
 
 
 IsAdminOrReadOnly = IsAdminOnly
