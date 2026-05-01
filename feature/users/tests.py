@@ -1,8 +1,8 @@
+﻿from pathlib import Path
+
 from django.test import TestCase
-from django.utils import timezone
 
 from feature.authentication.models import User
-from feature.booking.models import Booking
 
 
 class DashboardLocalizationTests(TestCase):
@@ -11,98 +11,105 @@ class DashboardLocalizationTests(TestCase):
         session["user_id"] = user.id
         session.save()
 
-    def test_staff_dashboard_renders_vietnamese_copy(self):
-        staff = User.objects.create(
-            full_name="Y ta Truc",
+    def _create_user(self, *, role, email, full_name="Demo User"):
+        return User.objects.create(
+            full_name=full_name,
+            email=email,
+            password_hash="x",
+            role=role,
+            status=User.STATUS_ACTIVE,
+        )
+
+    def test_staff_dashboard_redirects_to_medical_dashboard(self):
+        staff = self._create_user(
+            role=User.ROLE_STAFF,
             email="staff-dashboard@example.com",
-            password_hash="x",
-            role=User.ROLE_STAFF,
-            status=User.STATUS_ACTIVE,
+            full_name="Y ta Truc",
         )
 
         self._login_as(staff)
         response = self.client.get("/users/dashboard/")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Đăng xuất")
-
-    def test_staff_dashboard_context_includes_pending_count_for_today(self):
-        staff = User.objects.create(
-            full_name="Y ta Pending",
-            email="staff-pending@example.com",
-            password_hash="x",
-            role=User.ROLE_STAFF,
-            status=User.STATUS_ACTIVE,
-        )
-        Booking.objects.create(
-            full_name="Khach Pending",
-            phone="0912888999",
-            email="pending-booking@example.com",
-            vaccine_name="Flu",
-            vaccine_date=timezone.localdate(),
-            dose_number=1,
-            status=Booking.STATUS_PENDING,
-            booking_source=Booking.BOOKING_SOURCE_ONLINE,
-        )
-        Booking.objects.create(
-            full_name="Khach Confirmed",
-            phone="0912777666",
-            email="confirmed-booking@example.com",
-            vaccine_name="Flu",
-            vaccine_date=timezone.localdate(),
-            dose_number=1,
-            status=Booking.STATUS_CONFIRMED,
-            booking_source=Booking.BOOKING_SOURCE_ONLINE,
-        )
-
-        self._login_as(staff)
-        response = self.client.get("/users/dashboard/")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["pending_count"], 1)
-
-    def test_doctor_dashboard_renders_admin_center(self):
-        doctor = User.objects.create(
-            full_name="Bac si Truong",
-            email="doctor-dashboard@example.com",
-            password_hash="x",
-            role=User.ROLE_DOCTOR,
-            status=User.STATUS_ACTIVE,
-        )
-
-        self._login_as(doctor)
-        response = self.client.get("/users/dashboard/")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Trung tâm điều hành lịch tiêm")
-        self.assertContains(response, "Bác sĩ hệ thống")
-        self.assertContains(response, "/assets/")
-
-    def test_doctor_can_confirm_pending_booking_from_dashboard(self):
-        doctor = User.objects.create(
-            full_name="Bac si Xac nhan",
-            email="doctor-confirm@example.com",
-            password_hash="x",
-            role=User.ROLE_DOCTOR,
-            status=User.STATUS_ACTIVE,
-        )
-        booking = Booking.objects.create(
-            full_name="Khach Cho Xac Nhan",
-            phone="0901999888",
-            email="pending-confirm@example.com",
-            vaccine_name="Flu",
-            vaccine_date=timezone.localdate(),
-            dose_number=1,
-            status=Booking.STATUS_PENDING,
-            booking_source=Booking.BOOKING_SOURCE_ONLINE,
-        )
-
-        self._login_as(doctor)
-        response = self.client.post(
-            "/users/dashboard/",
-            {"action": "confirm_booking", "booking_id": booking.id},
-        )
 
         self.assertEqual(response.status_code, 302)
-        booking.refresh_from_db()
-        self.assertEqual(booking.status, Booking.STATUS_CONFIRMED)
+        self.assertEqual(response["Location"], "/medical/dashboard/")
+
+    def test_doctor_dashboard_redirects_to_medical_dashboard(self):
+        doctor = self._create_user(
+            role=User.ROLE_DOCTOR,
+            email="doctor-dashboard@example.com",
+            full_name="Bac si Truc",
+        )
+
+        self._login_as(doctor)
+        response = self.client.get("/users/dashboard/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/medical/dashboard/")
+
+    def test_admin_dashboard_redirects_to_inventory_dashboard(self):
+        admin = self._create_user(
+            role=User.ROLE_ADMIN,
+            email="admin-dashboard@example.com",
+            full_name="Admin",
+        )
+
+        self._login_as(admin)
+        response = self.client.get("/users/dashboard/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/assets/")
+
+    def test_admin_cannot_open_medical_dashboard(self):
+        admin = self._create_user(
+            role=User.ROLE_ADMIN,
+            email="admin-medical-dashboard@example.com",
+            full_name="Admin",
+        )
+
+        self._login_as(admin)
+        response = self.client.get("/medical/dashboard/")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/assets/")
+
+    def test_citizen_dashboard_stays_on_citizen_dashboard(self):
+        citizen = self._create_user(
+            role=User.ROLE_CITIZEN,
+            email="citizen-dashboard@example.com",
+            full_name="Citizen",
+        )
+
+        self._login_as(citizen)
+        response = self.client.get("/users/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "users/dashboard.html")
+
+        content = response.content.decode("utf-8")
+        self.assertIn("dashboard-screening-question-group", content)
+        self.assertIn("dashboard-online-review", content)
+        self.assertNotIn("dashboard-has-fever", content)
+
+    def test_medical_dashboard_and_script_use_utf8_vietnamese(self):
+        staff = self._create_user(
+            role=User.ROLE_STAFF,
+            email="medical-dashboard@example.com",
+            full_name="Dieu duong Truong",
+        )
+
+        self._login_as(staff)
+        response = self.client.get("/medical/dashboard/")
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode("utf-8")
+        self.assertIn("Dashboard y khoa", content)
+        self.assertIn("logoutBtn", content)
+        self.assertIn("Walk-in", content)
+
+        js_path = Path(__file__).resolve().parents[2] / "feature" / "medical" / "static" / "medical" / "js" / "medical.js"
+        js_content = js_path.read_text(encoding="utf-8")
+
+        self.assertIn("Ngay truc:", js_content)
+        self.assertIn("Check-in", js_content)
+        self.assertNotIn("NgÃƒÆ’", js_content)
+

@@ -1,7 +1,24 @@
+@charset "UTF-8";
+
+:root {
+    --dashboard-font: "Segoe UI", "Noto Sans", Arial, Helvetica, sans-serif;
+}
+
 body.auth-body {
     margin: 0;
     min-height: 100vh;
+    font-family: var(--dashboard-font);
     background: linear-gradient(180deg, #d7f4fb 0%, #eaf9ff 38%, #f7fcff 100%);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea,
+table {
+    font-family: var(--dashboard-font);
 }
 
 .dashboard-topbar {
@@ -217,12 +234,16 @@ body.auth-body {
 }
 
 .dashboard-nav-item {
+    border: 0;
+    background: transparent;
     color: #0f172a;
     text-decoration: none;
     font-weight: 700;
+    font: inherit;
     padding: 16px 18px;
     white-space: nowrap;
     border-bottom: 3px solid transparent;
+    cursor: pointer;
 }
 
 .dashboard-nav-item.is-active {
@@ -395,5 +416,906 @@ body.auth-body {
 
     .dashboard-hero-dots {
         bottom: 2px;
+    }
+}
+
+.dashboard-main {
+    width: 100%;
+}
+
+.dashboard-tab-panel {
+    display: none;
+}
+
+.dashboard-tab-panel.is-active {
+    display: block;
+}
+
+.seasonal-section {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 8px 24px 42px;
+}
+
+.seasonal-title {
+    margin: 0 0 18px;
+    text-align: center;
+    font-size: clamp(2rem, 3vw, 3rem);
+    line-height: 1.08;
+    color: #0f172a;
+}
+
+.seasonal-title span {
+    color: #f97316;
+}
+
+.seasonal-tabs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+}
+
+.seasonal-tab {
+    min-height: 50px;
+    padding: 0 22px;
+    border: 1px solid #12b6c8;
+    border-radius: 8px 8px 0 0;
+    background: #fff;
+    color: #334155;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.seasonal-tab.is-active {
+    background: linear-gradient(135deg, #11b8c7, #0ea5b7);
+    color: #fff;
+}
+
+.seasonal-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(340px, 0.95fr);
+    gap: 18px;
+    padding: 18px;
+    border: 5px solid #10b6c8;
+    border-radius: 0 8px 8px 8px;
+    background: #f7fdff;
+    box-shadow: 0 22px 44px rgba(17, 184, 199, 0.14);
+}
+
+.seasonal-copy {
+    position: relative;
+    min-height: 540px;
+    padding: 26px;
+    border-radius: 8px;
+    color: #fff;
+    overflow: hidden;
+}
+
+.seasonal-copy::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(7, 76, 88, 0.28), rgba(7, 76, 88, 0.04));
+    pointer-events: none;
+}
+
+.seasonal-copy-content {
+    position: relative;
+    z-index: 1;
+    max-width: 68%;
+}
+
+.seasonal-copy-icon {
+    width: 62px;
+    height: 62px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.14);
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    margin-bottom: 18px;
+}
+
+.seasonal-copy h3 {
+    margin: 0 0 14px;
+    font-size: clamp(1.6rem, 2.2vw, 2.3rem);
+    line-height: 1.2;
+}
+
+.seasonal-copy p {
+    margin: 0 0 14px;
+    font-size: 1.02rem;
+    line-height: 1.7;
+}
+
+.seasonal-bullets {
+    margin: 18px 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 12px;
+}
+
+.seasonal-bullets li {
+    display: flex;
+    align-items: start;
+    gap: 10px;
+    line-height: 1.6;
+}
+
+.seasonal-bullet-dot {
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-top: 2px;
+    background: rgba(255, 255, 255, 0.18);
+    display: grid;
+    place-items: center;
+    font-size: 0.8rem;
+}
+
+.seasonal-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.seasonal-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    display: grid;
+    align-content: start;
+}
+
+.seasonal-card-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 0.92rem;
+    color: #475569;
+}
+
+.seasonal-card-country {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #f8fafc;
+}
+
+.seasonal-card-discount {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #f59e0b;
+    color: #fff;
+    font-weight: 700;
+}
+
+.seasonal-card-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.seasonal-card-title {
+    margin: 12px 0 4px;
+    color: #475569;
+    font-size: 0.98rem;
+}
+
+.seasonal-card-desc {
+    margin: 0 0 18px;
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    min-height: 54px;
+}
+
+.seasonal-card-price {
+    color: #f97316;
+    font-size: 1.02rem;
+    font-weight: 800;
+}
+
+.seasonal-card-price span {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.seasonal-card-price.is-cta {
+    color: #0f172a;
+}
+
+.seasonal-card-price.is-cta span {
+    display: none;
+}
+
+.seasonal-card-old-price {
+    margin-top: 4px;
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+.seasonal-card-btn,
+.primary-btn,
+.secondary-btn,
+.action-btn {
+    min-height: 42px;
+    border-radius: 8px;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.seasonal-card-btn {
+    margin-top: 14px;
+    border: none;
+    background: linear-gradient(135deg, #dff4ff, #d4f0fb);
+    color: #0f7f90;
+}
+
+.dashboard-module-header,
+.dashboard-info-hero {
+    width: min(1180px, calc(100% - 48px));
+    margin: 28px auto 18px;
+    padding: 26px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(14, 165, 233, 0.14);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-module-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.dashboard-eyebrow {
+    color: #0f766e;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.84rem;
+    font-weight: 800;
+}
+
+.dashboard-module-header h1,
+.dashboard-info-hero h1 {
+    margin: 10px 0 12px;
+    color: #0f172a;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    line-height: 1.08;
+}
+
+.dashboard-module-header p,
+.dashboard-info-hero p,
+.dashboard-panel p {
+    color: #475569;
+    line-height: 1.7;
+}
+
+.dashboard-module-badges {
+    min-width: 220px;
+    display: grid;
+    gap: 10px;
+}
+
+.dashboard-module-badges span,
+.mini-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-weight: 800;
+    text-align: center;
+}
+
+.citizen-booking-stats,
+.citizen-booking-grid,
+.screening-layout,
+.dashboard-info-grid {
+    width: min(1180px, calc(100% - 48px));
+    margin: 0 auto 22px;
+}
+
+.citizen-booking-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.citizen-booking-stats article,
+.dashboard-panel {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(14, 165, 233, 0.14);
+    border-radius: 8px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.citizen-booking-stats article {
+    padding: 18px;
+}
+
+.citizen-booking-stats span,
+.summary-item span {
+    display: block;
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.citizen-booking-stats strong {
+    color: #0f172a;
+    font-size: 2rem;
+}
+
+.citizen-booking-grid {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.88fr) minmax(0, 1.45fr);
+    gap: 18px;
+}
+
+.dashboard-panel {
+    padding: 22px;
+}
+
+.dashboard-panel-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.dashboard-panel-head h2,
+.dashboard-panel h2,
+.dashboard-panel h3 {
+    margin: 0 0 6px;
+    color: #0f172a;
+}
+
+.dashboard-form {
+    display: grid;
+    gap: 14px;
+}
+
+.field,
+.checkbox-field {
+    display: grid;
+    gap: 7px;
+    color: #0f172a;
+    font-weight: 800;
+}
+
+.field-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 120px;
+    gap: 12px;
+}
+
+.field input,
+.field select,
+.field textarea,
+.dashboard-filters input,
+.dashboard-filters select {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #0f172a;
+    background: #fff;
+    font: inherit;
+    font-weight: 400;
+}
+
+.field textarea {
+    resize: vertical;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.dashboard-filters input:focus,
+.dashboard-filters select:focus {
+    outline: none;
+    border-color: #0891b2;
+    box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.12);
+}
+
+.dashboard-vaccine-field {
+    min-width: 0;
+}
+
+.dashboard-vaccine-combobox {
+    position: relative;
+    min-width: 0;
+}
+
+.field .dashboard-vaccine-combobox-input {
+    padding-right: 48px;
+}
+
+.dashboard-vaccine-combobox-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    min-height: 44px;
+    border: 0;
+    border-left: 1px solid #cbd5e1;
+    border-radius: 0 8px 8px 0;
+    background: transparent;
+    color: #334155;
+    cursor: pointer;
+}
+
+.dashboard-vaccine-combobox-toggle:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.dashboard-vaccine-combobox-list {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 6px);
+    right: 0;
+    left: 0;
+    display: none;
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid rgba(15, 23, 42, 0.14);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+}
+
+.dashboard-vaccine-combobox-list.is-open {
+    display: block;
+}
+
+.dashboard-vaccine-combobox-option,
+.dashboard-vaccine-combobox-empty {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+    color: #0f172a;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.dashboard-vaccine-combobox-option {
+    display: grid;
+    gap: 3px;
+    cursor: pointer;
+}
+
+.dashboard-vaccine-combobox-option:last-child,
+.dashboard-vaccine-combobox-empty:last-child {
+    border-bottom: 0;
+}
+
+.dashboard-vaccine-combobox-option span {
+    color: #64748b;
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+
+.dashboard-vaccine-combobox-option:hover,
+.dashboard-vaccine-combobox-option.is-active {
+    background: rgba(8, 145, 178, 0.1);
+}
+
+.dashboard-vaccine-combobox-empty {
+    color: #92400e;
+}
+
+.dashboard-vaccine-native-select {
+    display: none;
+}
+
+.dashboard-vaccine-help {
+    color: #64748b;
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.primary-btn {
+    border: none;
+    padding: 0 18px;
+    background: linear-gradient(135deg, #0f766e, #0891b2);
+    color: #fff;
+}
+
+.secondary-btn {
+    border: 1px solid #cbd5e1;
+    padding: 0 18px;
+    background: #fff;
+    color: #334155;
+}
+
+.dashboard-alert {
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: #ecfeff;
+    color: #155e75;
+    border: 1px solid #a5f3fc;
+    font-weight: 700;
+}
+
+.dashboard-alert.is-error,
+.dashboard-alert.is-warning {
+    background: #fff7ed;
+    color: #92400e;
+    border-color: #fed7aa;
+}
+
+.dashboard-alert.is-success {
+    background: #f0fdf4;
+    color: #166534;
+    border-color: #bbf7d0;
+}
+
+.dashboard-filters {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.7fr) minmax(140px, 0.6fr) auto;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.dashboard-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.dashboard-table-wrap table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.dashboard-table-wrap th,
+.dashboard-table-wrap td {
+    padding: 12px 10px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+    text-align: left;
+    vertical-align: top;
+}
+
+.dashboard-table-wrap th {
+    color: #475569;
+    font-size: 0.86rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.status-badge,
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 0.84rem;
+    font-weight: 800;
+    white-space: nowrap;
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+}
+
+.status-cancelled,
+.status-completed {
+    background: rgba(71, 85, 105, 0.12);
+    color: #475569;
+}
+
+.status-delayed,
+.status-in_observation {
+    background: rgba(180, 83, 9, 0.12);
+    color: #b45309;
+}
+
+.status-ready_to_inject {
+    background: rgba(109, 40, 217, 0.12);
+    color: #6d28d9;
+}
+
+.row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.action-btn {
+    min-height: 34px;
+    padding: 0 10px;
+    border: 1px solid #bae6fd;
+    background: #ecfeff;
+    color: #0369a1;
+    font-size: 0.86rem;
+}
+
+.action-btn.is-danger {
+    border-color: #fecdd3;
+    background: #fff1f2;
+    color: #be123c;
+}
+
+.empty-state {
+    padding: 18px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    color: #475569;
+    font-weight: 700;
+}
+
+.dashboard-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(15, 23, 42, 0.46);
+}
+
+.dashboard-modal.is-open {
+    display: flex;
+}
+
+.dashboard-modal-dialog {
+    width: min(430px, 100%);
+    padding: 24px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.26);
+}
+
+.screening-layout {
+    display: grid;
+    grid-template-columns: 330px minmax(0, 1fr);
+    gap: 18px;
+}
+
+.screening-booking-list,
+.screening-detail-stack {
+    display: grid;
+    gap: 12px;
+}
+
+.screening-booking-card {
+    width: 100%;
+    text-align: left;
+    border: 1px solid rgba(148, 163, 184, 0.26);
+    background: #fff;
+    border-radius: 8px;
+    padding: 14px;
+    cursor: pointer;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.screening-booking-card:hover,
+.screening-booking-card.is-active {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+    border-color: rgba(14, 165, 233, 0.45);
+}
+
+.screening-booking-card strong,
+.screening-booking-card small,
+.screening-booking-card span {
+    display: block;
+}
+
+.screening-booking-card strong {
+    margin-bottom: 6px;
+    color: #0f172a;
+}
+
+.screening-booking-card small,
+.screening-booking-card span {
+    color: #475569;
+    line-height: 1.5;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.summary-item {
+    padding: 14px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.summary-item strong {
+    color: #0f172a;
+}
+
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.checkbox-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    font-weight: 700;
+}
+
+.checkbox-field.is-wide {
+    grid-column: 1 / -1;
+}
+
+.checkbox-field input {
+    width: 18px;
+    height: 18px;
+}
+
+.result-note {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #334155;
+}
+
+.empty-screening-panel {
+    text-align: center;
+}
+
+.dashboard-info-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.dashboard-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.dashboard-info-detail-grid {
+    width: min(1180px, calc(100% - 48px));
+    margin: 0 auto 42px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.dashboard-info-detail {
+    align-content: start;
+}
+
+.dashboard-info-list {
+    margin: 14px 0 0;
+    padding-left: 20px;
+    color: #334155;
+    line-height: 1.68;
+}
+
+.dashboard-info-list li + li {
+    margin-top: 10px;
+}
+
+@media (max-width: 980px) {
+    .seasonal-panel,
+    .citizen-booking-grid,
+    .screening-layout,
+    .dashboard-module-header {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-module-header {
+        flex-direction: column;
+    }
+
+    .seasonal-copy {
+        min-height: 420px;
+    }
+
+    .seasonal-copy-content {
+        max-width: 100%;
+    }
+
+    .citizen-booking-stats,
+    .dashboard-info-grid,
+    .dashboard-info-detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-filters {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .seasonal-section,
+    .dashboard-module-header,
+    .dashboard-info-hero,
+    .citizen-booking-stats,
+    .citizen-booking-grid,
+    .screening-layout,
+    .dashboard-info-grid,
+    .dashboard-info-detail-grid {
+        width: calc(100% - 32px);
+    }
+
+    .seasonal-section {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .seasonal-cards,
+    .citizen-booking-stats,
+    .dashboard-info-grid,
+    .dashboard-info-detail-grid,
+    .dashboard-filters,
+    .summary-grid,
+    .checkbox-grid,
+    .field-row {
+        grid-template-columns: 1fr;
+    }
+
+    .seasonal-tab,
+    .seasonal-panel {
+        border-radius: 8px;
+    }
+
+    .seasonal-copy {
+        min-height: 360px;
+        padding: 20px;
+    }
+
+    .dashboard-vaccine-combobox-list {
+        max-height: 210px;
     }
 }

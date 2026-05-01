@@ -28,6 +28,7 @@ class VaccineAdmin(admin.ModelAdmin):
         "name",
         "manufacturer",
         "batch_number",
+        "price",
         "quantity",
         "minimum_stock",
         "expiration_date",

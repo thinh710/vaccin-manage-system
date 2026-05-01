@@ -38,6 +38,7 @@ class Vaccine(models.Model):
     name = models.CharField(max_length=100, verbose_name="Tên vắc-xin")
     manufacturer = models.CharField(max_length=100, verbose_name="Nhà sản xuất")
     batch_number = models.CharField(max_length=50, unique=True, verbose_name="Số lô")
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Giá niêm yết")
     quantity = models.PositiveIntegerField(default=0, verbose_name="Số lượng tồn")
     minimum_stock = models.PositiveIntegerField(default=10, verbose_name="Tồn tối thiểu")
     expiration_date = models.DateField(verbose_name="Hạn sử dụng")
@@ -120,14 +121,14 @@ class StockImport(models.Model):
 
 
 class StockExport(models.Model):
-    EXPORT_TYPE_TRANSFER = 'transfer'
-    EXPORT_TYPE_DISPOSAL = 'disposal'
-    EXPORT_TYPE_EXPIRED  = 'expired'
+    EXPORT_TYPE_TRANSFER = "transfer"
+    EXPORT_TYPE_DISPOSAL = "disposal"
+    EXPORT_TYPE_EXPIRED = "expired"
 
     EXPORT_TYPE_CHOICES = [
-        (EXPORT_TYPE_TRANSFER, 'Xuất chuyển'),
-        (EXPORT_TYPE_DISPOSAL, 'Xuất hủy'),
-        (EXPORT_TYPE_EXPIRED,  'Hủy hết hạn'),
+        (EXPORT_TYPE_TRANSFER, "Xuất chuyển"),
+        (EXPORT_TYPE_DISPOSAL, "Xuất hủy"),
+        (EXPORT_TYPE_EXPIRED, "Hủy hết hạn"),
     ]
 
     vaccine = models.ForeignKey(

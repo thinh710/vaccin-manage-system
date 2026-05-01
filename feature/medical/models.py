@@ -1,5 +1,6 @@
 from django.db import models
 
+from feature.authentication.models import User
 from feature.booking.models import Booking
 
 
@@ -10,12 +11,49 @@ class PreScreeningDeclaration(models.Model):
     has_chronic_condition = models.BooleanField(default=False)
     recent_symptoms = models.TextField(blank=True, null=True)
     current_medications = models.TextField(blank=True, null=True)
+    has_severe_allergy = models.BooleanField(default=False)
+    severe_allergy_details = models.TextField(blank=True, null=True)
+    has_current_health_issue = models.BooleanField(default=False)
+    current_health_issue_details = models.TextField(blank=True, null=True)
+    had_recent_vaccination = models.BooleanField(default=False)
+    recent_vaccination_details = models.TextField(blank=True, null=True)
+    uses_immunosuppressive_medication = models.BooleanField(default=False)
+    immunosuppressive_medication_details = models.TextField(blank=True, null=True)
+    has_pregnancy_or_breastfeeding_consideration = models.BooleanField(default=False)
+    pregnancy_or_breastfeeding_details = models.TextField(blank=True, null=True)
     note = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Pre-screening for Booking {self.booking.id}"
+
+
+class OnlineEligibilityReview(models.Model):
+    DECISION_ELIGIBLE = "eligible"
+    DECISION_DELAYED = "delayed"
+    DECISION_INELIGIBLE = "ineligible"
+
+    DECISION_CHOICES = [
+        (DECISION_ELIGIBLE, "Eligible"),
+        (DECISION_DELAYED, "Delayed"),
+        (DECISION_INELIGIBLE, "Ineligible"),
+    ]
+
+    booking = models.OneToOneField(Booking, on_delete=models.CASCADE, related_name="online_review")
+    decision = models.CharField(max_length=20, choices=DECISION_CHOICES, default=DECISION_ELIGIBLE)
+    doctor_note = models.TextField(blank=True, null=True)
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="online_eligibility_reviews",
+    )
+    reviewed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Online review for Booking {self.booking.id} - {self.decision}"
 
 
 class ScreeningResult(models.Model):
